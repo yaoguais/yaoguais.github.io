@@ -1,4 +1,1 @@
-yaoguais.github.io
-==================
-
-yaoguai's blog
+hello yaoguai !
