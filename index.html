@@ -61,7 +61,13 @@
 		},function(){
 			$.nav_high_light(this,false,"hover");
 		});
-		$(".nav li a").eq(0).click();
+		
+		var articleTag = window.location.href.match(/s=(.+)/);
+		if(articleTag && ($article = $(".nav li a[href='"+articleTag[1]+"']"))){
+			$article.click();
+		}else{
+			$(".nav li a").eq(0).click();
+		}
 		$(".back-to-top").css({
 			position : "fixed",
 			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
