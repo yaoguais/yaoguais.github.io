@@ -49,11 +49,6 @@
 			$(".nav li a[href='"+url+"']").addClass(hlClass);
 		}		
 	}
-	$.scroll_moveto_top = function(duration){
-		if($("html,body").scrollTop()>=$(window).height()){
-			$("html,body").stop().animate( { scrollTop: 0}, duration);
-		}
-	}
     $(document).ready(function(){
         $(".nav li a").click(function(){
             $.load_md(this,"markDownContent","mbBlock",function(){
