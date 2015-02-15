@@ -67,3 +67,16 @@ ul.nav li a.hover {
     color: #67a5cd;
     padding: 7px 15px 7px 30px;
 }
+
+.back-to-top{
+	width: 19px;
+	height: 57px;
+	background-image: url(../images/backTop.png);
+	background-position:0 0;
+	cursor: pointer;
+	display: none;
+}
+
+.back-to-top:hover{
+	background-position:-19px 0;
+}
