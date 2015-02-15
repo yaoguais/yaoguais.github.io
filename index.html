@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="css/style.css" />
+    <script type="text/javascript" src="js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="css/markdown.css" />
+    <script type="text/javascript" src="js/markdown.min.js"></script>
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+            <li><a href="md/php/cli.md">php cli执行流程</a></li>
+            <li><a href="md/php/extension.md">php 扩展开发(一)</a></li>
+        </ul>
+    </div>
+</div>
+<script type="text/javascript">
+    $.load_md = function(obj,appendId,blockClass,call){
+        blockClass = blockClass || "mdBlock";
+        var $this   =   $(obj),
+            index   =   $this.parent().index(obj),
+            url     =   $this.attr('href'),
+            $loadObj =   $("."+blockClass+"[data-href='"+url+"']"),
+            isLoad  =   $loadObj.length > 0;
+        if(!isLoad){
+            $.get(url,function(data){
+			   $("."+blockClass).hide();
+               $("#"+appendId).append('<div class="'+blockClass+'" data-href="'+url+'">'+markdown.toHTML(data)+'</div>');
+			   call && call();
+            });
+        }else{
+            $loadObj.show().siblings().hide();
+			call && call();
+        }
+    }
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		if(on){
+			$(obj).addClass(hlClass).siblings().removeClass(hlClass);
+		}else{
+			$(obj).removeClass(hlClass).siblings().removeClass(hlClass);
+		}		
+	}
+    $(document).ready(function(){
+        $(".nav li a").click(function(){
+            $.load_md(this,"markDownContent","mbBlock",function(){
+				$(".nav").height($("#markDownContent").height() - parseInt($(".nav").css("padding-top")));
+			});
+			$.nav_high_light(this,true,"hover");
+            return false;
+        }).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			$.nav_high_light(this,false,"hover");
+		});
+		$(".nav li a").eq(0).click();
+		$(".nav").mouseleave(function(){
+			var url = $(".mbBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass("hover");
+		});
+    });
+
+</script>
+</body>
+</html>
