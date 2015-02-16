@@ -17,6 +17,7 @@ body{
 
 .left-content{
     width: 950px;
+	min-height: 1000px;
     float: left;
 	background: #FFFFFF;
 }
