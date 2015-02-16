@@ -1,1 +1,1 @@
-[hello yaoguai !](yaoguais.github.io)
+[hello yaoguai !](http://yaoguais.github.io/)
