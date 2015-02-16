@@ -10,6 +10,15 @@
 
 只要了解过PHP生命周期的应该都知道，php会一次执行MINIT、RINIT、RSHUTDOWN、MSHUTDOWN四个过程，本文就顺着这条线，追踪php在CLI模式下都做了些什么。
 
+目录：
+
+1. 执行main入口函数
+2. 执行模块注册流程
+3. 模块初始化MINIT流程
+4. 请求初始化RINIT流程
+5. 请求结束RSHUTDOWN流程
+6. 模块销毁MSHUTDOWN函数
+
 ### 执行main入口函数 ###
 
 	PHP-SRC/sapi/cli/php_cli.c:1181

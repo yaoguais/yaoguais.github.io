@@ -10,6 +10,12 @@
 
 我们都知道大多数扩展都有自己的配置项，那么它的怎么从配置文件中读取出来，又是怎么传给扩展自身的呢？今天就让我们一探究竟。
 
+目录：
+
+1. 配置文件解析
+2. 模块扩展的配置
+3. 总结
+
 ### 1.配置文件解析 ###
 
 在[php cli执行流程](?s=md/php/cli.md)一文中，我们了解到php.ini文件解析是通过php\_module\_startup函数中的php\_init\_config实现的。php\_init\_config的实现如下：
@@ -207,4 +213,178 @@
 	Cannot access memory at address 0x1700000048
 	(gdb) 
 
-我们可以发现，所有的元素都是STRING类型的，并且on、off等已经被转换成1、-1了。
+我们可以发现，所有的元素都是STRING类型的，并且on、off已经被转换成1、-1了。
+
+
+
+
+### 2.模块扩展的配置 ###
+
+配置完configuration_hash后，紧接着就进行扩展的配置。
+	
+	if (php_init_config() == FAILURE) {
+		return FAILURE;
+	}
+
+	/* Register PHP core ini entries */
+	REGISTER_INI_ENTRIES();
+
+REGISTER_INI_ENTRIES宏展开
+	
+	#define REGISTER_INI_ENTRIES() zend_register_ini_entries(ini_entries, module_number)
+	
+ini_entries是一个zend_ini_entry_def结构体
+
+	typedef struct _zend_ini_entry_def {
+		const char *name;
+		ZEND_INI_MH((*on_modify));	/*配置项注册或修改的时候会调用*/
+		void *mh_arg1;
+		void *mh_arg2;
+		void *mh_arg3;
+		const char *value;
+		void (*displayer)(zend_ini_entry *ini_entry, int type);
+		int modifiable;
+	
+		uint name_length;
+		uint value_length;
+	} zend_ini_entry_def;
+
+	#define ZEND_INI_MH(name) int name(zend_ini_entry *entry, 
+			zend_string *new_value, void *mh_arg1, void *mh_arg2, void *mh_arg3, int stage)
+
+通过分析，得出zend_register_ini_entries的ini_entries来自main.c:524的PHP_INI_BEGIN()宏
+
+	#define PHP_INI_BEGIN		ZEND_INI_BEGIN
+	#define ZEND_INI_BEGIN()		static const zend_ini_entry_def ini_entries[] = {
+	#define ZEND_INI_END()		{ NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0} };
+
+
+
+zend_register_ini_entries实现如下
+
+	ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int module_number) /* {{{ */
+	{
+		zend_ini_entry *p;
+		zval *default_value;
+		HashTable *directives = registered_zend_ini_directives;
+	//...
+	
+		/*通过ZEND_INI_END可以看出第一个元素的name属性是NULL*/
+		while (ini_entry->name) {
+			p = pemalloc(sizeof(zend_ini_entry), 1);
+			p->name = zend_string_init(ini_entry->name, ini_entry->name_length, 1);
+			p->on_modify = ini_entry->on_modify;
+			p->mh_arg1 = ini_entry->mh_arg1;
+			p->mh_arg2 = ini_entry->mh_arg2;
+			p->mh_arg3 = ini_entry->mh_arg3;
+			p->value = NULL;
+			p->orig_value = NULL;
+			p->displayer = ini_entry->displayer;
+			p->modifiable = ini_entry->modifiable;
+	
+			p->orig_modifiable = 0;
+			p->modified = 0;
+			p->module_number = module_number;
+	
+			if (zend_hash_add_ptr(directives, p->name, (void*)p) == NULL) {
+				if (p->name) {
+					zend_string_release(p->name);
+				}
+				zend_unregister_ini_entries(module_number);
+				return FAILURE;
+			}
+			if (((default_value = zend_get_configuration_directive(p->name)) != NULL) &&
+	            (!p->on_modify || p->on_modify(p, Z_STR_P(default_value), p->mh_arg1, p->mh_arg2, p->mh_arg3, ZEND_INI_STAGE_STARTUP) == SUCCESS)) {
+	
+				p->value = zend_string_copy(Z_STR_P(default_value));
+			} else {
+				p->value = ini_entry->value ?
+					zend_string_init(ini_entry->value, ini_entry->value_length, 1) : NULL;
+	
+				if (p->on_modify) {
+					p->on_modify(p, p->value, p->mh_arg1, p->mh_arg2, p->mh_arg3, ZEND_INI_STAGE_STARTUP);
+				}
+			}
+			ini_entry++;
+		}
+		return SUCCESS;
+	}
+
+
+zend_get_configuration_directive用来获取配置参数
+
+	zend_get_configuration_directive_p = utility_functions->get_configuration_directive;
+	
+	:main.c:2097
+
+	zuf.get_configuration_directive = php_get_configuration_directive_for_zend;
+	static zval *php_get_configuration_directive_for_zend(zend_string *name)
+	{
+		return cfg_get_entry_ex(name);
+	}
+	PHPAPI zval *cfg_get_entry_ex(zend_string *name)
+	{
+		return zend_hash_find(&configuration_hash, name);
+	}
+
+最后我们可以看到，是获取configuration_hash中的值
+
+	/*如果配置文件中存在配置项，那么就使用配置文件中的值,否则的话，就使用模块硬编码的默认值*/
+	if (((default_value = zend_get_configuration_directive(p->name)) != NULL) &&
+        (!p->on_modify || p->on_modify(p, Z_STR_P(default_value), p->mh_arg1, p->mh_arg2, p->mh_arg3, ZEND_INI_STAGE_STARTUP) == SUCCESS)) {
+
+		p->value = zend_string_copy(Z_STR_P(default_value));
+	}
+
+这里初始化了ini_entries的值，现在我们对比一下扩展,以bcmath为例
+	
+	php_bcmath.h
+	PHP_INI_BEGIN()
+		STD_PHP_INI_ENTRY("bcmath.scale", "0", PHP_INI_ALL, OnUpdateLongGEZero, bc_precision, zend_bcmath_globals, bcmath_globals)
+	PHP_INI_END()
+
+	PHP_MINIT_FUNCTION(bcmath)
+	{
+		REGISTER_INI_ENTRIES();
+	
+		return SUCCESS;
+	}
+	
+在MINIT函数中，调用REGISTER_INI_ENTRIES,读取configuration_hash中配置文件的内容，然后更新到自己的ini_entries变量中
+这个同main.c中的ini_entries由于是不同文件的全局静态变量，所以没有联系。
+
+同理，看一下swoole的实现
+
+	PHP_INI_BEGIN()
+	STD_PHP_INI_ENTRY("swoole.aio_thread_num", "2", PHP_INI_ALL, OnUpdateLong, aio_thread_num, zend_swoole_globals, swoole_globals)
+	STD_PHP_INI_ENTRY("swoole.display_errors", "2", PHP_INI_ALL, OnUpdateBool, display_errors, zend_swoole_globals, swoole_globals)
+	STD_PHP_INI_ENTRY("swoole.message_queue_key", "0", PHP_INI_ALL, OnUpdateString, message_queue_key, zend_swoole_globals, swoole_globals)
+	/**
+	 * Unix socket buffer size
+	 */
+	STD_PHP_INI_ENTRY("swoole.unixsock_buffer_size", "8388608", PHP_INI_ALL, OnUpdateLong, unixsock_buffer_size, zend_swoole_globals, swoole_globals)
+	PHP_INI_END()
+
+	PHP_MINIT_FUNCTION(swoole)
+	{
+		ZEND_INIT_MODULE_GLOBALS(swoole, php_swoole_init_globals, NULL);
+		/*同样调用这个宏，让配置文件中的配置值覆盖硬编码的默认值*/
+		REGISTER_INI_ENTRIES();
+
+其中的ZEND_INIT_MODULE_GLOBALS展示
+
+	#define ZEND_INIT_MODULE_GLOBALS(module_name, globals_ctor, globals_dtor)	\
+		globals_ctor(&module_name##_globals);	
+	#endif
+
+即
+	
+	php_swoole_init_globals(&swoole_globals);
+
+
+### 3.总结 ###
+
+1. 解析配置文件，把解析的结果添加到configuration_hash变量中
+2. 每个模块调用EGISTER_INI_ENTRIES();宏，来读取配置文件中用户设置的值，来覆盖自己的默认值
+
+	
