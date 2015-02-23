@@ -6,7 +6,7 @@
 - GNU gdb (GDB) Red Hat Enterprise Linux (7.2-75.el6)
 - Linux version 2.6.32-504.1.3.el6.x86_64 (gcc version 4.4.7 20120313 (Red Hat 4.4.7-11) (GCC) )
 
-### 前言： ###
+前言：
 
 只要了解过PHP生命周期的应该都知道，php会一次执行MINIT、RINIT、RSHUTDOWN、MSHUTDOWN四个过程，本文就顺着这条线，追踪php在CLI模式下都做了些什么。
 
