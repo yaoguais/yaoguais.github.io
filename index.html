@@ -29,6 +29,37 @@
 			<li><a title="数据结构之AVL平衡树" href="md/data_structure/avl.md">avl</a></li>
 			<li><a title="数据结构之散列表总结" href="md/data_structure/hash.md">hash table</a></li>
 			<li><a title="MYSQL之索引优化" href="md/mysql/index.md">mysql index optimize</a></li>
+			
+			<li><a title="主页" href="md/index.md">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="md/php/cli.md">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="md/php/extension.md">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="md/php/extension-ini.md">php extension 2</a></li>
+			<li><a title="排序算法之插入排序" href="md/algorithm/insert.md">insert sort</a></li>
+			<li><a title="排序算法之冒泡排序" href="md/algorithm/bubble.md">bubble sort</a></li>
+			<li><a title="排序算法之快速排序" href="md/algorithm/quick.md">quick sort</a></li>
+			<li><a title="排序算法之选择排序" href="md/algorithm/select.md">select sort</a></li>
+			<li><a title="排序算法之归并排序" href="md/algorithm/merge.md">merge sort</a></li>
+			<li><a title="排序算法之堆排序" href="md/algorithm/heap.md">heap sort</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="md/data_structure/heap.md">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="md/data_structure/binary_search.md">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="md/data_structure/avl.md">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="md/data_structure/hash.md">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="md/mysql/index.md">mysql index optimize</a></li>
+			<li><a title="主页" href="md/index.md">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="md/php/cli.md">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="md/php/extension.md">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="md/php/extension-ini.md">php extension 2</a></li>
+			<li><a title="排序算法之插入排序" href="md/algorithm/insert.md">insert sort</a></li>
+			<li><a title="排序算法之冒泡排序" href="md/algorithm/bubble.md">bubble sort</a></li>
+			<li><a title="排序算法之快速排序" href="md/algorithm/quick.md">quick sort</a></li>
+			<li><a title="排序算法之选择排序" href="md/algorithm/select.md">select sort</a></li>
+			<li><a title="排序算法之归并排序" href="md/algorithm/merge.md">merge sort</a></li>
+			<li><a title="排序算法之堆排序" href="md/algorithm/heap.md">heap sort</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="md/data_structure/heap.md">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="md/data_structure/binary_search.md">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="md/data_structure/avl.md">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="md/data_structure/hash.md">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="md/mysql/index.md">mysql index optimize</a></li>
         </ul>
 		<div class="back-to-top"></div>
     </div>
@@ -66,7 +97,8 @@
     $(document).ready(function(){
         $(".nav li a").click(function(){
             $.load_md(this,"markDownContent","mbBlock",function(){
-				$(".nav").height($("#markDownContent").height() - parseInt($(".nav").css("padding-top")));
+				var $nav = $(".nav");
+				$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 			});
 			$.nav_high_light(this,true,"hover");
             return false;

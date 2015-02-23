@@ -29,6 +29,7 @@ body{
 .right-nav{
     width: 200px;
     float: right;
+    background: url(../images/shad2.png) repeat-y;
 }
 
 
@@ -36,10 +37,10 @@ ul.nav {
     list-style: none;
     display: block;
     width: 200px;
-    padding: 70px 0 0 0;
-	margin: 0;
-    background: url(../images/shad2.png) repeat-y;
+    margin: 70px 0;
+	padding: 0;
     -webkit-background-size: 50% 100%;
+	overflow: hidden;
 }
 
 ul.nav li {
