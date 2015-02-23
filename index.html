@@ -61,6 +61,7 @@
 			$(".nav li a[href='"+url+"']").addClass(hlClass);
 		}		
 	}
+	$.nav_high_light.timeOutHandle = null;
     $(document).ready(function(){
         $(".nav li a").click(function(){
             $.load_md(this,"markDownContent","mbBlock",function(){
@@ -71,7 +72,11 @@
         }).hover(function(){
 			$.nav_high_light(this,true,"hover");
 		},function(){
-			$.nav_high_light(this,false,"hover");
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
 		});
 		
 		var articleTag = window.location.href.match(/s=(.+)/);
