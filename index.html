@@ -85,6 +85,14 @@
 			}
 		});
 		$("body>span").hide();
+		$('.mbBlock>ol:eq(0) li').on('click',function(){
+			alert('1');
+			var index = $(this).parent().index(this),
+				$title = $(".mbBlock>h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset.top}, 200);
+			}
+		});
     });
 
 </script>
