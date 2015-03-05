@@ -381,6 +381,14 @@ zend_get_configuration_directive用来获取配置参数
 	
 	php_swoole_init_globals(&swoole_globals);
 
+	static void php_swoole_init_globals(zend_swoole_globals *swoole_globals)
+	{
+	    swoole_globals->message_queue_key = 0;
+	    swoole_globals->aio_thread_num = SW_AIO_THREAD_NUM_DEFAULT;
+	    swoole_globals->socket_buffer_size = SW_SOCKET_BUFFER_SIZE;
+	    swoole_globals->display_errors = 1;
+	}
+
 
 ### 3.总结 ###
 
