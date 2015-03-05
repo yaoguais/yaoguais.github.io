@@ -103,11 +103,10 @@
 			}
 		});
 		$("body>span").hide();
-		/*$('.mbBlock>ol:eq(0) li').on('click',function(){
-			alert('1');
-			
-		});*/
 		$(document).on('click','.mbBlock ol li',function(e){
+			if($(".mbBlock[data-href='md/index.md']:visible").length>0){
+				return;
+			}
 			var index = $(this).index(),
 				$title = $(this).parent().parent().find("h3").eq(index);
 			if($title.length>0){
