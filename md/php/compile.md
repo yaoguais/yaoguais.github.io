@@ -7,6 +7,8 @@
 目录:
 
 1. 赋值语句的分析
+2.查看脚本OP ARRAY
+3.分析变量引用计数
 
 
 ### 赋值语句的分析 ###
@@ -147,6 +149,16 @@ CV是compile\_var的意思,const是常量的意思.结合php脚本语句可以�
 	(gdb) call php_var_dump(executor_globals.symbol_table.arData[8].val,1)
 	string(3) "aaa"
 	//这里看到执行zend_assign_to_variable后$strCopy的值也变成"aaa"了.
+	(gdb) p &executor_globals.symbol_table.arData[8].val.value.str.val
+	$8 = (char (*)[1]) 0x7ffff6803a58
+	(gdb) p &executor_globals.symbol_table.arData[7].val.value.str.val
+	$9 = (char (*)[1]) 0x7ffff6803a58
+	(gdb) p &executor_globals.symbol_table.arData[7].val
+	$10 = (zval *) 0x7ffff685a0e0
+	(gdb) p &executor_globals.symbol_table.arData[8].val
+	$11 = (zval *) 0x7ffff685a100
+	//这里我们可以看到两个zval地址不同,但是存储的string "aaa"地址相同.
+
 	
 继续执行程序.
 
@@ -191,4 +203,37 @@ CV是compile\_var的意思,const是常量的意思.结合php脚本语句可以�
 	(gdb) n
 	zend_execute_scripts (type=8, retval=0x0, file_count=3)
 
-最后返回zend_execute_scripts函数.然后执行完我们的脚本,再调佣rshutdown函数,最后mshutdown,至此php程序正常终止.
+最后返回zend\_execute\_scripts函数.然后执行完我们的脚本,再调佣rshutdown函数,最后mshutdown,至此php程序正常终止.
+
+
+### 查看脚本 OP ARRAY ###
+
+在上面的赋值语句中,我们总共得到了三个回调函数指针,下面我们通过打印op_array->opcodes字段来查看所有的回调.
+首先我们定义一个gdb的函数.
+
+	define get_op_handlers
+		set $i = 0
+		while $arg0[$i]
+			p $arg0[$i].handler
+			set $i = $i + 1
+		end
+	end
+	
+	# gdb /root/php7d/bin/php
+	(gdb) set args /home/yaoguai/github/test.php
+	(gdb) b zend_execute
+	(gdb) r
+	(gdb) get_op_handlers op_array->opcodes
+	$3 = (opcode_handler_t) 0x8b607a <ZEND_ASSIGN_SPEC_CV_CONST_HANDLER>
+	$4 = (opcode_handler_t) 0x8bf1f7 <ZEND_ASSIGN_SPEC_CV_CV_HANDLER>
+	$5 = (opcode_handler_t) 0x87d09b <ZEND_RETURN_SPEC_CONST_HANDLER>
+	$6 = (opcode_handler_t) 0x60
+	$7 = (opcode_handler_t) 0x7ffff6873180
+	//执行到ZEND_RETURN_SPEC_CONST_HANDLER后,程序就进入了退出流程了.
+	
+(余下部分参考 http://www.nowamagic.net/librarys/veda/detail/1325 http://www.php-internals.com/book/?p=chapt07/07-00-zend-vm)
+
+
+### 分析变量引用计数 ###
+
+下面我们分析一下变量的引用技术,与变量间的赋值情况
