@@ -88,7 +88,7 @@
 		
 		var articleTag = window.location.href.match(/s=(.+)/);
 		if(articleTag){
-			if($article = $(".nav li a[href='"+articleTag[1]+"']")){
+			if(($article = $(".nav li a[href='"+articleTag[1]+"']")) && $article.length>0){
 				$article.click();
 			}else{
 				$.load_md(articleTag[1],"markDownContent","mbBlock",function(){
