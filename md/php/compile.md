@@ -236,4 +236,332 @@ CV是compile\_var的意思,const是常量的意思.结合php脚本语句可以�
 
 ### 分析变量引用计数 ###
 
-下面我们分析一下变量的引用技术,与变量间的赋值情况
+下面我们分析一下变量的引用技术,与变量间的赋值情况.因此我们写了一个测试文件var.php
+
+	var.php
+	<?php
+	$aStr = "aaa";
+	$aStrCopy = $aStr;
+	$aStrCopy2 = $aStr;
+	$bStr = "bbb";
+	$bStrRef = &$bStr;
+	unset($aStr);
+	unset($bStrRef);
+
+首先我们的zend_execute停住,使用自定义的get_op_handlers打印出所有的回调函数.
+
+	(gdb) set args /home/yaoguai/github/var.php
+	(gdb) b zend_execute
+	(gdb) r
+	(gdb) get_op_handlers op_array->opcodes
+	$1 = (opcode_handler_t) 0x8b607a <ZEND_ASSIGN_SPEC_CV_CONST_HANDLER>
+	$2 = (opcode_handler_t) 0x8bf1f7 <ZEND_ASSIGN_SPEC_CV_CV_HANDLER>
+	$3 = (opcode_handler_t) 0x8bf1f7 <ZEND_ASSIGN_SPEC_CV_CV_HANDLER>
+	$4 = (opcode_handler_t) 0x8b607a <ZEND_ASSIGN_SPEC_CV_CONST_HANDLER>
+	$5 = (opcode_handler_t) 0x8bf2f2 <ZEND_ASSIGN_REF_SPEC_CV_CV_HANDLER>
+	$6 = (opcode_handler_t) 0x8baffe <ZEND_UNSET_VAR_SPEC_CV_UNUSED_HANDLER>
+	$7 = (opcode_handler_t) 0x8baffe <ZEND_UNSET_VAR_SPEC_CV_UNUSED_HANDLER>
+	$8 = (opcode_handler_t) 0x87d09b <ZEND_RETURN_SPEC_CONST_HANDLER>
+
+然后使用print_hash打印当前所有的变量
+
+	(gdb) print_hash executor_globals->symbol_table
+	0: _GET  IS_ARRAY
+	1: _POST  IS_ARRAY
+	2: _COOKIE  IS_ARRAY
+	3: _FILES  IS_ARRAY
+	4: argv  IS_ARRAY
+	5: argc  IS_LONG
+	6: _SERVER  IS_ARRAY
+	7: aStr  15 
+	8: aStrCopy  15
+	9: aStrCopy2  15
+	10: bStr  15
+	11: bStrRef  15
+	
+然后一条条的执行opcode,查看变量zval的变化.(最后我们通过分析函数确定这些变化)
+
+	(gdb) s
+	execute_ex (execute_data=0x7ffff6815030)
+	(gdb) p execute_data->opline->handler
+	$1 = (opcode_handler_t) 0x8b607a <ZEND_ASSIGN_SPEC_CV_CONST_HANDLER>
+	(gdb) print_hash_on_index executor_globals->symbol_table 7
+	(gdb) n
+	360		}
+	(gdb) print_hash_on_index executor_globals->symbol_table 7
+	7: aStr
+	$2 = {value = {lval = 140737329057936, dval = 6.9533479374981184e-310, 
+	    counted = 0x7ffff6815090, str = 0x7ffff6815090, arr = 0x7ffff6815090, 
+	    obj = 0x7ffff6815090, res = 0x7ffff6815090, ref = 0x7ffff6815090, 
+	    ast = 0x7ffff6815090, zv = 0x7ffff6815090, ptr = 0x7ffff6815090, 
+	    ce = 0x7ffff6815090, func = 0x7ffff6815090, ww = {w1 = 4135669904, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	    
+这里我们可以看出$aStr的类型还是IS_INDIRECT(15),与前面的test.php有所不同.
+
+	(gdb) p execute_data->opline->handler
+	$3 = (opcode_handler_t) 0x8bf1f7 <ZEND_ASSIGN_SPEC_CV_CV_HANDLER>
+	(gdb) print_hash_on_index executor_globals->symbol_table 7
+	7: aStr
+	$5 = {value = {lval = 140737329057936, dval = 6.9533479374981184e-310, 
+	    counted = 0x7ffff6815090, str = 0x7ffff6815090, arr = 0x7ffff6815090, 
+	    obj = 0x7ffff6815090, res = 0x7ffff6815090, ref = 0x7ffff6815090, 
+	    ast = 0x7ffff6815090, zv = 0x7ffff6815090, ptr = 0x7ffff6815090, 
+	    ce = 0x7ffff6815090, func = 0x7ffff6815090, ww = {w1 = 4135669904, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 8
+	8: aStrCopy
+	$6 = {value = {lval = 140737329057952, dval = 6.9533479374989089e-310, 
+	    counted = 0x7ffff68150a0, str = 0x7ffff68150a0, arr = 0x7ffff68150a0, 
+	    obj = 0x7ffff68150a0, res = 0x7ffff68150a0, ref = 0x7ffff68150a0, 
+	    ast = 0x7ffff68150a0, zv = 0x7ffff68150a0, ptr = 0x7ffff68150a0, 
+	    ce = 0x7ffff68150a0, func = 0x7ffff68150a0, ww = {w1 = 4135669920, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	    
+执行$aStrCopy = $aStr;后,两个变量的类型并没有发生变化.
+
+	(gdb) p execute_data->opline->handler
+	$7 = (opcode_handler_t) 0x8bf1f7 <ZEND_ASSIGN_SPEC_CV_CV_HANDLER>
+	(gdb) print_hash_on_index executor_globals->symbol_table 7
+	7: aStr
+	$8 = {value = {lval = 140737329057936, dval = 6.9533479374981184e-310, 
+	    counted = 0x7ffff6815090, str = 0x7ffff6815090, arr = 0x7ffff6815090, 
+	    obj = 0x7ffff6815090, res = 0x7ffff6815090, ref = 0x7ffff6815090, 
+	    ast = 0x7ffff6815090, zv = 0x7ffff6815090, ptr = 0x7ffff6815090, 
+	    ce = 0x7ffff6815090, func = 0x7ffff6815090, ww = {w1 = 4135669904, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	Cannot access memory at address 0x10
+	(gdb) print_hash_on_index executor_globals->symbol_table 8
+	8: aStrCopy
+	$9 = {value = {lval = 140737329057952, dval = 6.9533479374989089e-310, 
+	    counted = 0x7ffff68150a0, str = 0x7ffff68150a0, arr = 0x7ffff68150a0, 
+	    obj = 0x7ffff68150a0, res = 0x7ffff68150a0, ref = 0x7ffff68150a0, 
+	    ast = 0x7ffff68150a0, zv = 0x7ffff68150a0, ptr = 0x7ffff68150a0, 
+	    ce = 0x7ffff68150a0, func = 0x7ffff68150a0, ww = {w1 = 4135669920, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	Cannot access memory at address 0x10
+	(gdb) print_hash_on_index executor_globals->symbol_table 9
+	9: aStrCopy2
+	$10 = {value = {lval = 140737329057968, dval = 6.9533479374996994e-310, 
+	    counted = 0x7ffff68150b0, str = 0x7ffff68150b0, arr = 0x7ffff68150b0, 
+	    obj = 0x7ffff68150b0, res = 0x7ffff68150b0, ref = 0x7ffff68150b0, 
+	    ast = 0x7ffff68150b0, zv = 0x7ffff68150b0, ptr = 0x7ffff68150b0, 
+	    ce = 0x7ffff68150b0, func = 0x7ffff68150b0, ww = {w1 = 4135669936, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+
+执行$aStrCopy2 = $aStr;后3个便来类型也没有发生变化.
+
+	(gdb) p execute_data->opline->handler
+	$11 = (opcode_handler_t) 0x8b607a <ZEND_ASSIGN_SPEC_CV_CONST_HANDLER>
+	(gdb) n
+	(gdb) print_hash_on_index executor_globals->symbol_table 10
+	10: bStr
+	$15 = {value = {lval = 140737329057984, dval = 6.9533479375004899e-310, 
+	    counted = 0x7ffff68150c0, str = 0x7ffff68150c0, arr = 0x7ffff68150c0, 
+	    obj = 0x7ffff68150c0, res = 0x7ffff68150c0, ref = 0x7ffff68150c0, 
+	    ast = 0x7ffff68150c0, zv = 0x7ffff68150c0, ptr = 0x7ffff68150c0, 
+	    ce = 0x7ffff68150c0, func = 0x7ffff68150c0, ww = {w1 = 4135669952, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	    
+执行$bStr = "bbb";后,前4个变量类型也没有发生变化.
+	
+	(gdb) p execute_data->opline->handler
+	$16 = (opcode_handler_t) 0x8bf2f2 <ZEND_ASSIGN_REF_SPEC_CV_CV_HANDLER>
+	(gdb) print_hash_on_index executor_globals->symbol_table 10
+	10: bStr
+	$17 = {value = {lval = 140737329057984, dval = 6.9533479375004899e-310, 
+	    counted = 0x7ffff68150c0, str = 0x7ffff68150c0, arr = 0x7ffff68150c0, 
+	    obj = 0x7ffff68150c0, res = 0x7ffff68150c0, ref = 0x7ffff68150c0, 
+	    ast = 0x7ffff68150c0, zv = 0x7ffff68150c0, ptr = 0x7ffff68150c0, 
+	    ce = 0x7ffff68150c0, func = 0x7ffff68150c0, ww = {w1 = 4135669952, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 11
+	11: bStrRef
+	$18 = {value = {lval = 140737329058000, dval = 6.9533479375012804e-310, 
+	    counted = 0x7ffff68150d0, str = 0x7ffff68150d0, arr = 0x7ffff68150d0, 
+	    obj = 0x7ffff68150d0, res = 0x7ffff68150d0, ref = 0x7ffff68150d0, 
+	    ast = 0x7ffff68150d0, zv = 0x7ffff68150d0, ptr = 0x7ffff68150d0, 
+	    ce = 0x7ffff68150d0, func = 0x7ffff68150d0, ww = {w1 = 4135669968, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	    
+执行$bStrRef = & $bStr;后,类型也都没有发生变化.但是其他的值我们暂时没有比较,最后我们结合代码,来分析是那些字段发生了变化.
+
+	(gdb) p execute_data->opline->handler
+	$19 = (opcode_handler_t) 0x8baffe <ZEND_UNSET_VAR_SPEC_CV_UNUSED_HANDLER>
+	(gdb) print_hash_on_index executor_globals->symbol_table 7
+	7: aStr
+	$20 = {value = {lval = 140737329057936, dval = 6.9533479374981184e-310, 
+	    counted = 0x7ffff6815090, str = 0x7ffff6815090, arr = 0x7ffff6815090, 
+	    obj = 0x7ffff6815090, res = 0x7ffff6815090, ref = 0x7ffff6815090, 
+	    ast = 0x7ffff6815090, zv = 0x7ffff6815090, ptr = 0x7ffff6815090, 
+	    ce = 0x7ffff6815090, func = 0x7ffff6815090, ww = {w1 = 4135669904, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash executor_globals->symbol_table
+	0: _GET  IS_ARRAY
+	1: _POST  IS_ARRAY
+	2: _COOKIE  IS_ARRAY
+	3: _FILES  IS_ARRAY
+	4: argv  IS_ARRAY
+	5: argc  IS_LONG
+	6: _SERVER  IS_ARRAY
+	7: aStr  15
+	8: aStrCopy  15
+	9: aStrCopy2  15
+	10: bStr  15
+	11: bStrRef  15
+	
+执行完unset($aStr);我们仍然能够在符号表中找到它,说明unset并不是立即释放zval变量.
+
+	(gdb) p execute_data->opline->handler
+	$21 = (opcode_handler_t) 0x8baffe <ZEND_UNSET_VAR_SPEC_CV_UNUSED_HANDLER>
+	(gdb) print_hash_on_index executor_globals->symbol_table 10
+	10: bStr
+	$22 = {value = {lval = 140737329057984, dval = 6.9533479375004899e-310, 
+	    counted = 0x7ffff68150c0, str = 0x7ffff68150c0, arr = 0x7ffff68150c0, 
+	    obj = 0x7ffff68150c0, res = 0x7ffff68150c0, ref = 0x7ffff68150c0, 
+	    ast = 0x7ffff68150c0, zv = 0x7ffff68150c0, ptr = 0x7ffff68150c0, 
+	    ce = 0x7ffff68150c0, func = 0x7ffff68150c0, ww = {w1 = 4135669952, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 11
+	11: bStrRef
+	$23 = {value = {lval = 140737329058000, dval = 6.9533479375012804e-310, 
+	    counted = 0x7ffff68150d0, str = 0x7ffff68150d0, arr = 0x7ffff68150d0, 
+	    obj = 0x7ffff68150d0, res = 0x7ffff68150d0, ref = 0x7ffff68150d0, 
+	    ast = 0x7ffff68150d0, zv = 0x7ffff68150d0, ptr = 0x7ffff68150d0, 
+	    ce = 0x7ffff68150d0, func = 0x7ffff68150d0, ww = {w1 = 4135669968, 
+	      w2 = 32767}}, u1 = {v = {type = 15 '\017', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 15}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+    
+执行完unset($bStr);,$bStr也没有发生什么明显变化.
+
+	(gdb) p execute_data->opline->handler
+	$24 = (opcode_handler_t) 0x87d09b <ZEND_RETURN_SPEC_CONST_HANDLER>
+	(gdb) n
+	353				if (EXPECTED(ret > 0)) {
+	(gdb) print_hash executor_globals->symbol_table
+	0: _GET  IS_ARRAY
+	1: _POST  IS_ARRAY
+	2: _COOKIE  IS_ARRAY
+	3: _FILES  IS_ARRAY
+	4: argv  IS_ARRAY
+	5: argc  IS_LONG
+	6: _SERVER  IS_ARRAY
+	7: aStr  IS_UNDEF
+	8: aStrCopy  IS_STRING aaa
+	9: aStrCopy2  IS_STRING aaa
+	10: bStr  10
+	11: bStrRef  IS_UNDEF
+	(gdb) print_zval_note
+	$30 = "IS_RESOURCE 9 IS_REFERENCE 10 IS_CONSTANT 11 IS_CONSTANT_AST 12 _IS_BOOL 13 IS_CALLABLE 14 IS_INDIRECT 15 IS_PTR 17"
+	(gdb) print_hash_on_index executor_globals->symbol_table 7
+	7: aStr
+	$25 = {value = {lval = 140737329057936, dval = 6.9533479374981184e-310, 
+	    counted = 0x7ffff6815090, str = 0x7ffff6815090, arr = 0x7ffff6815090, 
+	    obj = 0x7ffff6815090, res = 0x7ffff6815090, ref = 0x7ffff6815090, 
+	    ast = 0x7ffff6815090, zv = 0x7ffff6815090, ptr = 0x7ffff6815090, 
+	    ce = 0x7ffff6815090, func = 0x7ffff6815090, ww = {w1 = 4135669904, 
+	      w2 = 32767}}, u1 = {v = {type = 0 '\000', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 0}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 8
+	8: aStrCopy
+	$26 = {value = {lval = 140737328986688, dval = 6.9533479339779995e-310, 
+	    counted = 0x7ffff6803a40, str = 0x7ffff6803a40, arr = 0x7ffff6803a40, 
+	    obj = 0x7ffff6803a40, res = 0x7ffff6803a40, ref = 0x7ffff6803a40, 
+	    ast = 0x7ffff6803a40, zv = 0x7ffff6803a40, ptr = 0x7ffff6803a40, 
+	    ce = 0x7ffff6803a40, func = 0x7ffff6803a40, ww = {w1 = 4135598656, 
+	      w2 = 32767}}, u1 = {v = {type = 6 '\006', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 6}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 9
+	9: aStrCopy2
+	$27 = {value = {lval = 140737328986688, dval = 6.9533479339779995e-310, 
+	    counted = 0x7ffff6803a40, str = 0x7ffff6803a40, arr = 0x7ffff6803a40, 
+	    obj = 0x7ffff6803a40, res = 0x7ffff6803a40, ref = 0x7ffff6803a40, 
+	    ast = 0x7ffff6803a40, zv = 0x7ffff6803a40, ptr = 0x7ffff6803a40, 
+	    ce = 0x7ffff6803a40, func = 0x7ffff6803a40, ww = {w1 = 4135598656, 
+	      w2 = 32767}}, u1 = {v = {type = 6 '\006', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 6}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 10
+	10: bStr
+	$28 = {value = {lval = 140737329455272, dval = 6.9533479571291251e-310, 
+	    counted = 0x7ffff68760a8, str = 0x7ffff68760a8, arr = 0x7ffff68760a8, 
+	    obj = 0x7ffff68760a8, res = 0x7ffff68760a8, ref = 0x7ffff68760a8, 
+	    ast = 0x7ffff68760a8, zv = 0x7ffff68760a8, ptr = 0x7ffff68760a8, 
+	    ce = 0x7ffff68760a8, func = 0x7ffff68760a8, ww = {w1 = 4136067240, 
+	      w2 = 32767}}, u1 = {v = {type = 10 '\n', type_flags = 4 '\004', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 1034}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	(gdb) print_hash_on_index executor_globals->symbol_table 11
+	11: bStrRef
+	$29 = {value = {lval = 140737329058000, dval = 6.9533479375012804e-310, 
+	    counted = 0x7ffff68150d0, str = 0x7ffff68150d0, arr = 0x7ffff68150d0, 
+	    obj = 0x7ffff68150d0, res = 0x7ffff68150d0, ref = 0x7ffff68150d0, 
+	    ast = 0x7ffff68150d0, zv = 0x7ffff68150d0, ptr = 0x7ffff68150d0, 
+	    ce = 0x7ffff68150d0, func = 0x7ffff68150d0, ww = {w1 = 4135669968, 
+	      w2 = 32767}}, u1 = {v = {type = 0 '\000', type_flags = 0 '\000', 
+	      const_flags = 0 '\000', reserved = 0 '\000'}, type_info = 0}, u2 = {
+	    var_flags = 4294967295, next = 4294967295, cache_slot = 4294967295, 
+	    lineno = 4294967295, num_args = 4294967295, fe_pos = 4294967295, 
+	    fe_iter_idx = 4294967295}}
+	
+执行完退出流程,发现zval的值发生了相应的变化.
+
+
+赋值函数的分析(能力有限,暂时分析到这里)
