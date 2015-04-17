@@ -36,7 +36,14 @@
     </div>
 </div>
 <script type="text/javascript">
-    $.load_md = function(obj,appendId,blockClass,call){
+	$.load_md = function(url,appendId,blockClass,call){
+		$.get(url,function(data){
+		   $("."+blockClass).hide();
+		   $("#"+appendId).append('<div class="'+blockClass+'" data-href="'+url+'">'+markdown.toHTML(data)+'</div>');
+		   call && call();
+		});
+	}
+    $.nav_load_md = function(obj,appendId,blockClass,call){
         blockClass = blockClass || "mdBlock";
         var $this   =   $(obj),
             index   =   $this.parent().index(obj),
@@ -44,11 +51,7 @@
             $loadObj =   $("."+blockClass+"[data-href='"+url+"']"),
             isLoad  =   $loadObj.length > 0;
         if(!isLoad){
-            $.get(url,function(data){
-			   $("."+blockClass).hide();
-               $("#"+appendId).append('<div class="'+blockClass+'" data-href="'+url+'">'+markdown.toHTML(data)+'</div>');
-			   call && call();
-            });
+            $.load_md(url,appendId,blockClass,call);
         }else{
             $loadObj.show().siblings().hide();
 			call && call();
@@ -67,7 +70,7 @@
 	$.nav_high_light.timeOutHandle = null;
     $(document).ready(function(){
         $(".nav li a").click(function(){
-            $.load_md(this,"markDownContent","mbBlock",function(){
+            $.nav_load_md(this,"markDownContent","mbBlock",function(){
 				var $nav = $(".nav");
 				$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 			});
@@ -84,8 +87,15 @@
 		});
 		
 		var articleTag = window.location.href.match(/s=(.+)/);
-		if(articleTag && ($article = $(".nav li a[href='"+articleTag[1]+"']"))){
-			$article.click();
+		if(articleTag){
+			if(($article = $(".nav li a[href='"+articleTag[1]+"']")) && $article.length>0){
+				$article.click();
+			}else{
+				$.load_md(articleTag[1],"markDownContent","mbBlock",function(){
+					var $nav = $(".nav");
+					$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+				});
+			}			
 		}else{
 			$(".nav li a").eq(1).click();
 		}

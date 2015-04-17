@@ -63,6 +63,9 @@ ul.nav li a {
     -webkit-box-shadow: 2px 2px 4px #888;
     box-shadow: 2px 2px 4px #888;
 }
+@media screen and (-webkit-min-device-pixel-ratio:0){
+	ul.nav li a {font-size: 13px;}
+}
 
 ul.nav li a.hover {
     background: #ebebeb url(../images/border.png) no-repeat;
