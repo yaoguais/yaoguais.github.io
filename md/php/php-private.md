@@ -2,7 +2,7 @@
 
 前言：
 
-昨天参加SAE的电话面试，技术官提的一个问题没有答上来，这个答案肯定是在[深入理解php内核](http://php-internals.com/book/?p=chapt05/05-03-class-visibility)看过的，由于自己没有实际分析过就没有记住，当时就直接回来了不清楚，面试官说了答案后让我回去看看。问题是这样的，a继承b，那么a的私有方法在b的底层结构中是否存在。还问了php.ini中disable\_function功能是怎么实现的；如果某个URL很慢，确定是MySQL的SQL问题，问怎么找出这个SQL。第一个问题是全局函数的存储问题，从ini解析那篇文章就能找到答案。第二个问题我当时回答的是用xhprof先确定哪些函数执行慢，在慢函数里面有mysql\_query的，再在每个mysql\_query前后做记录，这种回答在mysql\_query很多的情况下，肯定麻烦死了。事后想了一下，一般项目都会进行DB的封装，以方便数据库的迁移，那么直接在DB->query中做记录就好了，准确又方便；没有封装的话，我还想到可以重新编译mysql扩展,在PHP\_FUNCTION(mysql\_query)做记录就好了，但问题是要重启php,但是有同步的测试环境，应该还是行的。最后，本片文章就探索一下private实现的一些细节。
+今天晚上参加SAE的电话面试，技术官提的一个问题没有答上来，这个答案肯定是在[深入理解php内核](http://php-internals.com/book/?p=chapt05/05-03-class-visibility)看过的，由于自己没有实际分析过就没有记住，当时就直接回来了不清楚，面试官说了答案后让我回去看看。问题是这样的，a继承b，那么a的私有方法在b的底层结构中是否存在。还问了php.ini中disable\_function功能是怎么实现的；如果某个URL很慢，确定是MySQL的SQL问题，问怎么找出这个SQL。第一个问题是全局函数的存储问题，从ini解析那篇文章就能找到答案。第二个问题我当时回答的是用xhprof先确定哪些函数执行慢，在慢函数里面有mysql\_query的，再在每个mysql\_query前后做记录，这种回答在mysql\_query很多的情况下，肯定麻烦死了。事后想了一下，一般项目都会进行DB的封装，以方便数据库的迁移，那么直接在DB->query中做记录就好了，准确又方便；没有封装的话，我还想到可以重新编译mysql扩展,在PHP\_FUNCTION(mysql\_query)做记录就好了，但问题是要重启php,但是有同步的测试环境，应该还是行的。最后，本片文章就探索一下private实现的一些细节。
 
 目录：
 
@@ -13,7 +13,7 @@
 
 ### 测试的文件 ###
 
-首先我们可以写了脚本，直接打印内存中相关变量的值就明白了。
+首先我们可以写个脚本，直接打印内存中相关变量的值就明白了。
 
 这里是测试脚本。
 
@@ -58,7 +58,6 @@
 
 	(gdb) print_hash executor_globals->class_table.arData[144].val.value.ce.function_table
 	0: func_a  17
-	Cannot access memory at address 0x10
 	(gdb) print_hash executor_globals->class_table.arData[146].val.value.ce.function_table
 	0: func_b  17
 	1: func_a  17
