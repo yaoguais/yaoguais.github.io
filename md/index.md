@@ -10,6 +10,7 @@
 6. [php7 简单介绍](?s=md/php/php7-intro.md)
 7. [php7 内核中的一些改变](?s=md/php/php7-vm.md)
 8. [把扩展从php5升级到php7](?s=md/php/extension-php5to7.md)
+9. [php private修饰符的一些细节](?s=md/php/php-private.md)
 
 
 

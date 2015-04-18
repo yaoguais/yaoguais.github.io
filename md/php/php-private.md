@@ -1,0 +1,145 @@
+## PHP private修饰符的一些细节 ##
+
+前言：
+
+昨天参加SAE的电话面试，技术官提的一个问题没有答上来，这个答案肯定是在[深入理解php内核](http://php-internals.com/book/?p=chapt05/05-03-class-visibility)看过的，由于自己没有实际分析过就没有记住，当时就直接回来了不清楚，面试官说了答案后让我回去看看。问题是这样的，a继承b，那么a的私有方法在b的底层结构中是否存在。还问了php.ini中disable\_function功能是怎么实现的；如果某个URL很慢，确定是MySQL的SQL问题，问怎么找出这个SQL。第一个问题是全局函数的存储问题，从ini解析那篇文章就能找到答案。第二个问题我当时回答的是用xhprof先确定哪些函数执行慢，在慢函数里面有mysql\_query的，再在每个mysql\_query前后做记录，这种回答在mysql\_query很多的情况下，肯定麻烦死了。事后想了一下，一般项目都会进行DB的封装，以方便数据库的迁移，那么直接在DB->query中做记录就好了，准确又方便；没有封装的话，我还想到可以重新编译mysql扩展,在PHP\_FUNCTION(mysql\_query)做记录就好了，但问题是要重启php,但是有同步的测试环境，应该还是行的。最后，本片文章就探索一下private实现的一些细节。
+
+目录：
+
+1. 测试的文件
+2. 类private方法继承的存储问题
+3. 父类private方法是如何在子类中进行限制的
+
+
+### 测试的文件 ###
+
+首先我们可以写了脚本，直接打印内存中相关变量的值就明白了。
+
+这里是测试脚本。
+
+	<?php
+	class a{
+		private function func_a(){
+		
+		}
+	}
+	
+	class b extends a{
+		public function func_b(){
+		
+		}
+	}
+	
+	$b = new b();
+	$b->func_a();
+
+	echo "end\n";
+
+### 类private方法继承的存储问题 ###
+
+首先我们还是使用gdb进行调试，在zend_execute函数处停住。并且打印当前的全局类列表。
+
+	(gdb) print_hash executor_globals->class_table
+	0: stdclass  17
+	1: traversable  17
+	2: iteratoraggregate  17
+	......................................................
+	140: xmlwriter  17
+	141: php_server  17
+	142: monster  17
+	143:   IS_UNDEF
+	144: a  17
+	145:   IS_UNDEF
+	146: b  17
+
+这里我们还看到了我自己编写的两个类.php\_server与monster。
+
+然后我们继续执行，并进入execute_ex,在execute_ex函数退出时停住。然后打印类a与类b的方法列表。
+
+	(gdb) print_hash executor_globals->class_table.arData[144].val.value.ce.function_table
+	0: func_a  17
+	Cannot access memory at address 0x10
+	(gdb) print_hash executor_globals->class_table.arData[146].val.value.ce.function_table
+	0: func_b  17
+	1: func_a  17
+
+可以看到作为class a的私有函数func_a在它的子类中也是存在的。从经验上，我们能确定它不能被访问，至于怎么实现的，我们下一部分讨论.
+
+那么，为什么b类会有a类的私有方法呢？我们这里不从用户脚本出发，直接从扩展的实现出发。在注册我们扩展的类时，调用的注册函数第二个参数就是父类的zend\_class\_entry,跟踪进此函数会发现一些细节：如果子类覆盖父类的方法，那么会进行相应的判断，如果是否虚函数等等。而如果子类没有父类的方法，那么会直接进行拷贝。这就是为什么子类有父类的方法的原因。
+
+### 父类private方法是如何在子类中进行限制的 ###
+
+
+那么子类继承的父类private方法又是怎么进行限制的呢？我们首先打印这个脚本的opcodes,看看调用了哪些函数。
+
+	(gdb) get_op_handlers op_array->opcodes
+	$1 = (opcode_handler_t) 0x879c1e <ZEND_NOP_SPEC_HANDLER>
+	$2 = (opcode_handler_t) 0x879c1e <ZEND_NOP_SPEC_HANDLER>
+	$3 = (opcode_handler_t) 0x879c1e <ZEND_NOP_SPEC_HANDLER>
+	$4 = (opcode_handler_t) 0x87d547 <ZEND_NEW_SPEC_CONST_HANDLER>
+	$5 = (opcode_handler_t) 0x87751c <ZEND_DO_FCALL_SPEC_HANDLER>
+	$6 = (opcode_handler_t) 0x8b8f4d <ZEND_ASSIGN_SPEC_CV_VAR_HANDLER>
+	$7 = (opcode_handler_t) 0x8b6174 <ZEND_INIT_METHOD_CALL_SPEC_CV_CONST_HANDLER>
+	$8 = (opcode_handler_t) 0x87751c <ZEND_DO_FCALL_SPEC_HANDLER>
+	$9 = (opcode_handler_t) 0x87c9b7 <ZEND_ECHO_SPEC_CONST_HANDLER>
+	$10 = (opcode_handler_t) 0x87d09b <ZEND_RETURN_SPEC_CONST_HANDLER>
+	$11 = (opcode_handler_t) 0x7ffff687b0d8
+	$12 = (opcode_handler_t) 0x140
+	$13 = (opcode_handler_t) 0x7ffff687b300
+	$14 = (opcode_handler_t) 0x7ffff6859a80
+	$15 = (opcode_handler_t) 0x900001406
+	$16 = (opcode_handler_t) 0x0
+	$17 = (opcode_handler_t) 0x7ffff6859b00
+
+运行这段代码，PHP肯定会提示致命错误，因此我想到在输出函数处停止，打印调用栈来确定。
+
+	(gdb) b zend_error_noreturn
+	(gdb) r
+	(gdb) bt
+	#0  zend_error (type=1, 
+	    format=0xc7d7e8 "Call to %s method %s::%s() from context '%s'")
+	    at /root/download/php-src-master/Zend/zend.c:1010
+	#1  0x000000000086580a in zend_std_get_method (obj_ptr=0x7fffffffaa50, 
+	    method_name=0x7ffff6859a40, key=0x7ffff6886050)
+	    at /root/download/php-src-master/Zend/zend_object_handlers.c:1088
+	#2  0x00000000008b649c in ZEND_INIT_METHOD_CALL_SPEC_CV_CONST_HANDLER (
+	    execute_data=0x7ffff6815030)
+	    at /root/download/php-src-master/Zend/zend_vm_execute.h:26948
+	#3  0x0000000000876798 in execute_ex (execute_data=0x7ffff6815030)
+	    at /root/download/php-src-master/Zend/zend_vm_execute.h:352
+	#4  0x00000000008768ee in zend_execute (op_array=0x7ffff6877000, 
+	    return_value=0x0)
+	    at /root/download/php-src-master/Zend/zend_vm_execute.h:381
+	#5  0x0000000000822ee0 in zend_execute_scripts (type=8, retval=0x0, 
+	    file_count=3) at /root/download/php-src-master/Zend/zend.c:1311
+	#6  0x0000000000793368 in php_execute_script (primary_file=0x7fffffffd0a0)
+	    at /root/download/php-src-master/main/main.c:2539
+	#7  0x00000000008d08ee in do_cli (argc=2, argv=0xfb5df0)
+	    at /root/download/php-src-master/sapi/cli/php_cli.c:979
+	#8  0x00000000008d1aad in main (argc=2, argv=0xfb5df0)
+	    at /root/download/php-src-master/sapi/cli/php_cli.c:1355
+
+
+可以看出是在ZEND_INIT_METHOD_CALL_SPEC_CV_CONST_HANDLER这个opcode中进行了限制.
+
+再次调试程序,在zend_std_get_method处打一个断点,可以发现是下面的代码导致致命错误.
+
+	if (fbc->op_array.fn_flags & ZEND_ACC_PRIVATE) {
+		zend_function *updated_fbc;
+	
+		/* Ensure that if we're calling a private function, we're allowed to do so.
+		 * If we're not and __call() handler exists, invoke it, otherwise error out.
+		 */
+		updated_fbc = zend_check_private_int(fbc, zobj->ce, lc_method_name);
+		if (EXPECTED(updated_fbc != NULL)) {
+			fbc = updated_fbc;
+		} else {
+			if (zobj->ce->__call) {
+				fbc = zend_get_user_call_function(zobj->ce, method_name);
+			} else {
+				zend_error_noreturn(E_ERROR, "Call to %s method %s::%s() from context '%s'", zend_visibility_string(fbc->common.fn_flags), ZEND_FN_SCOPE_NAME(fbc), method_name->val, EG(scope) ? EG(scope)->name->val : "");
+			}
+		}
+	}
+
+首先确定方法是私有的，那么看看是不是自身，如果不是自身而是从祖先继承，那么就会报致命错误。至此，PHP类private方法的继承与访问控制清楚了。如果以后遇到关于private的其他问题，我们再分析。
