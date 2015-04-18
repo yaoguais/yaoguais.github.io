@@ -54,7 +54,7 @@
 
 这里我们还看到了我自己编写的两个类.php\_server与monster。
 
-然后我们继续执行，并进入execute_ex,在execute_ex函数退出时停住。然后打印类a与类b的方法列表。
+然后我们继续执行，并进入execute\_ex,在execute\_ex函数退出时停住。然后打印类a与类b的方法列表。
 
 	(gdb) print_hash executor_globals->class_table.arData[144].val.value.ce.function_table
 	0: func_a  17
@@ -121,7 +121,7 @@
 
 可以看出是在ZEND_INIT_METHOD_CALL_SPEC_CV_CONST_HANDLER这个opcode中进行了限制.
 
-再次调试程序,在zend_std_get_method处打一个断点,可以发现是下面的代码导致致命错误.
+再次调试程序,在zend\_std\_get\_method处打一个断点,可以发现是下面的代码导致致命错误.
 
 	if (fbc->op_array.fn_flags & ZEND_ACC_PRIVATE) {
 		zend_function *updated_fbc;
