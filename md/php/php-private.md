@@ -119,7 +119,7 @@
 	    at /root/download/php-src-master/sapi/cli/php_cli.c:1355
 
 
-可以看出是在ZEND_INIT_METHOD_CALL_SPEC_CV_CONST_HANDLER这个opcode中进行了限制.
+可以看出是在ZEND\_INIT\_METHOD\_CALL\_SPEC\_CV\_CONST\_HANDLER这个opcode中进行了限制.
 
 再次调试程序,在zend\_std\_get\_method处打一个断点,可以发现是下面的代码导致致命错误.
 
