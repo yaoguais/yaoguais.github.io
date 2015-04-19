@@ -39,7 +39,7 @@
 ###  zval  ###
 
 - PHP7不再需要指针的指针，绝大部分zval\*\*需要修改成zval\*。Z\_\*\_PP()宏也需要修改成 Z\_\*\_P().
-- 如果地方PHP7直接操作zval，那么zval\*也需要改成zval，Z\_\*P()也要改成Z\_\*(),ZVAL\_\*(var, …) 需要改成 ZVAL\_\*(&var, …).一定要谨慎使用&符号，因为PHP7几乎不要求使用zval\*,那么很多地方的&也是要去掉的。
+- 如果PHP7直接操作zval，那么zval\*也需要改成zval，Z\_\*P()也要改成Z\_\*(),ZVAL\_\*(var, …) 需要改成 ZVAL\_\*(&var, …).一定要谨慎使用&符号，因为PHP7几乎不要求使用zval\*,那么很多地方的&也是要去掉的。
 - ALLOC\_ZVAL, ALLOC\_INIT\_ZVAL, MAKE\_STD\_ZVAL 这几个分配内存的宏已经被移除了。大多数情况下，zval\*应该修改为zval，而 INIT_PZVAL宏也被移除了。
 
 		//初始化的一些示例代码
@@ -87,7 +87,7 @@ zval 结构体也发生变化，它如今的定义如下
 		zend_function    *func;
 	} zend_value;
 
-主要的区别是，现在处理基本类型和复杂类型有所不同。基本类型实在VM栈上分配的，而不是堆，包括HashTable与Object，并且他们不支持引用计数与垃圾回收。基本类型没有引用计数，也就不再支持Z\_ADDREF\*(), Z\_DELREF\*(), Z\_REFCOUNT\*(),Z\_SET\_REFCOUNT\*()这些宏了。你扩展中的基本类型是否使用了这些宏，那么程序会得到一个asset或者直接崩溃。
+主要的区别是，现在处理基本类型和复杂类型有所不同。基本类型是在VM栈上分配的，而不是堆，包括HashTable与Object，并且他们不支持引用计数与垃圾回收。基本类型没有引用计数，也就不再支持Z\_ADDREF\*(), Z\_DELREF\*(), Z\_REFCOUNT\*(),Z\_SET\_REFCOUNT\*()这些宏了。你扩展中的基本类型使用了这些宏，那么程序会得到一个asset或者直接崩溃。
 
 	- Z_ADDREF_P(zv)
 	+ if (Z_REFCOUNTED_P(zv)) {Z_ADDREF_P(zv);}
@@ -96,7 +96,7 @@ zval 结构体也发生变化，它如今的定义如下
 
 一下是几点注意事项：
 
-- 应该使用ZVAL\_COPY\_VALUE()进行复制
+- 应该使用ZVAL\_COPY\_VALUE()进行值复制
 - 使用ZVAL\_COPY()拷贝是增加引用计数
 - 可以使用ZVAL\_DUP() 替代zval\_copy\_ctor进行复制
 - 原本的NULL被替换成IS\_UNDEF类型了，可以使用Z\_ISUNDEF(zv)进行读取，ZVAL\_UNDEF(&zv)进行初始化
@@ -145,7 +145,7 @@ IS\_BOOL已经被IS\_TRUE和IS\_FALSE取代了。
 	- if ((Z_TYPE_PP(item) == IS_BOOL || Z_TYPE_PP(item) == IS_LONG) && Z_LVAL_PP(item)) {
 	+ if (Z_TYPE_P(item) == IS_TRUE || (Z_TYPE_P(item) == IS_LONG && Z_LVAL_P(item))) {
 
-The Z_BVAL*() macros are removed. Be careful, the return value of Z_LVAL*() on IS_FALSE/IS_TRUE is undefined. 
+The Z\_BVAL\*() macros are removed. Be careful, the return value of Z\_LVAL\*() on IS\_FALSE/IS\_TRUE is undefined. 
 
 Z\_BVAL\*()宏已经被移除，注意，对IS\_FALSE/IS\_TRUE使用Z\_LVAL\*()得到的结果将是undefined。
 
@@ -184,14 +184,14 @@ RETURN\_STRING(), RETVAL\_STRNGL()和一些核心API并没有发生变化。
 	+ add_assoc_string(zv, key, str);
 	+ efree(str);
 
-The double reallocation may be avoided using zend_string API directly and creating zval directly from zend_string. 
+The double reallocation may be avoided using zend\_string API directly and creating zval directly from zend\_string. 
 
 	- char * str = estrdup("Hello");
 	- RETURN_STRING(str);
 	+ zend_string *str = zend_string_init("Hello", sizeof("Hello")-1, 0);
 	+ RETURN_STR(str);
 
-Z\_STRVAL\*()返回的变量应该当作只读的，它不应该被赋值。但是如果一定要修改，那么你应该确定它并没有在其他地方被引用，也就意味着它不是驻留字符串并且引用计数是1。还有，如果你修改了字符串的值，那么你需要手动计算兵保存其HASH值。
+Z\_STRVAL\*()返回的变量应该当作只读的，它不应该被赋值。但是如果一定要修改，那么你应该确定它并没有在其他地方被引用，也就意味着它不能是驻留字符串并且引用计数是1。还有，如果你修改了字符串的值，那么你需要手动计算并保存其HASH值。
 
 	+ SEPARATE_ZVAL(zv);
 	+ Z_STRVAL_P(zv)[0] = Z_STRVAL_P(zv)[0] + ('A' - 'a');
@@ -213,7 +213,7 @@ zend\_string(not IS\_STRING zvals)变量可以使用zend\_string\_init(char *val
 	- efree(str);
 	+ zend_string_release(str);
 
-赋值string现在使用zend\_string\_dup()替代了。
+复制string现在使用zend\_string\_dup()替代了。
 
 	- char *str = estrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv));
 	+ zend_string *str = zend_string_dup(Z_STR_P(zv));
@@ -232,7 +232,7 @@ zend\_string(not IS\_STRING zvals)变量可以使用zend\_string\_init(char *val
 	+ md5(something, ret->val);
 	+ RETURN_STR(ret);
 
-并不是所有的扩展都要更新到zend\_string来替换char*,主要还是看哪一个合适些。
+并不是所有的扩展都要更新到zend\_string来替换char*,主要还是看哪一个更合适。
 
 查看zend_string.h可以找到更详细的用法。
 
@@ -287,9 +287,9 @@ spprintf()和vspprintf()的返回值从char*变成了zend_string,那么你需要
 
 ###  arrays  ###
 
-array的实现或多或少是不变的，但是之前是用一个指针指向HashTable，而现在指向的是zend\_array。读取HashTable同样使用Z\_ARRVAL\*()宏，但是现在不可能改变该HashTable的指针了，现在唯一可以读取和改变zend\_array的是通过Z\_ARR\*()宏。
+array的实现或多或少是不变的，但是之前是用一个指针指向HashTable，而现在指向的是zend\_array。读取HashTable同样使用Z\_ARRVAL\*()宏，但是现在不可能改变该HashTable的指针了，现在唯一可以读取和改变zend\_array的方法是通过Z\_ARR\*()宏。
 
-使用array\_init()同样是创建array的最好方法，但是也可以使用ZVAL\_NEW\_ARR()创建一个未初始化的array，而是用ZVAL\_ARR()进行初始化。
+使用array\_init()同样是创建array的最好方法，但是也可以使用ZVAL\_NEW\_ARR()创建一个未初始化的array，用ZVAL\_ARR()进行初始化。
 
 可不变数组可以使用Z\_IMMUTABLE()进行检测，但是如果想改变该数组，请先复制它。使用internal position pointer迭代不可变数组也是不行的。但是可以使用external position pointer结合原来的迭代API可以遍历数组，或者也可以使用新的HashTable迭代API。
 
@@ -303,18 +303,18 @@ HashTable API的变化很显著，移植扩展中要特别注意这点。
 		+ if (zend_hash_update(EG(function_table), Z_STR_P(key), zv)) != NULL) {
 
 
-- 如果API直接返回zval，而不是返回bool+参数返回zval。
+- API基本直接返回zval，而不是返回bool+参数返回zval。
 
 		- if (zend_hash_find(ht, Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void**)&zv_ptr) == SUCCESS) {
 		+ if ((zv = zend_hash_find(ht, Z_STR_P(key))) != NULL) {
 
 - 元素的key是用zend\_string封装的，但是也同样提供了两类函数：zend\_string或者char*+int
-- 注意：key在不包含"\0",一些地方+1/-1会发生变化。
+- 注意：key不再包含"\0",一些地方+1/-1会发生变化。
 
 		- if (zend_hash_find(ht, "value", sizeof("value"), (void**)&zv_ptr) == SUCCESS) {
 		+ if ((zv = zend_hash_str_find(ht, "value", sizeof("value")-1)) != NULL) {
 
-上面的规则同样也适用其他的一个API。
+上面的规则同样也适用其他一些API。
 
 	- add_assoc_bool_ex(&zv, "valid", sizeof("valid"), 0);
 	+ add_assoc_bool_ex(&zv, "valid", sizeof("valid") - 1, 0);
@@ -332,7 +332,7 @@ HashTable API的变化很显著，移植扩展中要特别注意这点。
 		- zend_hash_update(EG(function_table), Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void*)func, sizeof(zend_function), NULL) == SUCCESS) {
 		+ if (zend_hash_update_mem(EG(function_table), Z_STR_P(key), func, sizeof(zend_function))) != NULL) {
 
-- 添加了一些新的添加函数，它们被用在添加新的zval并且当前不存在同样的key。它们都有同样的后缀\_new。
+- 提供了一些新的添加函数，它们被用在添加新的zval并且当前不存在同样的key。它们都有同样的后缀\_new。
 
 		zval* zend_hash_add_new(HashTable *ht, zend_string *key, zval *zv);
 		zval* zend_hash_str_add_new(HashTable *ht, char *key, int len, zval *zv);
@@ -341,7 +341,7 @@ HashTable API的变化很显著，移植扩展中要特别注意这点。
 		void* zend_hash_add_new_ptr(HashTable *ht, zend_string *key, void *pData);
 		...
 
-- HashTable destructors 的参数总是zval*类型。(even if we use zend_hash_add_ptr or zend_hash_add_mem to add elements). Z_PTR_P() macro may be used to reach the actual pointer value in destructors. Also, if elements are added using zend_hash_add_mem, destructor is also responsible for deallocation of the pointers themselves. 
+- HashTable destructors 的参数总是zval*类型。(even if we use zend\_hash\_add\_ptr or zend\_hash\_add\_mem to add elements). Z\_PTR\_P() macro may be used to reach the actual pointer value in destructors. Also, if elements are added using zend\_hash\_add\_mem, destructor is also responsible for deallocation of the pointers themselves. 
 
 		- void my_ht_destructor(void *ptr)
 		+ void my_ht_destructor(zval *zv)
@@ -355,10 +355,10 @@ HashTable API的变化很显著，移植扩展中要特别注意这点。
 
 - 像zend\_hash\_apply\_\*(),zend\_hash\_copy(),zend\_hash\_merge()的参数同样需要用zval\*代替void\*&&。一些函数可能接收zend\_hash\_key指针变量作为参数，该结构被定义为下，如果key是字符串，那么h保存hash值，key保存字符串；如果key是数字，那么h就是该数字，而key是NULL。
 
-	typedef struct _zend_hash_key {
-		ulong        h;
-		zend_string *key;
-	} zend_hash_key;
+		typedef struct _zend_hash_key {
+			ulong        h;
+			zend_string *key;
+		} zend_hash_key;
 
 注意：应该使用新的迭代API替换zend\_hash\_apply\*()此类函数，因为效率更高，代码更短。
 
@@ -368,7 +368,7 @@ HashTable API的变化很显著，移植扩展中要特别注意这点。
 
 ###  HashTable Iteration API  ###
 
-我们提供了一些特别的宏来遍历HashTable，第一个函数是HashTable，剩下的参数变量将在每一步迭代中被复制。
+我们提供了一些特别的宏来遍历HashTable，第一个参数是HashTable，剩下的参数变量将在每一步迭代中被复制。
 
 	ZEND_HASH_FOREACH_VAL(ht, val)
 	ZEND_HASH_FOREACH_KEY(ht, h, key)
@@ -549,8 +549,6 @@ IS\_RESOURCE类型zval不再保持resource handle，也不能使用Z\_LVAL\*()�
 		+ zend_list_delete(Z_RES_P(zv));
 
 
-- In most user extension functions like mysql\_close(), you should use zend\_list\_close() instead of zend\_list\_delete(). This closes the actual connection and frees extension specific data structures, but doesn't free the zend\_reference structure. that might be still referenced from zval(s). This also doesn't decrement the resource reference counter.
-
 - 在多数扩展函数中，像mysql\_close()，你应该使用zend\_list\_close()代替zend\_list\_delete()，因为close只是关闭实际连接与释放扩展特别的结构，但是不会释放zend\_reference structure，所以还可以从其他地方引用该zval，close同样也不会减少引用计数。
 
 		- zend_list_delete(Z_LVAL_P(zv));
@@ -594,7 +592,7 @@ IS\_RESOURCE类型zval不再保持resource handle，也不能使用Z\_LVAL\*()�
 
 ###  call frame (zend\_execute\_data)  ###
 
-每一次的函数调用都记录在zend\_execute\_data结构链表中，EG(current\_execute\_data)指向当前执行函数的调用栈，之前只有PHP脚本函数才这样。我会尽量解释清楚新旧调用栈之间的区别。
+每一次的函数调用都记录在zend\_execute\_data结构链表中，EG(current\_execute\_data)指向当前执行函数的调用栈，之前只有PHP用户函数才这样。我会尽量解释清楚新旧调用栈之间的区别。
 
 
 - zend\_execute\_data.opline - 当前执行的用户函数的指针。内核函数它的值是未定义，之前是NULL。
@@ -607,7 +605,7 @@ IS\_RESOURCE类型zval不再保持resource handle，也不能使用Z\_LVAL\*()�
 
 - zend\_execute\_data.func - 当前执行的函数
 
-- zend\_execute\_data.object - $this of the currently executed function (previously it was a zval*, now it's a zend\_object*)
+- zend\_execute\_data.object - $this of the currently executed function (previously it was a zval\*, now it's a zend\_object*)
 
 - zend\_execute\_data.symbol\_table - current symbol table or NULL
 
@@ -647,26 +645,42 @@ IS\_RESOURCE类型zval不再保持resource handle，也不能使用Z\_LVAL\*()�
 
 
 - EG(opline\_ptr) - 被移除，用execute\_data->opline替代
+
 - EG(return\_value\_ptr\_ptr) - 被移除，用execute\_data->return\_value替代
+
 - EG(active\_symbol\_table) - 被移除，用execute\_data->symbol\_table替代
+
 - EG(active\_op\_array) - 被移除，用execute\_data->func替代
+
 - EG(called\_scope) - 被移除，用execute\_data->called\_scope替代
+
 - EG(This) - 变成zval, 之前是zval*。不应被修改。
+
 - EG(in\_execution) - 被移除. If EG(current\_excute\_data) is not NULL, we are executing something.
+
 - EG(exception) and EG(prev\_exception) - 被改成zend\_object\*,之前是zval\*
 
 
 ###  opcodes  ###
 
 - ZEND\_DO\_FCALL\_BY\_NAME - 已被移除,新增ZEND\_INIT\_FCALL\_BY\_NAME.
+
 - ZEND\_BIND\_GLOBAL - "global $var"的handler
+
 - ZEND\_STRLEN - 代替了strlen函数
+
 - ZEND\_TYPE\_CHECK - 在必要的时候,用来代替is\_array/is\_int/is\_*
+
 - ZEND\_DEFINED - 在必要的时候代替zif\_defined(if only one parameter and it's constant string and it's not in namespace style)
+
 - ZEND\_SEND\_VAR\_EX - was added to do more check than ZEND\_SEND\_VAR if the condition can not be settled in compiling time
+
 - ZEND\_SEND\_VAL\_EX - was added to do more check than ZEND\_SEND\_VAL if the condition can not be settled in compiling time
+
 - ZEND\_INIT\_USER\_CALL - was added to replace call\_user\_func(\_array) if possible if the function can not be found in compiling time, otherwise it can convert to ZEND\_INIT\_FCALL
+
 - ZEND\_SEND\_ARRAY - was added to send the second parameter, the array of the call\_user\_func\_array after it is converted to opcode
+
 - ZEND\_SEND\_USER - was added to send the the parameters of call\_user\_func after it is converted to opcode
 
 
@@ -679,4 +693,4 @@ TODO: …
 
 ###  pcre  ###
 
-一些正则API使用zend\_string作为参数或者返回值了。php_pcre_replace returns a zend_string and takes a zend_string as 1st argument. 仔细检查函数申明与编译错误, 可以发现多数是类型错误。
+一些正则API使用zend\_string作为参数或者返回值了。php\_pcre\_replace returns a zend\_string and takes a zend\_string as 1st argument. 仔细检查函数申明与编译错误, 可以发现多数是类型错误。
