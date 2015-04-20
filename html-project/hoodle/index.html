@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>打铁球</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+		<script type="text/javascript" src="../weixinframe/weixinframe.js"></script>
+		<style type="text/css">
+			html,body,div,canvas{padding:0;margin:0;overflow-x:hidden;overflow-y:hidden;overflow: hidden;}
+			body{background:#000;}
+		</style>
+	</head>
+<body>
+<div id="weixinframe"></div>
+<script type="text/javascript">
+Global.createCanvas("weixinframe",320,570);
+Global.addChild(LoadingSprite);
+Global.onFrame();
+Global.gameInit = function(){
+	Global.backLayer = new ImageSprite(Global.data["back"],0,0,Global.width,Global.height);
+	Global.hoodleLayer = new HoodleSprite(Global.data["hoodle"],280,30,74,200);
+	Global.manLayer = new FrameSprite(Global.data["man"],120,170,null,null,null,[
+			[
+				{x:0,y:0,width:104,height:144},
+				{x:104,y:0,width:110,height:144},
+				{x:214,y:0,width:135,height:144},
+				{x:349,y:0,width:167,height:144},
+			],
+			[
+				{x:0,y:145,width:95,height:83},
+			]
+		],true,true);
+	Global.manLayer.setRowIndex0 = function(){
+		Global.manLayer.setRowIndex(0);
+		Global.manLayer.y = 170;
+	}
+	Global.manLayer.setRowIndex1 = function(){
+		Global.manLayer.setRowIndex(1);
+		Global.manLayer.y = 231;
+	}
+	Global.cryLayer = new FrameSprite(Global.data["cry"],(Global.width-50)/2,(Global.height-60)/2,100,120,100,null,false,false,3);
+	Global.cryLayer.visible = false;
+	Global.addChild(Global.backLayer);
+	Event.addEvent(Global.backLayer,"touchstart",function(){
+		if(Global.gameOver)
+			return;
+		Global.manLayer.stop = false;
+		if(Global.hoodleLayer.isKnock() && Global.hoodleLayer.ssz){
+			Global.score = Global.score+1;
+			Global.hoodleLayer.maxSpeed += 2;
+			Global.hoodleLayer.ssz = false;
+			Global.gameOver = false;
+		}else{
+			Global.manLayer.loopNumber = 1;
+			Global.manLayer.stop = false;
+			Global.manLayer.playOnce = false;
+			Global.cryLayer.visible = true;
+			Global.gameOver = true;
+		}
+	});
+	Global.weixinnoteLayer = new ImageSprite(Global.data["weixinnote"],0,0,Global.width,Global.height);
+	Global.shareLayer = new ShareSprite(100,200);
+	Global.shareLayer.hide();
+	Global.shareLayer.leftClick(function(){
+		Global.gameStart();
+	});
+	Global.shareLayer.rightClick(function(){
+		Global.shareLayer.hide();
+		Global.weixinnoteLayer.visible = true;
+		Global.rightClicked = true;
+	});
+	Global.weixinnoteLayer.visible = false;
+	Global.addChild(Global.manLayer);
+	Global.addChild(Global.cryLayer);	
+	Global.addChild(Global.hoodleLayer);
+	Global.addChild(Global.shareLayer);
+	Global.addChild(Global.weixinnoteLayer);
+	Event.addEvent(Global.hoodleLayer,"onframe",function(o){
+		o.onframe();
+	});
+	Event.addEvent(Global.weixinnoteLayer,"touchstart",function(x,y,o){
+		o.visible = false;
+		Global.gameStart();
+	});
+	/*Global.inputLayer = new InputSprite();
+	Global.inputLayer.text.style.display = "none";
+	Global.inputLayer.note3.style.display = "none";
+	Global.inputLayer.leftClick(function(){
+		Global.gameStart();
+	});
+	Global.inputLayer.rightClick(function(){
+		Global.inputLayer.hide();
+		Global.weixinnoteLayer.visible = true;
+		Global.rightClicked = true;
+	});*/
+	Global.gameOver = false;
+	Global.rightClicked = false;
+	Event.addEvent(Global.backLayer,"onframe",function(){
+		/*if(Global.gameOver && Global.cryLayer.visible==false && !Global.inputLayer.visible && !Global.rightClicked){
+			Global.inputLayer.setOriginal(true,20);
+			Global.inputLayer.note1.innerHTML = "Knocked："+Global.score;
+			var word = getWord(Global.score);
+			Global.inputLayer.note2.innerHTML = word;
+			WeixinHelper.img = "http://img1.ptpcp.com/v2/thumb/jpg/Njg0NSwxMzgsMTM4LDMsMywxLC0xLE5PTkUs/u/www.ptbus.com/uploads/1406/27/3880-14062G13503594.png";
+			WeixinHelper.title = WeixinHelper.desc = "(knock:"+Global.score+")"+word;
+		}*/
+		if(Global.gameOver && Global.cryLayer.visible==false && !Global.shareLayer.visible && !Global.rightClicked){
+			Global.shareLayer.setOriginal(true,10);
+			Global.shareLayer.note1.text = "Knocked："+Global.score;
+			var word = getWord(Global.score);
+			Global.shareLayer.note2.text = word;
+			WeixinHelper.img = "http://img1.ptpcp.com/v2/thumb/jpg/Njg0NSwxMzgsMTM4LDMsMywxLC0xLE5PTkUs/u/www.ptbus.com/uploads/1406/27/3880-14062G13503594.png";
+			WeixinHelper.title = WeixinHelper.desc = "(knock:"+Global.score+")"+word;
+		}
+		if(200<=Global.hoodleLayer.angle && Global.hoodleLayer.angle<=360){
+			Global.manLayer.setRowIndex1();
+		}else{
+			Global.manLayer.setRowIndex0();
+		}
+	});
+}
+Global.gameStart = function(){
+	Global.score = 0;
+	//Global.inputLayer.hide();
+	Global.shareLayer.hide();
+	Global.hoodleLayer.maxSpeed = 10;
+	Global.hoodleLayer.angle = 90;
+	Global.manLayer.visible = true;
+	Global.cryLayer.visible = false;
+	Global.cryLayer.loopNumber = 3;
+	Global.gameOver = false;
+	Global.weixinnoteLayer.visible = false;
+	Global.rightClicked = false;
+	Global.manLayer.visible = true;
+	Global.manLayer.stop = true;
+	Global.manLayer.playOnce = true;
+	Global.manLayer.loopNumber = -1;
+	Global.manLayer.setRowIndex0();
+}
+Load.exec([
+		{"path":"./images/gameIntro.png","key":"gameIntro"},
+		{"path":"./images/gameStart.png","key":"gameStart"},
+		{"path":"./images/man3.png","key":"man"},
+		{"path":"./images/hoodle.png","key":"hoodle"},
+		{"path":"./images/bg.jpg","key":"back"},
+		{"path":"./images/cry.png","key":"cry"},
+		{"path":"./weixinframe/weixinnote.png","key":"weixinnote"},
+	],function(e){
+	LoadingSprite.update(e);
+},function(data){
+	Global.data = data;
+	Global.removeChild();
+	Global.startLayer = new StartSprite(data["gameIntro"],data["gameStart"],function(){
+		Global.gameInit();
+		Global.gameStart();
+	});
+	Global.addChild(Global.startLayer);
+});
+
+function HoodleSprite(i,x,y,w,h){
+	this.image = i;
+	this.x = x;
+	this.y = y;
+	this.width = w;
+	this.height = h;
+	this.visible = true;
+	this.angle = 90;
+	this.childList = [];
+	this.speed = 1;
+	this.maxSpeed = 10;
+	this.ssz = true;
+	this.sleep = 0;
+	this.range = 0;
+	this.init();
+}
+HoodleSprite.prototype.getXY = function(h){
+	var x1=0,y1=0,a=this.angle;
+	a = (a+360) % 360;
+	if(0<=a && a<=90){
+		var b = (90-a)*Math.PI/180;
+		x1 = this.x+h*Math.cos(b);
+		y1 = this.y-h*Math.sin(b);
+	}else if(90<a && a<180){
+		var b = (180-a)*Math.PI/180;
+		x1 = this.x+h*Math.sin(b);
+		y1 = this.y+h*Math.cos(b);
+	}else if(180<=a && a<270){
+		var b = (a-180)*Math.PI/180;
+		x1 = this.x-h*Math.sin(b);
+		y1 = this.y+h*Math.cos(b);
+	}else if(270<=a && a<360){
+		var b = (a-270)*Math.PI/180;
+		x1 = this.x-h*Math.cos(b);
+		y1 = this.y-h*Math.sin(b);
+	}
+	return {
+		x: x1,
+		y: y1
+	};
+}
+HoodleSprite.prototype.onframe = function(){
+	if(this.sleep>8){
+		this.sleep = 0;
+		if(0<this.angle && this.angle<=5){
+			this.angle = 354;
+			this.ssz = false;
+		}else if(355<=this.angle && this.angle<360){
+			this.angle = 6;
+			this.ssz = true;
+		}
+
+	}else if(this.sleep>0){
+		this.sleep++;
+		return;
+	}
+	var a = 180-Math.abs(180-this.angle);
+	var min = 92 - this.maxSpeed<5 ? 5 : 92-this.maxSpeed;
+	var max = 360-min;
+	if(this.angle>=max){
+		this.ssz = false;
+		this.sleep = 1;
+	}else if(this.angle<=min){
+		this.ssz = true;
+		this.sleep = 1;
+	}
+	this.range = Math.abs((a-min+2)/180*this.maxSpeed);
+	if(this.ssz){
+		this.angle += this.range;
+	}else{
+		this.angle -= this.range;
+	}
+}
+HoodleSprite.prototype.isKnock = function(){
+	var fangguo = Math.abs(10 - Global.score);
+	if((this.angle>=180-fangguo) && (this.angle<=180+this.range+fangguo))
+		return true;
+	else
+		return false;
+}
+HoodleSprite.prototype.init = function(){
+	var ws = [10,12,14,16,18,20,22,24,26];
+	this.angle = 180;
+	var h = 0;
+	for(var i=0;i<ws.length;i++){
+		var p = this.getXY(h);
+		var d = new ImageSprite(this.image,p.x,p.y,ws[i],ws[i]);
+		d.h = h;
+		this.childList.push(d);
+		h += ws[i]+6;
+	}
+	this.height = h;
+	this.angle = 90;
+}
+HoodleSprite.prototype.show = function(){
+	for(var i=0,l=this.childList.length;i<l;i++){
+		var p = this.getXY(this.childList[i].h);
+		this.childList[i].x = p.x;
+		this.childList[i].y = p.y;
+		this.childList[i].show();
+	}
+}
+
+function getWord(s){
+	if(s<0)
+		return "";
+	var wordList = [
+		{min:19,word:["再这么点下去你比王思聪都富了！ (ง •̀_•́)ง","我要跟你生猴子！"]},
+		{min:17,word:["我就喜欢看你在街边撒钱的样子！","带我装逼带我飞！"]},
+		{min:15,word:["亲，养狗吗？上过大学的那种。","用钱砸死我吧！"]},
+		{min:8,word:["爸，让我给您锤锤腿。","我就是要让所有人知道这个屏幕被我承包了。","爱我你怕了吗？"]},
+		{min:7,word:["土豪我们交朋友吧！","可以给人家买辆跑车嘛？！"]},
+		{min:6,word:["打、打、打、打劫！","我要什么你都会给我买吗？","气氛燥起来！"]},
+		{min:5,word:["就是这么拽！","酷炫极了！","这么孔武有力一定是只死胖子吧！"]},
+		{min:4,word:["再试一次吧！( '-ωก̀ )","智商是硬伤！","神仙也救不了你了重新投胎吧！"]},
+		{min:3,word:["矮搓穷你没救了(¬､¬)","我只能帮你到这了(┙>∧<)┙へ┻┻","简直是心疼你！(*☉౪⊙*)"]},
+		{min:2,word:["你就一极品肉鸟(；¬д¬)","单手都比你强 ╮(﹀_﹀\")╭","知道loser怎么写么？！"]},
+		{min:1,word:["没用的东西！ (￣^￣) 哼！","弱爆了！( ╯-_-)╯┴—┴","你到底行不行啊？！φ(￣ー￣ )"]},
+		{min:0,word:["亲，要不要这么挫？","怎么，一秒都不行？"]},
+	];
+	for(var i=0,l=wordList.length;i<l;i++){
+		if(s>=wordList[i].min){
+			var str;
+			if(typeof wordList[i].word=="string")
+				str = wordList[i].word;
+			else
+				str = wordList[i].word[Math.floor(Math.random()*wordList[i].word.length)];
+			return str;
+		}
+	}
+	return "";
+}
+</script>
+</body>
+</html>

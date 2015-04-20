@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>los los los</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+		<script type="text/javascript" src="./lufylegend-1.9.0.js"></script>
+		<link href="./losloslos.css" type="text/css" rel="stylesheet" />
+	</head>
+<body style="padding:0;margin:0;background:#000;overflow-x:hidden;overflow-y:hidden;" oncontextmenu="return false">
+<div id="yoge"></div>
+<script>
+var list,dataList = [
+	{name:"introBg",path:"./images/introBg.png"},
+	{name:"weixinBtn",path:"./images/weixinBtn.png"},
+];
+init(50,'yoge',600,680,function(){
+	LLoadManage.load(dataList,null,function(result){
+		list=result;
+		var bitmap = new LBitmap(new LBitmapData(list["introBg"]));	
+		var introBg = new LSprite();
+		introBg.addChild(bitmap);
+		
+		bitmap = new LBitmap(new LBitmapData(list["weixinBtn"]));	
+		var weixinBtn = new LSprite();
+		weixinBtn.addChild(bitmap);
+		weixinBtn.x = 500;
+		weixinBtn.y = 500;
+		
+		introBg.addChild(weixinBtn);
+		addChild(introBg);		
+		
+		introBg.addEventListener(LMouseEvent.MOUSE_DOWN,function(e){
+			console.log("introBg");
+		});
+		weixinBtn.addEventListener(LMouseEvent.MOUSE_DOWN,function(e){
+			console.log("weixinBtn");
+		});
+	});
+});
+//3 8 7
+</script>
+</body>
+</html>

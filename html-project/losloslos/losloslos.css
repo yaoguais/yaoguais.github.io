@@ -1,0 +1,37 @@
+body,ul,dl,dt,dd,ol{margin: 0;padding: 0;}
+#weixin {
+  background: none repeat scroll 0 0 #321801;
+  border: medium none;
+  color: #ffffff;
+  font-size: 16px;
+  height: 18px;
+  left: 140px;
+  position: absolute;
+  top: 282px;
+  width: 106px;
+  display: none;
+}
+#username {
+  background: none repeat scroll 0 0 #321801;
+  border: medium none;
+  color: #ffffff;
+  font-size: 16px;
+  height: 18px;
+  left: 140px;
+  position: absolute;
+  top: 314px;
+  width: 106px;
+  display: none;
+}
+#phone {
+  background: none repeat scroll 0 0 #321801;
+  border: medium none;
+  color: #ffffff;
+  font-size: 16px;
+  height: 18px;
+  left: 140px;
+  position: absolute;
+  top: 346px;
+  width: 106px;
+  display: none;
+}

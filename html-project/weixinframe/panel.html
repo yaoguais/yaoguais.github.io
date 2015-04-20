@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>微信输入</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+		<style type="text/css">html,body,div,canvas{padding:0;margin:0;overflow-x:hidden;overflow-y:hidden;overflow: hidden;}
+		body{background:#000;}
+.bg{
+background:url(http://avatar.csdn.net/F/F/8/1_jincenlong58.jpg);
+filter:"progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod='scale')";
+-moz-background-size:100% 100%;
+	background-size:100% 100%;
+}
+		</style>
+	</head>
+<body>
+<div id="weixinframe" style="width:320px;height:640px"></div>
+<div id="weixinframe_input">
+	<style>
+	.weixinframe_input_background{
+	filter:"progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod='scale')";
+	-moz-background-size:100% 100%;
+	background-size:100% 100%;
+	}
+	#weixinframe_input{
+		position: absolute;
+		left: 0;
+		top: 0;
+		background-image: url("./weixinframe/input_window.png");
+		z-index: 9999;
+		width: 280px;
+		height: 271px;
+		filter:"progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod='scale')";
+		-moz-background-size:100% 100%;
+		background-size:100% 100%;
+	}
+	#weixinframe_input_contaimer{
+		position: relative;
+		left: 0;
+		top: 0;
+		width: 100%;
+		width: 100%;
+	}
+	#weixinframe_input_title{
+		position: absolute;;
+		left: 50%;
+		top: 0;
+		width: 87px;
+		height: 21px;
+		line-height: 21px;
+		font-size: 14px;
+		color: #FFFFFF;
+		margin-left: -43px;
+		margin-top: 2px;
+		text-align: center;
+		font-weight: 700;
+	}
+	#weixinframe_input_note1{
+		position: absolute;;
+		left: 20px;
+		top: 30px;
+		color: #FFFFFF;
+		font-size: 12px;
+	}
+	#weixinframe_input_note2{
+		position: absolute;;
+		left: 20px;
+		top: 50px;
+		color: #FFFFFF;
+		font-size: 12px;
+	}
+	#weixinframe_input_text{
+		position: absolute;;
+		left: 20px;
+		top: 70px;
+		font-size: 14px;
+	}
+	#weixinframe_input_text_label{
+		float: left;
+		margin-right: 5px;
+		color: #FFFFFF;
+		height: 20px;
+		line-height: 20px;
+	}
+	#weixinframe_input_text_value{
+		float: left;
+		width: 100px;
+		padding: 1px 2px;
+	}
+	#weixinframe_input_note3{
+		position: absolute;;
+		left: 20px;
+		top: 100px;
+		color: #FFFFFF;
+		font-size: 12px;
+	}
+	#weixinframe_input_leftbutton,#weixinframe_input_rightbutton{
+		background-image: url("./weixinframe/input_button.png");
+		width: 72px;
+		height: 24px;
+		position: absolute;
+		top: 130px;
+		color: #FFFFFF;
+		font-size: 12px;
+		font-weight: 700;
+		text-align: center;
+		line-height: 24px;
+		cursor: pointer;
+	}
+	#weixinframe_input_leftbutton{
+		left: 20px;
+	}
+	#weixinframe_input_rightbutton{
+		right: 20px;
+	}
+	</style>
+	<div id="weixinframe_input_title">游戏结束</div>
+	<div id="weixinframe_input_note1">DISTANCE：145</div>
+	<div id="weixinframe_input_note2">恭喜你现在排名200位</div>
+	<div id="weixinframe_input_text">
+		<div id="weixinframe_input_text_label">昵称：</div>
+		<input type="text" id="weixinframe_input_text_value" />
+	</div>
+	<div id="weixinframe_input_note3">继续加油哦</div>
+	<div id="weixinframe_input_leftbutton" class="weixinframe_input_background">再来一次</div>
+	<div id="weixinframe_input_rightbutton" class="weixinframe_input_background">炫耀一下</div>
+</div>
+<script type="text/javascript">
+var str = '<style>\
+					.weixinframe_input_background{\
+					filter:"progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=\'scale\')";\
+					-moz-background-size:100% 100%;\
+					background-size:100% 100%;\
+					}\
+					#weixinframe_input{\
+						position: absolute;\
+						left: 0;\
+						top: 0;\
+						background-image: url("./weixinframe/input_window.png");\
+						z-index: 9999;\
+						width: 280px;\
+						height: 270px;\
+						filter:"progid:DXImageTransform.Microsoft.AlphaImageLoader(sizingMethod=\'scale\')";\
+						-moz-background-size:100% 100%;\
+						background-size:100% 100%;\
+					}\
+					#weixinframe_input_title{\
+						position: absolute;\
+						left: 50%;\
+						top: 0;\
+						width: 87px;\
+						height: 29px;\
+						line-height: 29px;\
+						font-size: 14px;\
+						color: #FFFFFF;\
+						margin-left: -43px;\
+						margin-top: 2px;\
+						text-align: center;\
+						font-weight: 700;\
+					}\
+					#weixinframe_input_note1{\
+						position: absolute;\
+						left: 20px;\
+						top: 50px;\
+						color: #FFFFFF;\
+						font-size: 12px;\
+					}\
+					#weixinframe_input_note2{\
+						position: absolute;\
+						left: 20px;\
+						top: 80px;\
+						color: #FFFFFF;\
+						font-size: 12px;\
+					}\
+					#weixinframe_input_text{\
+						position: absolute;\
+						left: 20px;\
+						top: 110px;\
+						font-size: 14px;\
+					}\
+					#weixinframe_input_text_label{\
+						float: left;\
+						margin-right: 5px;\
+						color: #FFFFFF;\
+						height: 20px;\
+						line-height: 20px;\
+					}\
+					#weixinframe_input_text_value{\
+						float: left;\
+						width: 100px;\
+						padding: 1px 2px;\
+					}\
+					#weixinframe_input_note3{\
+						position: absolute;\
+						left: 20px;\
+						top: 150px;\
+						color: #FFFFFF;\
+						font-size: 12px;\
+					}\
+					#weixinframe_input_leftbutton,#weixinframe_input_rightbutton{\
+						background-image: url("./weixinframe/input_button.png");\
+						width: 72px;\
+						height: 24px;\
+						position: absolute;\
+						top: 200px;\
+						color: #FFFFFF;\
+						font-size: 12px;\
+						font-weight: 700;\
+						text-align: center;\
+						line-height: 24px;\
+						cursor: pointer;\
+					}\
+					#weixinframe_input_leftbutton{\
+						left: 40px;\
+					}\
+					#weixinframe_input_rightbutton{\
+						right: 40px;\
+					}\
+					</style>\
+					<div id="weixinframe_input_title">游戏结束</div>\
+					<div id="weixinframe_input_note1">DISTANCE：145</div>\
+					<div id="weixinframe_input_note2">恭喜你现在排名200位</div>\
+					<div id="weixinframe_input_text">\
+						<div id="weixinframe_input_text_label">昵称：</div>\
+						<input type="text" id="weixinframe_input_text_value" />\
+					</div>\
+					<div id="weixinframe_input_note3">继续加油哦</div>\
+					<div id="weixinframe_input_leftbutton" class="weixinframe_input_background">再来一次</div>\
+					<div id="weixinframe_input_rightbutton" class="weixinframe_input_background">炫耀一下</div>';
+document.getElementById("weixinframe_input").innerHTML = str;
+alert(Math.sin(30*Math.PI/180));
+</script>
+</body>
+</html>

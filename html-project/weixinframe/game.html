@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8" />
+		<title>微信横版</title>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0,minimum-scale=1.0,maximum-scale=1.0,user-scalable=no">
+		<script type="text/javascript" src="./weixinframe.js"></script>
+		<style type="text/css">
+			html,body,div,canvas{padding:0;margin:0;overflow-x:hidden;overflow-y:hidden;overflow: hidden;}
+			body{background:#000;}
+		</style>
+	</head>
+<body>
+<div id="weixinframe"></div>
+<script type="text/javascript">
+Global.createCanvas("weixinframe",640,1280);
+Global.addChild(LoadingSprite);
+Global.debug = true;
+Global.onFrame();
+Load.exec([
+	{"path":"./images/bg.jpg","key":"bg"},
+	{"path":"./images/img01.jpg","key":"img01"},
+	{"path":"./images/img02.jpg","key":"img02"},
+	{"path":"./sound/coins.mp3","key":"fzksl","type":"sound"},
+	{"path":"./images/frame.png","key":"player"},
+	{"path":"./js/test.js","type":"js"},
+	{"path":"./js/test2.js","type":"js"},
+],function(e){
+	LoadingSprite.update(e);
+},function(data){
+	Global.removeChild();
+	//Global.soundLayer = new AudioSound(null,data["fzksl"],true,false);
+	Global.backLayer = new ImageSprite(data["bg"],0,0);
+	Global.addChild(Global.backLayer);
+	Global.imgLayer = new ImageSprite(data["img01"],50,320);
+	Global.addChild(Global.imgLayer);
+	Global.textLayer = new TextSprite("0",200,200,"normal normal bold 14px Microsoft YaHei","#FF0000");
+	Global.addChild(Global.textLayer);
+	Global.multiTextLayer = new MultiTextSprite("这是一个测试的效果\n这是一个换行哦\n又来一个换行",100,100,"normal normal bold 14px Microsoft YaHei","#FF0000",true,400,20);
+	Global.addChild(Global.multiTextLayer);
+	Event.addEvent(Global.imgLayer,"devicemotion",function(x,y,z,o){
+		o.y += Math.floor(Math.random()*10-5);
+	});
+	Event.addEvent(Global.textLayer,'touchstart',function(x,y,o){
+		console.log(x+'|'+y);
+		o.x += 50;
+		if(o.x>Global.width)
+			o.x = 0;
+	});
+	Event.addEvent(Global.textLayer,'mousedown',function(x,y,o){
+		console.log(x+'-'+y);
+	});
+	Event.addEvent(Global.imgLayer,'onframe',function(o){
+		if(o.x>600)
+			o.x = 0;
+		o.x += 10;
+		//Global.textLayer.text = 1 + parseInt(Global.textLayer.text);
+		//Global.textLayer.text = Global.soundLayer.playingNumber;
+	});
+	Global.rectLayer = new RectSprite(100,100,400,200,null,"#FF0000");
+	Global.addChild(Global.rectLayer);
+	Event.addEvent(Global.rectLayer,"touchstart",function(){
+		//Global.soundLayer.play();
+		InputSprite.hide();
+		//alert('hide');		
+	});
+	Global.playerLayer = new FrameSprite(data["player"],300,300,96,96,300);
+	Global.addChild(Global.playerLayer);
+	Event.addEvent(Global.playerLayer,"touchstart",function(x,y,o){
+		o.setRowIndex(-1);
+	});
+	Event.addEvent(Global.playerLayer,"onframe",function(o){
+		if(o.x>Global.width)
+			o.x = 0;
+		o.x += 20;
+	});
+	Global.rectLayer2 = new RectSprite(300,300,100,100,"#FF0000",null);
+	Global.addChild(Global.rectLayer2);
+	Event.addEvent(Global.rectLayer2,"touchstart",function(x,y){
+		//Global.soundLayer.stop();
+		Global.debugMsg += ' '+Math.floor(x);
+		InputSprite.show();
+		//alert('show');
+	});
+	InputSprite.setOriginal(false,100);
+	//InputSprite.setText(1,2,3,4,5,6,7,8);
+	InputSprite.leftClick(function(){
+		alert(InputSprite.getValue());
+	});
+	InputSprite.rightClick(function(){
+		alert(InputSprite.setValue());
+	});
+});
+</script>
+</body>
+</html>
