@@ -14,6 +14,14 @@
 
 
 
+### Xhprof ###
+
+1. [简介与环境搭建](?s=md/xhprof/intro.md)
+2. [输入输出接口](?s=md/xhprof/interface.md)
+3. [扩展实现的基本原理](?s=md/xhprof/theory.md)
+
+
+
 
 ### Algorithm ###
 
