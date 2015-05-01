@@ -1,6 +1,6 @@
 ## xhprof 简介与环境搭建 ##
 
-xhprof是Facebook的一款诊断PHP应用性能的扩展，拥有清晰明显的图标数据展示，可以方便快捷的帮助开发人员找到应用的性能瓶颈。
+xhprof是Facebook的一款诊断PHP应用性能的扩展，拥有清晰明显的图表数据展示，可以方便快捷的帮助开发人员找到应用的性能瓶颈。
 
 目录：
 
@@ -11,7 +11,7 @@ xhprof是Facebook的一款诊断PHP应用性能的扩展，拥有清晰明显的
 
 ### 编译安装 ###
 
-目前xhprof最新版本是0.9.4，适用于php5.2及以上的版本。我安装的是php5.4，xhprof0.9.4。
+目前xhprof最新版本是0.9.4，适用于php5.2及以上的版本。我安装的是php5.4.40，xhprof0.9.2。
 
 解压文件后可以看到基本的目录结构
 
@@ -26,7 +26,7 @@ xhprof是Facebook的一款诊断PHP应用性能的扩展，拥有清晰明显的
 	./configure
 	make && make install
 
-编译php.ini文件，在最后添加xhprof的配置。
+编辑php.ini文件，在最后添加xhprof的配置。
 
 	[xhprof]
 	extension = xhprof.so
@@ -92,7 +92,9 @@ xhprof是Facebook的一款诊断PHP应用性能的扩展，拥有清晰明显的
 
 	$xhprof_data = xhprof_disable();
 
-将诊断的结果保存到一个数组中去。还可以添加后面的代码将结果保存到一个文件中，使用xhprof_html在网页中进行分析。
+将诊断的结果保存到一个数组中去。还可以添加后面的代码将结果保存到一个文件中。还能使用xhprof_html在网页中进行分析。
+
+最后贴[一篇最详尽的博客](http://www.cnblogs.com/wangtao_20/archive/2013/09/13/3320497.html)
 
 ### 字段分析 ###
 
