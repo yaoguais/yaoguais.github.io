@@ -1,4 +1,4 @@
-## xhprof扩展实现的基本原理 ##
+## xhprof扩展实现的一些细节 ##
 
 我们知道zend的一些内核调用都是函数指针，对函数指针进行一层包裹，就可以实现在调用前后做相关的记录，这个就是一些优化、缓存、诊断扩展实现的部分原理。
 
@@ -6,11 +6,12 @@
 
 1. `xhprof_enable`执行流程
 2. 回调函数系列
-3. BEGIN_PROFILING 宏
-4. END_PROFILING 宏
-5. wall time 实现
-6. cpu usage 实现
-7. memory usage 实现
+3. `hp_globals`全局变量
+4. BEGIN_PROFILING 宏
+5. END_PROFILING 宏
+6. wall time 实现
+7. cpu usage 实现
+8. memory usage 实现
 
 
 ###	xhprof_enable执行流程 ###
@@ -48,6 +49,65 @@
 - `hp_compile_string`主要以key(eval::文件名)记录eval函数执行的相关信息。
 - `hp_execute`或`hp_execute_ex`记录用户代码执行的相关信息。
 - `hp_execute_internal`记录C函数执行的相关信息。
+
+
+### `hp_globals`全局变量 ###
+
+该变量是一个`hp_global_t`结构体，其定义如下：
+
+	typedef struct hp_global_t {
+	  /*当前是否启动，默认是0，调用xhprof_enable等后会设置成1*/
+	  int              enabled;
+	
+	  /*保证该全局变量只被初始化一次，类似于单例模式的实现*/
+	  int              ever_enabled;
+	
+	  /*保存每个函数执行的信息,xhprof_disable等的返回值*/
+	  zval            *stats_count;
+	
+	  /*采样模式还是一般模式*/
+	  int              profiler_level;
+	
+	  /*被记录函数栈的栈顶指针*/
+	  hp_entry_t      *entries;
+	
+	  /*空闲hp_entry_t变量的栈顶指针*/
+	  hp_entry_t      *entry_free_list;
+	
+	  /*回调函数函数的集合，每一个函数的实现形式类似于C++中的虚函数*/
+	  hp_mode_cb       mode_cb;
+	
+	  /*       ----------   Mode specific attributes:  -----------       */
+	
+	  /*最后的采样时间*/
+	  struct timeval   last_sample_time;//使用gettimeofday获取
+	  uint64           last_sample_tsc;//使用cycle_timer获取
+	  /*采样的时间间隔，微妙，默认是0.1s*/
+	  uint64           sampling_interval_tsc;
+	
+	  /*cpu的频率*/
+	  double *cpu_frequencies;
+	
+	  /*cpu的个数*/
+	  uint32 cpu_num;
+	
+	  /*cpu亲和力的掩码*/
+	  cpu_set_t prev_mask;
+	
+	  /*当前cpu的ID*/
+	  uint32 cur_cpu_id;
+	
+	  /*当前执行的模式，xhprof的第一个参数值，决定是否记录cpu、内存等*/
+	  uint32 xhprof_flags;
+	
+	  /*被记录函数的映射哈希表*/
+	  uint8  func_hash_counters[256];
+	
+	  /*忽略的函数列表，xhprof_enable的第二个参数*/
+	  char  **ignored_function_names;
+	  uint8   ignored_function_filter[XHPROF_IGNORED_FUNCTION_FILTER_SIZE];
+	
+	} hp_global_t;
 
 
 
