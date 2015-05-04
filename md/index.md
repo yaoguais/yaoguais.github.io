@@ -48,3 +48,9 @@
 ### Mysql ###
 	
 1. [Mysql index及 orderby 优化](?s=md/mysql/index.md)
+
+
+
+### Linux ###
+
+1. [shell 简介与使用](?s=md/linux/shell.md)
