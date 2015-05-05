@@ -22,19 +22,6 @@
 
 
 
-
-### Algorithm ###
-
-1. [insert sort](?s=md/algorithm/insert.md)
-2. [bubble sort](?s=md/algorithm/bubble.md)
-3. [quick sort](?s=md/algorithm/quick.md)
-4. [select sort](?s=md/algorithm/select.md)
-5. [merge sort](?s=md/algorithm/merge.md)
-6. [heap sort](?s=md/algorithm/heap.md)
-
-
-
-
 ### Data Structure ###
 
 1. [min heap operation](?s=md/data_structure/heap.md)
@@ -54,3 +41,15 @@
 ### Linux ###
 
 1. [shell 简介与使用](?s=md/linux/shell.md)
+
+
+
+
+### Algorithm ###
+
+1. [insert sort](?s=md/algorithm/insert.md)
+2. [bubble sort](?s=md/algorithm/bubble.md)
+3. [quick sort](?s=md/algorithm/quick.md)
+4. [select sort](?s=md/algorithm/select.md)
+5. [merge sort](?s=md/algorithm/merge.md)
+6. [heap sort](?s=md/algorithm/heap.md)
