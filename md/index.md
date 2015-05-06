@@ -41,6 +41,7 @@
 ### Linux ###
 
 1. [shell 简介与使用](?s=md/linux/shell.md)
+2. [linux c中函数的内存布局](?s=md/linux/c-memory.md)
 
 
 
