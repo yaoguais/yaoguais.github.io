@@ -194,7 +194,7 @@ mongodb(version 0.6.3)安装中的坑:
 	apt-get install libssl-dev
 	apt-get install libssl0.9.8
 
-但是扩展在make的时候报X509未定义,经过分析得知是头文件未包含，但存在。在mongodb下有个php-ssl.h中HAVE_OPENSSL_EXT宏起着开关作用，注释即可。
+但是扩展在make的时候报X509未定义,经过分析得知是头文件未包含，但存在。在mongodb下有个php-ssl.h中`HAVE_OPENSSL_EXT`宏起着开关作用，注释即可。
 
 
 
