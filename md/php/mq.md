@@ -13,7 +13,7 @@
 3. 消息队列的实现-mongodb
 4. 消息队列的实现-memcached
 5. redis-mongodb-memcached性能的对比
-6. 消息队列的实现 amqp-rabbitmq
+6. 消息队列的实现amqp-rabbitmq
 7. 消息队列的总结
 
 
@@ -520,9 +520,48 @@ memcached的数据如下:
 
 
 
-### 消息队列的实现 amqp-rabbitmq ###
+###消息队列的实现amqp-rabbitmq###
 
-这部分内容还在整理当中，后续填坑。
+先吐槽一下rabbitmq的安装，最开始我是在Ubuntu上面安装的，首先是源码编译，不行。然后apt-get，也不行！最后dpkg安装，还是不行！！
+没办法，Ubuntu实在搞不动了。
+
+我就换了centos，还是源码编译，php-amqp老是过不了。然后pecl安装，还是不行。
+
+最后发现，这两样都会用到librabbitmq这个库，而报错是没有`amqp_tcp_socket.h`这个头文件。
+
+正好我源码编译过`rabbitmq-c`源代码，发现刚好会提供这个文件，但是API对不上啊，这个库是0.6.0的，地址是https://github.com/alanxz/rabbitmq-c/releases/tag/v0.6.0，机智的我突然反应过来，很可能是版本不对。但是没有以前版本的链接啊，机智的我又突然反应过来，就是把v0.6.0改成v0.4.0，妈蛋，居然有下载页面了。
+
+然后我小心翼翼的下载下来，删除原来的文件，重新一编译,php-amqp居然通过了。立马修改php.ini,再编写测试代码，发现队列成功入队出队了！！而这时，已经一点了，距我刚开始安装软件已经四个多小时了，一上午就装软件装完了。然后下午把RabbitQueue.php写完，然后做Benchmark，又发现两个内存相关的参数老是调不对，每次跑到70万就要停半天才继续。应该是内存数据交换到硬盘造成的。最后的benchmark就降低到50万了。但是效果还是不错。
+
+下面是测试的数据：
+
+	class: RabbitQueue
+	push
+	times: 100 num: 5000
+	request: 500000
+	faild: 0
+	max: 0.56668591499329 s/5000times
+	min: 0.019957065582275 s/5000times
+	takes: 17.697237014771 s
+	average: 0.17697237014771 s/5000times
+	rqs: 28252
+	pop
+	times: 100 num: 5000
+	request: 500000
+	faild: 0
+	max: 1.709969997406 s/5000times
+	min: 0.56408095359802 s/5000times
+	takes: 85.071734666824 s
+	average: 0.85071734666824 s/5000times
+	rqs: 5877
+
+	VMware 10
+	centos 6.6
+	memory 2GB
+	cpu i5*4
+
+翻阅了N多的rabbitmq的资料，对其机制还是有基本的了解了。最后总结一下，rabbitmq可能在性能上不是很优越，但是它是一套完善的解决方案。个人觉得比redis更适合生产环境。还有redis没有通知机制，而rabbitmq是基于长连接的，是有推送的。这个就比redis的轮询高级很多了。
+
 
 
 
@@ -539,4 +578,5 @@ memcached的数据如下:
 
 1. 性能redis>memcached>mongodb
 2. rabbitmq是成熟的解决方案
+3. mongodb与amqp扩展的安装比较坑
 
