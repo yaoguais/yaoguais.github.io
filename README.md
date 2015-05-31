@@ -1,4 +1,4 @@
-# [yaoguai's blog](http://yaoguais.com) #
+#[Yaoguai's blog](http://yaoguais.com)#
 
 1. [php cli 执行流程](http://yaoguais.com?s=md/php/cli.md)
 2. [环境及工具，php 扩展开发（一）](http://yaoguais.com?s=md/php/extension.md)
@@ -17,3 +17,7 @@
 15. [shell 简介与使用](http://yaoguais.com?s=md/linux/shell.md)
 16. [linux c中函数的内存布局](http://yaoguais.com?s=md/linux/c-memory.md)
 17. [yaoguai is going on](http://yaoguais.com)
+
+
+
+#[click here to view](yaoguais.github.io)#
