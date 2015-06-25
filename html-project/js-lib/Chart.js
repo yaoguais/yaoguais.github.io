@@ -2502,13 +2502,13 @@
             var font = ctx.font;
             var fillStyle = ctx.fillStyle;
             //80 20/300 40
-            ctx.font = this.chart.height<150 ? 20 : 40 +"px 微软雅黑";
+            ctx.font = (this.chart.height<150 ? 20 : 40) +"px 微软雅黑";
             ctx.fillStyle = "#a4a4a4";
             var text = this.total+"";
             var width = ctx.measureText(text).width;
             ctx.fillText(this.total+"",(this.chart.width-width)/2,this.chart.height/2+5);
-            ctx.font = font;
-            ctx.fillStyle = fillStyle;
+            this.chart.ctx.font = font;
+            this.chart.ctx.fillStyle = fillStyle;
 		}
 	});
 
