@@ -2502,7 +2502,7 @@
             var fillStyle = this.chart.ctx.fillStyle;
             this.chart.ctx.font = "20px 微软雅黑";
             this.chart.ctx.fillStyle = "#a4a4a4";
-            this.chart.ctx.fillText(this.total+"",this.chart.width/2 -15,this.chart.height/2+5);
+            this.chart.ctx.fillText(this.total+"",this.chart.width/2 -10,this.chart.height/2+5);
             this.chart.ctx.font = font;
             this.chart.ctx.fillStyle = fillStyle;
 		}
