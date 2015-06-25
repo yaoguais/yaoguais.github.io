@@ -25,10 +25,10 @@
   </component>
   <component name="FileEditorManager">
     <leaf>
-      <file leaf-file-name="index.html" pinned="false" current-in-tab="true">
+      <file leaf-file-name="index.html" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/sign/index.html">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.625" vertical-offset="1260" max-vertical-offset="4380">
+            <state vertical-scroll-proportion="-12.413794" vertical-offset="1260" max-vertical-offset="4380">
               <caret line="81" column="32" selection-start-line="81" selection-start-column="32" selection-end-line="81" selection-end-column="32" />
               <folding>
                 <element signature="n#style#0;n#div#2;n#div#0;n#div#0;n#body#0;n#html#0;n#!!top" expanded="true" />
@@ -44,17 +44,17 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="Chart.js" pinned="false" current-in-tab="false">
+      <file leaf-file-name="Chart.js" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/js-lib/Chart.js">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="0.0" vertical-offset="48018" max-vertical-offset="69640">
-              <caret line="2504" column="94" selection-start-line="2504" selection-start-column="94" selection-end-line="2504" selection-end-column="94" />
+            <state vertical-scroll-proportion="0.2979094" vertical-offset="49789" max-vertical-offset="69620">
+              <caret line="2506" column="49" selection-start-line="2506" selection-start-column="49" selection-end-line="2506" selection-end-column="49" />
               <folding>
-                <marker date="1435216994446" expanded="true" signature="65700:65743" placeholder="..." />
-                <marker date="1435216994446" expanded="true" signature="75234:75277" placeholder="..." />
-                <marker date="1435216994446" expanded="true" signature="81968:82013" placeholder="..." />
-                <marker date="1435216994446" expanded="true" signature="93746:93789" placeholder="..." />
-                <marker date="1435216994446" expanded="true" signature="101641:101686" placeholder="..." />
+                <marker date="1435219680070" expanded="true" signature="65700:65743" placeholder="..." />
+                <marker date="1435219680070" expanded="true" signature="75234:75277" placeholder="..." />
+                <marker date="1435219680070" expanded="true" signature="81937:81982" placeholder="..." />
+                <marker date="1435219680070" expanded="true" signature="93715:93758" placeholder="..." />
+                <marker date="1435219680070" expanded="true" signature="101610:101655" placeholder="..." />
               </folding>
             </state>
           </provider>
@@ -65,8 +65,8 @@
   <component name="IdeDocumentHistory">
     <option name="CHANGED_PATHS">
       <list>
-        <option value="$PROJECT_DIR$/js-lib/Chart.js" />
         <option value="$PROJECT_DIR$/sign/index.html" />
+        <option value="$PROJECT_DIR$/js-lib/Chart.js" />
       </list>
     </option>
   </component>
@@ -278,26 +278,26 @@
         <state />
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/js-lib/Chart.js">
+    <entry file="file://$PROJECT_DIR$/sign/index.html">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.0" vertical-offset="48018" max-vertical-offset="69640">
-          <caret line="2504" column="94" selection-start-line="2504" selection-start-column="94" selection-end-line="2504" selection-end-column="94" />
+        <state vertical-scroll-proportion="-12.413794" vertical-offset="1260" max-vertical-offset="4380">
+          <caret line="81" column="32" selection-start-line="81" selection-start-column="32" selection-end-line="81" selection-end-column="32" />
           <folding>
-            <marker date="1435216994446" expanded="true" signature="65700:65743" placeholder="..." />
-            <marker date="1435216994446" expanded="true" signature="75234:75277" placeholder="..." />
-            <marker date="1435216994446" expanded="true" signature="81968:82013" placeholder="..." />
-            <marker date="1435216994446" expanded="true" signature="93746:93789" placeholder="..." />
-            <marker date="1435216994446" expanded="true" signature="101641:101686" placeholder="..." />
+            <element signature="n#style#0;n#div#2;n#div#0;n#div#0;n#body#0;n#html#0;n#!!top" expanded="true" />
           </folding>
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/sign/index.html">
+    <entry file="file://$PROJECT_DIR$/js-lib/Chart.js">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="0.625" vertical-offset="1260" max-vertical-offset="4380">
-          <caret line="81" column="32" selection-start-line="81" selection-start-column="32" selection-end-line="81" selection-end-column="32" />
+        <state vertical-scroll-proportion="0.2979094" vertical-offset="49789" max-vertical-offset="69620">
+          <caret line="2506" column="49" selection-start-line="2506" selection-start-column="49" selection-end-line="2506" selection-end-column="49" />
           <folding>
-            <element signature="n#style#0;n#div#2;n#div#0;n#div#0;n#body#0;n#html#0;n#!!top" expanded="true" />
+            <marker date="1435219680070" expanded="true" signature="65700:65743" placeholder="..." />
+            <marker date="1435219680070" expanded="true" signature="75234:75277" placeholder="..." />
+            <marker date="1435219680070" expanded="true" signature="81937:81982" placeholder="..." />
+            <marker date="1435219680070" expanded="true" signature="93715:93758" placeholder="..." />
+            <marker date="1435219680070" expanded="true" signature="101610:101655" placeholder="..." />
           </folding>
         </state>
       </provider>

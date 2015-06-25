@@ -2505,7 +2505,6 @@
             this.chart.ctx.fillText(this.total+"",this.chart.width/2 -15,this.chart.height/2+5);
             this.chart.ctx.font = font;
             this.chart.ctx.fillStyle = fillStyle;
-            console.log(this);
 		}
 	});
 
