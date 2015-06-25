@@ -10,10 +10,18 @@
         .navbar{
             margin-bottom: 0px;
         }
-        .navbar-brand{
+        .logo{
             padding: 0 15px;
+            display: block;
+            float: left;
+            width: 30%;
+            height: 50px;
         }
-        .navbar-right{
+        .logo img{
+            width: 100%;
+            height: 100%;
+        }
+        .info{
             float: right;
         }
         .navbar-blue{
@@ -71,6 +79,9 @@
         .table th,.table td{
             text-align: center;
         }
+        .table > tbody > tr > td{
+            border-top: 1px dashed #dddddd;
+        }
         .table th{
             color: #82ffff;
         }
@@ -86,14 +97,11 @@
   <body>
     <header>
         <nav class="navbar navbar-default navbar-blue">
-          <div class="container-fluid">
-            <div class="navbar-header">
-              <a class="navbar-brand" href="#">
-                <img class="logo" alt="Brand" src="images/logo.jpg">
-              </a>
-            </div>
-            <div class="navbar-header navbar-right">
-                <p class="navbar-text">欢迎您，yaoguai</p>
+            <a class="logo" href="#">
+                <img alt="Brand" src="images/logo.jpg">
+            </a>
+            <div class="info">
+                <span class="navbar-text">欢迎您，yaoguai</span>
                 <button type="button" class="btn btn-default navbar-btn btn-blue">退出登录</button>
             </div>
           </div>
@@ -188,6 +196,7 @@
     <script>
         //调整canvas的高度
         $("#Doughnut").height($("#Doughnut").width());
+        $(".box-left").add(".box-right").css("margin-top",(($("#Doughnut").height() - $(".box-left").height()) / 2 + "px"));
         var ctx = document.getElementById("Doughnut").getContext("2d");
         var data = [
             {
