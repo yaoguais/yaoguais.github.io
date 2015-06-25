@@ -26,6 +26,7 @@
         }
         .Doughnut{
             background-color: #f2f2f2;
+            padding: 60px 0;
         }
         #Doughnut{
             width: 300px;
@@ -37,13 +38,32 @@
             height: 300px;
             margin: 0 auto;
         }
-        .box-left{
+        .box-left,.box-right{
+            width: 300px;
             float: left;
             text-align: center;
+            padding-top: 90px;
         }
-        .box-right{
-            float: left;
-            text-align: center;
+        .box-left .people-img,.box-right .people-img{
+            width: 30px;
+            height: 40px;
+        }
+        .people-text,.people-number{
+            margin: 0;
+        }
+        .people-text{
+            font-size: 16px;
+            font-weight: 400;
+        }
+        .people-number{
+            font-size: 40px;
+            font-weight: 500;
+        }
+        .box-left .people-text,.box-left .people-number{
+            color: #999999;
+        }
+        .box-right .people-text,.box-right .people-number{
+            color: #1399fd;
         }
         .table th,.table td{
             text-align: center;
@@ -79,15 +99,15 @@
     <div class="Doughnut">
         <div class="box">
             <div class="box-left">
-                <img src="images/logo.jpg" /><br />
-                <p>未签到人数</p>
-                <p>50</p>
+                <img class="people-img" src="images/people.png" />
+                <p class="people-text">未签到人数</p>
+                <p class="people-number">50</p>
             </div>
             <canvas id="Doughnut">not support canvas</canvas>
             <div class="box-right">
-                <img src="images/logo.jpg" /><br />
-                <p>已签到人数</p>
-                <p>20</p>
+                <img class="people-img" src="images/people.png" />
+                <p class="people-text">已签到人数</p>
+                <p class="people-number">20</p>
             </div>
         </div>
     </div>
