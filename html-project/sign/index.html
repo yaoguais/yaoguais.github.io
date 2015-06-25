@@ -10,8 +10,8 @@
         .navbar{
             margin-bottom: 0px;
         }
-        .logo{
-            width: 40%;
+        .navbar-brand{
+            padding: 0 15px;
         }
         .navbar-right{
             float: right;
@@ -32,7 +32,7 @@
         }
         .Doughnut{
             background-color: #f2f2f2;
-            padding: 60px 0;
+            padding: 20px 0;
         }
         #Doughnut{
             width: 30%;
@@ -46,7 +46,6 @@
             width: 30%;
             float: left;
             text-align: center;
-            padding-top: 90px;
         }
         .box-left .people-img,.box-right .people-img{
             width: 30px;
@@ -89,7 +88,7 @@
         <nav class="navbar navbar-default navbar-blue">
           <div class="container-fluid">
             <div class="navbar-header">
-              <a href="#">
+              <a class="navbar-brand" href="#">
                 <img class="logo" alt="Brand" src="images/logo.jpg">
               </a>
             </div>
@@ -113,6 +112,7 @@
                 <p class="people-text">已签到人数</p>
                 <p class="people-number">20</p>
             </div>
+            <div style="clear: both"></div>
         </div>
     </div>
     <div class="panel">
@@ -186,8 +186,8 @@
     <script src="../js-lib/Chart.js"></script>
     <script src="../bootstrap/js/bootstrap.min.js"></script>
     <script>
-        //调整canvas的宽度
-
+        //调整canvas的高度
+        $("#Doughnut").height($("#Doughnut").width());
         var ctx = document.getElementById("Doughnut").getContext("2d");
         var data = [
             {
