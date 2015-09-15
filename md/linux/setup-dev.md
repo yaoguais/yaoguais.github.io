@@ -8,7 +8,7 @@
 服务器群使用iptables控制访问权限.而mysql,mongo等的授权与认证也只是开发环境的配置,
 正式环境必须遵循最小特权原则.下面是部署后整理的文档，并不一定是按照下面的顺序.
 
-附: vagrant的安装请参照[另一篇文档]().
+附: vagrant的安装请参照[另一篇文档](https://yaoguais.github.io?s=md/linux/vagrant.md).
 
 
 目录:
@@ -29,8 +29,6 @@
 14. config project
 15. setup phpunit
 16. setup iptables
-17. secure mysql
-18. secure mongo
 
 
 
@@ -366,6 +364,7 @@ add mysql mongodb redis openfire for this machine
 	#yum list | grep ^mongo
 	#yum -y install mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
 	#ls /etc/init.d | grep mongo
+	#chkconfig --level 345 mongod on
 	#service mongod start
 	#ps -ef | grep mongo
 	#netstat -anop | grep mongo
@@ -661,6 +660,42 @@ add mysql mongodb redis openfire for this machine
 
 ## setup iptables
 
+访问权限使用的是iptables,在db这台服务器上,只在需要的协议与端口上开放,其他的全部关闭.
 
+	#yum install iptables
+	#service iptables restart
+	#vim /etc/sysconfig/iptables
+	/*
+	#######################################
+	*filter
+	########  INPUT  ######################
+	# 本机的都接受
+	-A INPUT -s 127.0.0.1/32 -j ACCEPT
+	# ssh mysql redis mongo服务
+	-A INPUT -p TCP --dport 22 -j ACCEPT
+	-A INPUT -p TCP --dport 3306 -j ACCEPT
+	-A INPUT -p TCP --dport 6379 -j ACCEPT
+	-A INPUT -p TCP --dport 27017 -j ACCEPT
+	# 剩余的进站都丢弃的都丢弃
+	-P INPUT DROP
+	########  OUTPUT ######################
+	# ssh mysql redis mongo服务
+	-A OUTPUT -p tcp --sport 22 -j ACCEPT
+	-A OUTPUT -p tcp --sport 1024:65535 -j ACCEPT
+	# 剩余的出站都丢弃的都丢弃
+	-P OUTPUT DROP
+	########  FORWARD #####################
+	# 默认转发的都丢弃
+	-P FORWARD DROP
+	#######################################
+	COMMIT
+	# Completed on Tue Sep  19 12:39:40 2015
+	*/
+	//另一台机子
+	#yum install telnet
+	#telnet 192.168.1.144 3306
+	#telnet 192.168.1.144 6379
+	#telnet 192.168.1.144 27017
 
+dev服务器由于是开发服务器，而且随时都会部署一些服务上去。暂时就使用iptables的默认设置。
 
