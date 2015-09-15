@@ -1,0 +1,666 @@
+# 通过vagrant搭建git&repo&lnmp
+
+注：使用的操作系统是centos64 6.5,宿主机是Windows.
+开发环境不宜使用过多的虚拟机,182.168.1.116是Windows机子,IDE是phpstorm&eclipse.
+192.168.1.143配置git,repo,php,nginx,phpmyadmin,samba,phpunit.
+也是项目服务器,通过samba把项目目录共享到Windows,Windows中通过网络磁盘映射为本地W盘。
+192.168.1.144配置redis,mysql,mongo,openfire.也是数据库服务器及聊天服务器.
+服务器群使用iptables控制访问权限.而mysql,mongo等的授权与认证也只是开发环境的配置,
+正式环境必须遵循最小特权原则.下面是部署后整理的文档，并不一定是按照下面的顺序.
+
+附: vagrant的安装请参照[另一篇文档]().
+
+
+目录:
+
+1. user add
+2. config ssh
+3. setup git&repo
+4. setup php
+5. setup nginx
+6. setup redis
+7. setup mysql
+8. setup mongo
+9. dump mysql&mongo
+10. setup openfire
+11. setup phpmyadmin
+12. setup samba
+13. sync project
+14. config project
+15. setup phpunit
+16. setup iptables
+17. secure mysql
+18. secure mongo
+
+
+
+
+## user add
+
+	#useradd -m -s "/bin/bash" yaoguai
+	#cd /home/yaoguai
+	#mkdir .ssh
+	#cd .ssh
+
+
+
+
+
+
+## config ssh
+
+	#yum -y install lrzsz
+	#rz
+	/*
+	 id_rsa  
+	 id_rsa.pub  
+	 known_hosts
+	*/
+	#chown -R yaoguai:yaoguai .ssh
+	#chmod 700 .ssh/id_rsa
+	#su yaoguai
+	$ssh yongliu@dev.tjut.cc
+	// 测试ssh可是否可行
+
+
+
+
+
+
+
+
+
+
+
+## setup git&repo
+
+	#yum -y install wget
+	#cd /home/yaoguai
+	#wget https://github.com/Yaoguais/useful-tools/raw/master/scripts/repo
+	#yum -y install vim
+	#wget http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
+	#yum install rpmforge-release-0.5.3-1.el6.rf.x86_64.rpm
+	#yum clean all
+	#yum --disablerepo=base,updates --enablerepo=rpmforge-extras install -y git
+	#chmod 755 repo 
+	#mv repo /usr/bin/repo
+	#cd /home/yaoguai
+	#vi .gitconfig
+
+	/*
+	[user]
+	        email = yong.liu@tjut.cc
+	        name = Yong Liu
+	[url "ssh://yong.liu@review.tjut.cc:29418"]
+	        insteadOf = git://review.tjut.cc
+	[url "ssh://yong.liu@review.tjut.cc:29418"]
+	        insteadOf = https://gerrit.googlesource.com
+	*/
+
+
+
+
+
+
+
+
+
+
+## setup php
+
+	$su root
+	#rpm -Uvh https://mirror.webtatic.com/yum/el6/latest.rpm
+	#yum clean all
+	#yum makecache
+	#yum list | grep ^php56w
+	#yum -y install php56w php56w-common php56w-cli php56w-devel php56w-fpm php56w-gd php56w-mbstring php56w-mcrypt php56w-pdo php56w-mysql php56w-xml php56w-opcache php56w-pecl-xdebug php56w-pear
+	#yum -y install openssl openssl-devel
+	#pecl install mongo
+	#cd /etc/php.d
+	#vim mongo.ini
+	/*
+	[mongo]
+	extension = mongo.so
+	*/
+	#php -m
+
+
+## setup nginx
+
+	#yum list | grep ^nginx
+	#yum -y install nginx18
+	#cd /etc/nginx
+	#mkdir ssl
+	#cd ssl
+	#openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt
+	#cd ../
+	#chown -R nginx:nginx ssl
+	#vim conf.d/ssl.conf
+	/*
+	server {
+	        listen          443;
+	        server_name     192.168.1.143;
+	        charset         utf-8;
+	
+	        ssl                     on;
+	        ssl_certificate         /etc/nginx/ssl/server.crt;
+	        ssl_certificate_key     /etc/nginx/ssl/server.key;
+	        ssl_session_timeout     5m;
+	
+	        ssl_protocols                   SSLv2 SSLv3 TLSv1;
+	        ssl_ciphers                     ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+	        ssl_prefer_server_ciphers       on;
+	
+	        set             $yii_bootstrap          "index.php";
+	        set             $host_path              "/home/yaoguai/workspace/mianliao-server/src";
+	        root            $host_path;
+	
+	        location / {
+	                index index.html $yii_bootstrap;
+	                try_files $uri $uri/ /$yii_bootstrap?$args;
+	        }
+	
+	        location ~ ^/(protected|framework|themes/\w+/views) {
+	                deny  all;
+	        }
+	
+	        #avoid processing of calls to unexisting static files by yii
+	        location ~ \.(js|css|png|jpg|gif|swf|ico|pdf|mov|fla|zip|rar)$ {
+	                try_files $uri =404;
+	        }
+	
+	        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+	        #
+	        location ~ \.php$ {
+	                fastcgi_split_path_info  ^(.+\.php)(.*)$;
+	
+	                #let yii catch the calls to unexising PHP files
+	                set $fsn /$yii_bootstrap;
+	                if (-f $document_root$fastcgi_script_name){
+	                        set $fsn $fastcgi_script_name;
+	                }
+	
+	                fastcgi_pass   127.0.0.1:9000;
+	                include        fastcgi_params;
+	
+			#PATH_INFO and PATH_TRANSLATED can be omitted, but RFC 3875 specifies them for CGI
+	                fastcgi_param  PATH_INFO        $fastcgi_path_info;
+	                fastcgi_param  PATH_TRANSLATED  $document_root$fsn;
+	                fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+			fastcgi_param  HTTPS 		on;
+	        }
+	
+	        # prevent nginx from serving dotfiles (.htaccess, .svn, .git, etc.)
+	        location ~ /\. {
+	                deny all;
+	                access_log off;
+	                log_not_found off;
+	        }
+	}
+	*/
+	
+	#vim /etc/nginx/nginx.conf
+	/*
+	# For more information on configuration, see:
+	#   * Official English Documentation: http://nginx.org/en/docs/
+	#   * Official Russian Documentation: http://nginx.org/ru/docs/
+	
+	user              	nginx;
+	worker_processes  	1;
+	
+	error_log  		/var/log/nginx/error.log;
+	#error_log  /var/log/nginx/error.log  notice;
+	#error_log  /var/log/nginx/error.log  info;
+	
+	pid        		/var/run/nginx.pid;
+	
+	events {
+	    worker_connections  1024;
+	}
+	
+	
+	http {
+	    include       /etc/nginx/mime.types;
+	    default_type  application/octet-stream;
+	
+	    log_format  main  '$remote_addr - $remote_user [$time_local] "$request" '
+	                      '$status $body_bytes_sent "$http_referer" '
+	                      '"$http_user_agent" "$http_x_forwarded_for"';
+	
+	    access_log  /var/log/nginx/access.log  main;
+	
+	    sendfile        on;
+	    #tcp_nopush     on;
+	
+	    client_max_body_size 20M;
+	    #keepalive_timeout  0;
+	    keepalive_timeout  65;
+	
+	    #gzip  on;
+	    
+	    # Load config files from the /etc/nginx/conf.d directory
+	    # The default server is in conf.d/default.conf
+	    include /etc/nginx/conf.d/*.conf;
+	
+	}
+	*/
+	#nginx -t
+
+
+
+
+
+
+
+
+
+
+## setup redis
+
+	#cd /root
+	#wget https://github.com/antirez/redis/archive/2.8.22.tar.gz
+	#tar -zvxf 2.8.22.tar.gz
+	#ls
+	#cd redis-2.8.22/
+	#make
+	#cd utils
+	#./install_server.sh
+	/*
+	Welcome to the redis service installer
+	This script will help you easily set up a running redis server
+	
+	Please select the redis port for this instance: [6379] 
+	Selecting default: 6379
+	Please select the redis config file name [/etc/redis/6379.conf] 
+	Selected default - /etc/redis/6379.conf
+	Please select the redis log file name [/var/log/redis_6379.log] 
+	Selected default - /var/log/redis_6379.log
+	Please select the data directory for this instance [/var/lib/redis/6379] 
+	Selected default - /var/lib/redis/6379
+	Please select the redis executable path [] /root/redis-2.8.22/src/redis-server
+	Selected config:
+	Port           : 6379
+	Config file    : /etc/redis/6379.conf
+	Log file       : /var/log/redis_6379.log
+	Data dir       : /var/lib/redis/6379
+	Executable     : /root/redis-2.8.22/src/redis-server
+	Cli Executable : /root/redis-2.8.22/src/redis-cli
+	Is this ok? Then press ENTER to go on or Ctrl-C to abort.
+	Copied /tmp/6379.conf => /etc/init.d/redis_6379
+	Installing service...
+	Successfully added to chkconfig!
+	Successfully added to runlevels 345!
+	Starting Redis server...
+	Installation successful!
+	*/
+	#ls /etc/init.d | grep redis
+	#mv /etc/init.d/redis_6379 /etc/init.d/redis
+	#chkconfig --level 345 redis on
+	#netstat -anop | grep redis
+	#vim /etc/redis/6379.conf
+	/*
+	# bind 192.168.1.100 10.0.0.1
+	# bind 127.0.0.1
+	bind 192.168.1.144
+	*/
+	#service redis restart
+	#netstat -anop | grep redis
+
+
+
+
+
+
+
+
+
+
+
+
+
+## setup mysql
+
+rebuild virsual machine db
+add mysql mongodb redis openfire for this machine
+
+	#yum install mysql-community-server mysql-community-devel mysql-community-common mysql-community-client mysql-community-embedded mysql-community-libs -y
+	/*
+	启动如果出现失败，首先查看日志
+	mysql_secure_installation 失败,可使用一个终端执行mysqld_safe
+	另一个终端执行 mysql_secure_installation.
+	安装后root密码123456
+	还可以尝试使用mysql_install_db --user mysql --datadir=/var/lib/mysql 重新安装
+	*/
+	#mysql -uroot -p
+	/*
+	grant all privileges on *.* to mianliao@192.168.1.143 identified by '123456';
+	flush privileges;
+	*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+## setup mongo
+
+	#cd /root
+	#vim /etc/yum.repos.d/mongodb-org-3.0.repo
+	/*
+	[mongodb-org-3.0]
+	name=MongoDB Repository
+	baseurl=https://repo.mongodb.org/yum/redhat/$releasever/mongodb-org/3.0/x86_64/
+	gpgcheck=0
+	enabled=1
+	*/
+	#yum makecache
+	#yum list | grep ^mongo
+	#yum -y install mongodb-org mongodb-org-mongos mongodb-org-server mongodb-org-shell mongodb-org-tools
+	#ls /etc/init.d | grep mongo
+	#service mongod start
+	#ps -ef | grep mongo
+	#netstat -anop | grep mongo
+	#vim /etc/mongod.conf
+	/*
+	#bind_ip=127.0.0.1
+	bind_ip=192.168.1.144
+	*/
+	#service mongod restart
+	#netstat -anop | grep mongo
+
+
+
+
+
+## dump mysql&mongo
+
+	dump mysql
+	$ssh yaoguai@192.168.1.142
+	$cd /workspace
+	$mkdir dump
+	$cd dump
+	$mysql dump -uroot -p mianliao > mianliao.sql
+	$mysql dump -uroot -p mianliao_log > mianliao_log.sql
+	$mysql dump -uroot -p mianliao_web > mianliao_web.sql
+	
+	dump mongo
+	$mongodump -h 192.168.1.142 -d campus -o /workspace/dump
+	$mongodump -h 192.168.1.142 -d mllog -o /workspace/dump
+	
+	import mysql
+	$ssh vagrant@192.168.1.144
+	$rz
+	$unzip dump.zip
+	$mysql -uroot -p
+	/*
+	create database mianliao default charset utf8;
+	create database mianliao_log default charset utf8;
+	create database mianliao_web default charset utf8;
+	set names utf8;
+	use mianliao;
+	source /home/vagrant/dump/mianliao.sql;
+	use mianliao_log;
+	source /home/vagrant/dump/mianliao_log.sql;
+	use mianliao_web;
+	source /home/vagrant/dump/mianliao_web.sql;
+	exit
+	*/
+	
+	import mongo
+	$mongorestore -h 192.168.1.144 -d campus /home/vagrant/dump/campus
+	$mongorestore -h 192.168.1.144 -d mllog /home/vagrant/dump/mllog
+
+
+
+
+
+
+## setup openfire
+
+	$ssh vagrant@192.168.1.144
+	$su root
+	#cd /root
+	#rz
+	#tar -zvxf openfire-dev-online.tar.gz
+	#mkdir workspace
+	#mv openfire workspace/
+	#groupadd openfire
+	#useradd -M -r -g openfire openfire
+	#yum list | grep openjdk
+	#yum -y install java-1.7.0-openjdk java-1.7.0-openjdk-devel
+	#rz
+	#yum install jre-7u6-linux-x64.rpm
+	#java -version
+	#cd workspace/openfire/bin
+	#cp openfirectl openfirectl.bak
+	#vim openfirectl
+	/*
+	[ -z "$OPENFIRE_USER" ] && OPENFIRE_USER="openfire"
+	OPENFIRE_HOME="/root/workspace/openfire"
+	# If a openfire home variable has not been specified, try to determine it.
+	*/
+	#vim /etc/profile
+	/*
+	export PATH USER LOGNAME MAIL HOSTNAME HISTSIZE HISTCONTROL
+	export JAVA_HOME="/usr/lib/jvm/java-1.7.0-openjdk.x86_64"
+	*/
+	#sh -x openfirectl
+	#ps -ef | grep openfire
+	#kill -9 3443
+	
+	#cd /root
+	#rz
+	#mysql -uroot -p
+	/*
+	create database openfire default charset utf8;
+	use openfire;
+	set names utf8;
+	source /root/openfire.sql;
+	*/
+
+	#mv openfirectl /etc/init.d/openfire
+	#chkconfig --level 345 openfire on
+	#service openfire start
+
+
+
+
+
+
+
+
+
+
+
+
+## setup phpmyadmin
+
+	#cd /home/yaoguai/src
+	#rz
+	#unzip phpMyAdmin-4.4.12-all-languages.zip
+	#mv phpMyAdmin-4.4.12-all-languages phpmyadmin
+	#mkdir phpmyadmin/config
+	#chmod -R 777 phpmyadmin
+	#
+	/*
+	server {
+	        listen          9200;
+	        server_name     192.168.1.143;
+	        charset         utf-8;
+	
+	        ssl                     on;
+	        ssl_certificate         /etc/nginx/ssl/server.crt;
+	        ssl_certificate_key     /etc/nginx/ssl/server.key;
+	        ssl_session_timeout     5m;
+	
+	        ssl_protocols                   SSLv2 SSLv3 TLSv1;
+	        ssl_ciphers                     ALL:!ADH:!EXPORT56:RC4+RSA:+HIGH:+MEDIUM:+LOW:+SSLv2:+EXP;
+	        ssl_prefer_server_ciphers       on;
+	
+	        root /home/yaoguai/src/phpmyadmin;
+	
+	        location / {
+	                index index.html index.php;
+	        }
+	
+	        # pass the PHP scripts to FastCGI server listening on 127.0.0.1:9000
+	        location ~ \.php$ {
+	                fastcgi_pass   127.0.0.1:9000;
+	                include        fastcgi_params;
+	                fastcgi_param  SCRIPT_FILENAME  $document_root$fastcgi_script_name;
+	                fastcgi_param  HTTPS            on;
+	        }
+	}
+	*/
+	#vim /etc/nginx/conf.d/phpmyadmin.conf 
+	#nginx -t
+	#service nginx -s reload
+
+
+
+
+
+
+
+
+
+
+## setup samba
+
+	#yum -y install samba
+	#ls /etc/init.d
+	#chkconfig --level 345 smb on
+	#service smb start
+	#vim /etc/samba/smb.conf
+	/*
+	# uncomment others for security
+	[workspace]
+	comment = yaoguai's workspace
+	path = /home/yaoguai/workspace
+	public = no
+	valid users = yaoguai
+	writable = yes
+	write list = yaoguai
+	*/
+	#smbpasswd -a yaoguai
+	#service smb restart
+
+
+
+
+
+
+## sync project
+
+	#cd /vagrant
+	#mkdir src
+	#cd src
+	#wget https://github.com/yiisoft/yii/releases/download/1.1.16/yii-1.1.16.bca042.zip
+	#unzip  yii-1.1.16.bca042.zip
+	#mv yii-1.1.16.bca042.zip yii-1.1
+	#su yaoguai
+	$cd /home/yaoguai
+	$mkdir workspace
+	$cd workspace
+	$repo init -u git://review.tjut.cc/server/manifest.git
+	$repo sync server/mianliao-server
+
+
+
+
+
+
+
+
+
+## config project
+
+	$pwd
+	$cd /home
+	$sudo chmod 755 yaoguai
+	$cd /home/yaoguai/workspace/mianliao-server/src/protected
+	$mkdir -m 775 runtime
+	$sudo service php-fpm start
+	$ps -ef | grep php-fpm
+	$sudo chown yaoguai:apache runtime
+	$cd /home/yaoguai/workspace/mianliao-server/src
+	$sudo chown yaoguai:apache assets
+	$sudo chown yaoguai:nginx index.php favicon.ico logo.png
+	$cd /home/yaoguai/workspace/mianliao-server/src/assets
+	$rz
+	$unzip upload.zip
+	$rm -rf upload.zip
+	$sudo chown -R yaoguai:apache upload
+	$cd /home/yaoguai/workspace/mianliao-server/src/protected
+	$vim conf.php
+	// 找到项目文档，粘贴配置
+	/*
+	<?php
+	
+	define('YII_PATH', '/vagrant/src/yii-1.1/framework/');
+	define('YII_DEBUG', true);
+	define('YII_TRACE_LEVEL', 3);
+	define('MYSQL_CONN', 'mysql:host=192.168.1.144;dbname=mianliao');
+	define('MYSQL_LOG_CONN', 'mysql:host=192.168.1.144;dbname=mianliao_log');
+	define('MYSQL_USER', 'root');
+	define('MYSQL_PW', '123456');
+	define('MONGO_CONN', 'mongodb://192.168.1.144');
+	define('MONGO_DB', 'campus');
+	define('MONGO_DB_LOG', 'mllog');
+	define('XMPP_HOST', 'http://192.168.1.144:9090');
+	define('USING_PIC_BE', false);
+	define('PIC_HOST', 'http://localhost');
+	define('FILE_HOST', 'http://localhost');
+	define('SECOND_HOST', 'http://localhost');
+	define('CACHE_HOST','192.168.1.144');
+	define('CACHE_PORT',6379);
+	define('CACHE_EXPIRE',600);
+	define('TEST_HOST','http://192.168.1.143');
+	define('ENABLE_PROTOCOL_LOG',true);
+	?>
+	*/
+
+
+
+
+
+
+
+
+
+## setup phpunit
+
+	#wget https://phar.phpunit.de/phpunit.phar
+	#chmod +x phpunit.phar
+	#mv phpunit.phar /usr/bin/phpunit
+	#phpunit --version
+	#su yaoguai
+	$cd /home/yaoguai
+	$mkdir sh
+	$vim sh/phpunit
+	/*
+	#!/bin/sh
+	/usr/bin/phpunit --bootstrap /home/yaoguai/workspace/mianliao-server/src/protected/tests/bootstrap.php /home/yaoguai/workspace/mianliao-server/src/protected/tests
+	*/
+	$sudo chmod u+x sh/phpunit
+	$cd /home/yaoguai/workspace/mianliao-server/src/protected/tests/functional
+	$mkdir cookie
+	$mkdir log
+	$~/sh/phpunit
+
+
+
+## setup iptables
+
+
+
+

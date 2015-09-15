@@ -16,7 +16,9 @@
 14. [Mysql index及 orderby 优化](https://yaoguais.github.io?s=md/mysql/index.md)
 15. [shell 简介与使用](https://yaoguais.github.io?s=md/linux/shell.md)
 16. [linux c中函数的内存布局](https://yaoguais.github.io?s=md/linux/c-memory.md)
-17. [yaoguai is going on](https://yaoguais.github.io)
+17. [linux vagrant的使用](https://yaoguais.github.io?s=md/linux/vagrant.md)
+18. [linux 开发环境搭建](https://yaoguais.github.io?s=md/linux/setup-dev.md)
+19. [yaoguai is going on](https://yaoguais.github.io)
 
 
 
