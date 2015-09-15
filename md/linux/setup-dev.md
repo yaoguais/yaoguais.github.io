@@ -1,4 +1,4 @@
-# 通过vagrant搭建git&repo&lnmp
+## 通过vagrant搭建git&repo&lnmp
 
 注：使用的操作系统是centos64 6.5,宿主机是Windows.
 开发环境不宜使用过多的虚拟机,182.168.1.116是Windows机子,IDE是phpstorm&eclipse.
@@ -33,7 +33,7 @@
 
 
 
-## user add
+### user add
 
 	#useradd -m -s "/bin/bash" yaoguai
 	#cd /home/yaoguai
@@ -45,7 +45,7 @@
 
 
 
-## config ssh
+### config ssh
 
 	#yum -y install lrzsz
 	#rz
@@ -70,7 +70,7 @@
 
 
 
-## setup git&repo
+### setup git&repo
 
 	#yum -y install wget
 	#cd /home/yaoguai
@@ -104,7 +104,7 @@
 
 
 
-## setup php
+### setup php
 
 	$su root
 	#rpm -Uvh https://mirror.webtatic.com/yum/el6/latest.rpm
@@ -123,7 +123,7 @@
 	#php -m
 
 
-## setup nginx
+### setup nginx
 
 	#yum list | grep ^nginx
 	#yum -y install nginx18
@@ -253,7 +253,7 @@
 
 
 
-## setup redis
+### setup redis
 
 	#cd /root
 	#wget https://github.com/antirez/redis/archive/2.8.22.tar.gz
@@ -316,7 +316,7 @@
 
 
 
-## setup mysql
+### setup mysql
 
 rebuild virsual machine db
 add mysql mongodb redis openfire for this machine
@@ -349,7 +349,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## setup mongo
+### setup mongo
 
 	#cd /root
 	#vim /etc/yum.repos.d/mongodb-org-3.0.repo
@@ -380,7 +380,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## dump mysql&mongo
+### dump mysql&mongo
 
 	dump mysql
 	$ssh yaoguai@192.168.1.142
@@ -423,7 +423,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## setup openfire
+### setup openfire
 
 	$ssh vagrant@192.168.1.144
 	$su root
@@ -481,7 +481,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## setup phpmyadmin
+### setup phpmyadmin
 
 	#cd /home/yaoguai/src
 	#rz
@@ -533,7 +533,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## setup samba
+### setup samba
 
 	#yum -y install samba
 	#ls /etc/init.d
@@ -558,7 +558,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## sync project
+### sync project
 
 	#cd /vagrant
 	#mkdir src
@@ -581,7 +581,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## config project
+### config project
 
 	$pwd
 	$cd /home
@@ -599,6 +599,7 @@ add mysql mongodb redis openfire for this machine
 	$unzip upload.zip
 	$rm -rf upload.zip
 	$sudo chown -R yaoguai:apache upload
+	$sudo chmod -R 755 upload
 	$cd /home/yaoguai/workspace/mianliao-server/src/protected
 	$vim conf.php
 	// 找到项目文档，粘贴配置
@@ -623,7 +624,7 @@ add mysql mongodb redis openfire for this machine
 	define('CACHE_HOST','192.168.1.144');
 	define('CACHE_PORT',6379);
 	define('CACHE_EXPIRE',600);
-	define('TEST_HOST','http://192.168.1.143');
+	define('TEST_HOST','https://192.168.1.143');
 	define('ENABLE_PROTOCOL_LOG',true);
 	?>
 	*/
@@ -636,7 +637,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## setup phpunit
+### setup phpunit
 
 	#wget https://phar.phpunit.de/phpunit.phar
 	#chmod +x phpunit.phar
@@ -658,7 +659,7 @@ add mysql mongodb redis openfire for this machine
 
 
 
-## setup iptables
+### setup iptables
 
 访问权限使用的是iptables,在db这台服务器上,只在需要的协议与端口上开放,其他的全部关闭.
 

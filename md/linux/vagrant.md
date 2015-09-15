@@ -1,4 +1,4 @@
-# VisualBox&Vagrant搭建开发环境
+## VisualBox&Vagrant搭建开发环境
 
 前言: 以前都是使用破解版的VMware,感觉也是挺好用的,但是需要周边的东西的话,可能还要找破解版的,不胜麻烦.干脆换成免费版的VisualBox,听过完全备份出来的文件也要小些,但是实际我测出来并没有小多少.
 
@@ -15,7 +15,7 @@
 
 
 
-## setup VisualBox
+### setup VisualBox
 
 VisualBox下载地址[https://www.virtualbox.org/wiki/Downloads](https://www.virtualbox.org/wiki/Downloads)
 
@@ -23,7 +23,7 @@ VisualBox下载地址[https://www.virtualbox.org/wiki/Downloads](https://www.vir
 
 安装好之后就不用再管它了,Vagrant会自动关联的.(配置网络时要用到一次)
 
-## set Vagrant
+### set Vagrant
 
 Vagrant下载地址[https://www.vagrantup.com/downloads.html](https://www.vagrantup.com/downloads.html)
 
@@ -41,7 +41,7 @@ Vagrant的box文件我存放到G:\VagrantWorkspace\box下。
 虚拟机有两个，分别是dev和db.
 
 
-## setup dev
+### setup dev
 
 	> win+R
 	> mkdir G:\VagrantWorkspace\project\dev
@@ -107,7 +107,7 @@ Vagrant的box文件我存放到G:\VagrantWorkspace\box下。
 
 
 
-## setup db
+### setup db
 
 创建db虚拟机的过程与dev的基本一致,也包括创建其配置文件与网络配置.这里只贴出其配置文件.
 
@@ -132,7 +132,7 @@ Vagrant的box文件我存放到G:\VagrantWorkspace\box下。
 	  end
 	end
 
-## package box
+### package box
 
 打包后的虚拟机可以直接发送给其他用户,这对开发来说是很方便的.
 
@@ -147,7 +147,7 @@ Vagrant的box文件我存放到G:\VagrantWorkspace\box下。
 	
 我们开发的虚拟机就相当于做了一个快照保存到box文件夹下了.
 
-## setup bat
+### setup bat
 
 其实单个配置文件是可以配置多个虚拟机同时启动的,但是我还是希望一个虚拟机一个配置文件,这样拷给别人也方便.
 
