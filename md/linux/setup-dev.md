@@ -130,7 +130,7 @@
 	#cd /etc/nginx
 	#mkdir ssl
 	#cd ssl
-	#openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt
+	#openssl req -x509 -nodes -days 36500 -newkey rsa:2048 -keyout server.key -out server.crt
 	#cd ../
 	#chown -R nginx:nginx ssl
 	#vim conf.d/ssl.conf
