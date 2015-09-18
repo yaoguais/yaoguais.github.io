@@ -1,6 +1,6 @@
 ## phabricator 项目管理平台
 
-前言:以前都用的gerrit,感觉也是挺好用的,结合jenkins可以自动verify,也可以通过jenkins进行自动部署.但是phabricator不一样,它是全套自带.在好用完善的同时,界面风格与用户体验方便也是足足甩了gerrit一条街.(其实感觉SVN对小团队要好一点,用git的developer老是几天才提交一次代码...)
+前言:以前都用的gerrit,感觉也是挺好用的,结合jenkins可以自动verify,也可以通过jenkins进行自动部署.但是phabricator不一样,它是全套自带.在好用完善的同时,界面风格与用户体验方面也是足足甩了gerrit一条街.(其实感觉SVN对小团队要好一点,用git的developer老是几天才提交一次代码...)
 
 目录:
 
@@ -17,9 +17,9 @@
 ### setup base
 
 这里主要参考phabricator的官方文档.例如
-[installation_guide](https://secure.phabricator.com/book/phabricator/article/installation_guide/),
-[install_rhel-derivs](https://secure.phabricator.com/diffusion/P/browse/master/scripts/install/install_rhel-derivs.sh),
-[configuration_guide](https://secure.phabricator.com/book/phabricator/article/configuration_guide/)
+[installation\_guide](https://secure.phabricator.com/book/phabricator/article/installation_guide/),
+[install\_rhel-derivs](https://secure.phabricator.com/diffusion/P/browse/master/scripts/install/install_rhel-derivs.sh),
+[configuration\_guide](https://secure.phabricator.com/book/phabricator/article/configuration_guide/)
 
 上次我们搭建了两台服务器,143开发服务器,配置了git,php,nginx.144数据库服务器,配置了mysql等.所以我就不重头搭建了,我安装的软件基本都是较新的,如果使用系统自带的yum源的话,可以直接`yum install httpd git php php-cli php-mysql php-process php-devel php-gd php-pecl-apc php-pecl-json php-mbstring mysql-server`完事.
 
