@@ -35,6 +35,11 @@
 
 ### user add
 
+	// sync time
+	#yum -y install nptdate
+	#cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime -y
+	#ntpdate us.pool.ntp.org
+	// add user
 	#useradd -m -s "/bin/bash" yaoguai
 	#cd /home/yaoguai
 	#mkdir .ssh
@@ -321,13 +326,27 @@
 rebuild virsual machine db
 add mysql mongodb redis openfire for this machine
 
+	安装repo源:
+	#vim /etc/yum.repos.d/mysql.repo
+	/*
+	[mysql56-community]
+	name=MySQL 5.6 Community Server
+	baseurl=http://repo.mysql.com/yum/mysql-5.6-community/el/6/$basearch/
+	enabled=1
+	gpgcheck=0
+	gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-mysql
+	*/
 	#yum install mysql-community-server mysql-community-devel mysql-community-common mysql-community-client mysql-community-embedded mysql-community-libs -y
 	/*
-	启动如果出现失败，首先查看日志
-	mysql_secure_installation 失败,可使用一个终端执行mysqld_safe
-	另一个终端执行 mysql_secure_installation.
+	使用一个终端执行mysqld_safe启动服务，另一个终端执行 mysql_secure_installation进行安装.
 	安装后root密码123456
-	还可以尝试使用mysql_install_db --user mysql --datadir=/var/lib/mysql 重新安装
+	
+	完全重新安装mysql的方法:
+	首先删除/var/lib/mysql，然后重新创建这个文件夹，并修改其用户权限，再重新安装。
+	#mkdir /var/lib/mysql
+	#chown mysql:mysql /var/lib/mysql
+	#mysql_install_db --user mysql --datadir=/var/lib/mysql
+	这样就是一个新的mysql了，删除任何数据前记得需要的数据都要备份。
 	*/
 	#mysql -uroot -p
 	/*
@@ -392,6 +411,7 @@ add mysql mongodb redis openfire for this machine
 	$mysql dump -uroot -p mianliao_web > mianliao_web.sql
 	
 	dump mongo
+	// mongodump -h 192.168.1.142 -u username -p 123456 -d mllog -o /workspace/dump
 	$mongodump -h 192.168.1.142 -d campus -o /workspace/dump
 	$mongodump -h 192.168.1.142 -d mllog -o /workspace/dump
 	
