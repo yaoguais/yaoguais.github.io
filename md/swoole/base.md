@@ -160,9 +160,11 @@ CLion是JetBrains出的一款开发C/C++的IDE，是Storm系统之一。
 	(gdb) r
 	当前停在了zm_startup_swoole函数处,即Swoole扩展的MINIT函数。
 	GDB常用的几个操作命令:
-	s 类似于Step Into, 跳进函数.
-	n 类似于Step Over, 一步一步执行，遇见函数，不进入函数.
-	f 类似于Step Out,忽略剩下的函数代码，结束当前的函数.
-	p 打印变量.
-	call 调用函数，可以是gdb的函数,也可以是C代码中的函数.
+	s step 类似于Step Into, 跳进函数.
+	n next 类似于Step Over, 一步一步执行，遇见函数，不进入函数.
+	f finish 类似于Step Out,忽略剩下的函数代码，结束当前的函数.
+	c continue 略过后面的代码,直接跳到下一个断点处.
+	l list 显示当前行周围的代码.
+	p print 打印变量.
+	call 调用函数,可以是gdb的函数,也可以是C代码中的函数.
 	
