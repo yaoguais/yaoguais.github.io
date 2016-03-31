@@ -15,6 +15,11 @@ $navFiles = array_map(function ($val) use ($root) {
     return $root . $val;
 }, $matches[0]);
 $finalHtml = str_replace(['{{title}}', '{{content}}'], ["YaoGuai's Blog", $html], $tpl);
+$finalHtml = str_replace("Yaoguai's", 'Yaoguai\'s <span style="font-size:10px">while($loved = true); give_up();</span>', $finalHtml);
+$finalHtml .= '<style>
+.mdBlock ol{ padding-left: 5px; list-style: none; } .mdBlock ol li{ padding: 2px 0; font-size: 18px; }
+h2 a:hover{text-decoration: none}
+</style>';
 file_put_contents($toFile, $finalHtml);
 
 $mdFiles = getFiles($root . '/md');
