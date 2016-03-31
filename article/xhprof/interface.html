@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>xhprof 输入输出接口</h2>
+<p>由于这次是进行一次扩展升级，所以留给用户的接口最好不要发生变化。只要接口不变，xhprof_html或者其他的一些分析工具基本可以无修改移植了。</p>
+<p>目录：</p>
+<ol>
+<li>输入接口</li>
+<li>输出接口</li>
+</ol>
+<h3>输入接口</h3>
+<p>扩展提供的接口目前只有两个</p>
+<pre><code>void xhprof_enable([int $flags=0 [, array $options]]);
+void xhprof_sample_enable(void);
+
+其中flags有以下的值
+XHPROF_FLAGS_NO_BUILTINS   0x0001   //不记录内置函数
+XHPROF_FLAGS_CPU           0x0002   //CPU使用情况
+XHPROF_FLAGS_MEMORY        0x0004   //内存使用情况
+
+options数组目前只有一个键值ignored_functions(需要忽略的函数列表)
+
+xhprof_sample_enable是采样的意思，具体时间与CPU的时钟频率相关，大概是0.1s。</code></pre>
+<h3>输出接口</h3>
+<p>扩展提供的输出接口同样有两个</p>
+<pre><code>array xhprof_disable(void);
+array xhprof_sample_disable(void);</code></pre>
+<p>通过一个简单的例子<code>xhprof_sample_disable</code>获取的输出</p>
+<pre><code>array (
+  '1429660621.200000' =&gt; 'main()==&gt;sleep',
+  '1429660621.300000' =&gt; 'main()==&gt;sleep',
+  '1429660621.400000' =&gt; 'main()==&gt;sleep',
+  '1429660621.500000' =&gt; 'main()==&gt;sleep',
+  '1429660621.600000' =&gt; 'main()==&gt;sleep',
+  '1429660621.700000' =&gt; 'main()==&gt;sleep',
+)</code></pre>
+<p>结合源码</p>
+<pre><code>while ((cycle_timer() - hp_globals.last_sample_tsc)
+         &gt; hp_globals.sampling_interval_tsc) {
+         &gt; 
+    hp_globals.last_sample_tsc += hp_globals.sampling_interval_tsc;
+
+    incr_us_interval(&amp;hp_globals.last_sample_time, XHPROF_SAMPLING_INTERVAL);
+
+    hp_sample_stack(entries  TSRMLS_CC);
+  }</code></pre>
+<p>我们可以看出其输出是每个0.1获取当前执行的函数，如此进行采样。</p>
+<p>我们同样通过一个简单的例子获取<code>xhprof_enable</code>的输出</p>
+<pre><code>array(
+    'main()==&gt;sleep' =&gt;
+        array(
+            'ct' =&gt; 2,
+            'wt' =&gt; 2001714,
+            'cpu' =&gt; 1000,
+            'mu' =&gt; 752,
+            'pmu' =&gt; 0,
+        ),
+    'main()==&gt;xhprof_disable' =&gt;
+        array(
+            'ct' =&gt; 1,
+            'wt' =&gt; 2,
+            'cpu' =&gt; 0,
+            'mu' =&gt; 760,
+            'pmu' =&gt; 0,
+        ),
+    'main()' =&gt;
+        array(
+            'ct' =&gt; 1,
+            'wt' =&gt; 2001963,
+            'cpu' =&gt; 1000,
+            'mu' =&gt; 6232,
+            'pmu' =&gt; 0,
+        ),
+);</code></pre>
+<p>同样结合源码，我们可以得出其中的规律</p>
+<pre><code>$data = array(
+    '键' =&gt;  array(
+        'ct' =&gt; 调用次数(number),
+        'wt' =&gt; 挂钟时间(us),
+        'cpu' =&gt; cpu时间(us),
+        'mu' =&gt; 内存占用(bytes),
+        'pmu' =&gt; 内存峰值(bytes),
+    )
+)
+
+键：父函数()==&gt;子函数()[@递归次数]
+
+函数名称大概有以下几种：
+1.run_init::文件名
+2.eval
+3.全局函数名
+4.类名::方法名</code></pre>
+<p>关于函数具体实现的细节，我们在后面的文章中继续分析。</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

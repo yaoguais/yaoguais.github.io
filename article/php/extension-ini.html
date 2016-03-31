@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>ini文件解析，php 扩展开发（二）</h2>
+<p>运行环境</p>
+<ul>
+<li>PHP Version 7.0.0-dev (<code>./configure  --prefix=/root/php7d --without-pear --enable-fpm --enable-debug</code>)</li>
+<li>Linux version 2.6.32-504.1.3.el6.x86_64 (gcc version 4.4.7 20120313 (Red Hat 4.4.7-11) (GCC) )</li>
+<li>swoole (1.7.8 stable for php extension)</li>
+</ul>
+<p>前言：</p>
+<p>我们都知道大多数扩展都有自己的配置项，那么它的怎么从配置文件中读取出来，又是怎么传给扩展自身的呢？今天就让我们一探究竟。</p>
+<p>目录：</p>
+<ol>
+<li>配置文件解析</li>
+<li>模块扩展的配置</li>
+<li>总结</li>
+</ol>
+<h3>1.配置文件解析</h3>
+<p>在<a href="?s=md/php/cli.md">php cli执行流程</a>一文中，我们了解到php.ini文件解析是通过php_module_startup函数中的php_init_config实现的。php_init_config的实现如下：</p>
+<pre><code>PHP-SRC/main/php_ini.c:384
+int php_init_config(void)
+{
+    //...
+    zend_hash_init(&amp;configuration_hash, 8, NULL, config_zval_dtor, 1);/*首先初始化configuration_hash全局变量*/
+    /*调用zend_parse_ini_file解析文件,并将解析的结果保存到configuration_hash中*/     
+    zend_parse_ini_file(&amp;fh, 1, ZEND_INI_SCANNER_NORMAL, (zend_ini_parser_cb_t) php_ini_parser_cb, &amp;configuration_hash);
+    {
+        zval tmp;
+
+        ZVAL_NEW_STR(&amp;tmp, zend_string_init(fh.filename, strlen(fh.filename), 1));
+        /*更新cfg_file_path这个key*/
+        zend_hash_str_update(&amp;configuration_hash, "cfg_file_path", sizeof("cfg_file_path")-1, &amp;tmp);
+        if (php_ini_opened_path) {
+            efree(php_ini_opened_path);
+        }
+        php_ini_opened_path = zend_strndup(Z_STRVAL(tmp), Z_STRLEN(tmp));
+    }
+    /*确定其他配置文件的目录*/
+    /* Check for PHP_INI_SCAN_DIR environment variable to override/set config file scan directory */
+    php_ini_scanned_path = getenv("PHP_INI_SCAN_DIR");
+    if (!php_ini_scanned_path) {
+        /* Or fall back using possible --with-config-file-scan-dir setting (defaults to empty string!) */
+        php_ini_scanned_path = PHP_CONFIG_FILE_SCAN_DIR;
+    }
+    php_ini_scanned_path_len = (int)strlen(php_ini_scanned_path);
+    /*遍历目录，并获取所有文件*/
+    bufpath = estrdup(php_ini_scanned_path);
+    for (debpath = bufpath ; debpath ; debpath=endpath) {
+        endpath = strchr(debpath, DEFAULT_DIR_SEPARATOR);
+        if (endpath) {
+            *(endpath++) = 0;
+        }
+        if (!debpath[0]) {
+            /* empty string means default builtin value
+               to allow "/foo/phd.d:" or ":/foo/php.d" */
+            debpath = PHP_CONFIG_FILE_SCAN_DIR;
+        }
+        lenpath = (int)strlen(debpath);
+
+        if (lenpath &gt; 0 &amp;&amp; (ndir = php_scandir(debpath, &amp;namelist, 0, php_alphasort)) &gt; 0) {
+
+            for (i = 0; i &lt; ndir; i++) {
+
+                /* check for any file with .ini extension */
+                if (!(p = strrchr(namelist[i]-&gt;d_name, '.')) || (p &amp;&amp; strcmp(p, ".ini"))) {
+                    free(namelist[i]);
+                    continue;
+                }
+                /* Reset active ini section */
+                RESET_ACTIVE_INI_HASH();
+
+                if (IS_SLASH(debpath[lenpath - 1])) {
+                    snprintf(ini_file, MAXPATHLEN, "%s%s", debpath, namelist[i]-&gt;d_name);
+                } else {
+                    snprintf(ini_file, MAXPATHLEN, "%s%c%s", debpath, DEFAULT_SLASH, namelist[i]-&gt;d_name);
+                }
+                if (VCWD_STAT(ini_file, &amp;sb) == 0) {
+                    if (S_ISREG(sb.st_mode)) {
+                        if ((fh2.handle.fp = VCWD_FOPEN(ini_file, "r"))) {
+                            fh2.filename = ini_file;
+                            fh2.type = ZEND_HANDLE_FP;
+                            /*调用zend_parse_ini_file解析文件并将解析结果添加到configuration_hash中*/
+                            if (zend_parse_ini_file(&amp;fh2, 1, ZEND_INI_SCANNER_NORMAL,
+                                 (zend_ini_parser_cb_t) php_ini_parser_cb, &amp;configuration_hash) == SUCCESS) {
+                                /* Here, add it to the list of ini files read */
+                                l = (int)strlen(ini_file);
+                                total_l += l + 2;
+                                p = estrndup(ini_file, l);
+                                zend_llist_add_element(&amp;scanned_ini_list, &amp;p);
+                            }
+                        }
+                    }
+                }
+                free(namelist[i]);
+            }
+            free(namelist);
+        }
+    }
+    efree(bufpath);
+    /...
+    return SUCCESS;
+}</code></pre>
+<p>通过gdb查看configuration_hash的内容</p>
+<pre><code>(gdb) p configuration_hash
+$1 = {u = {v = {flags = 11 '\v', nApplyCount = 0 '\000', reserve = 0}, flags = 11}, nTableSize = 8, 
+  nTableMask = 7, nNumUsed = 2, nNumOfElements = 2, nInternalPointer = 0, nNextFreeElement = 0, 
+  arData = 0xfd1270, arHash = 0xfd1370, pDestructor = 0x79dc13 &lt;config_zval_dtor&gt;}
+/*可以看出Hash表中只用两个元素*/
+(gdb) p (*configuration_hash.arData[0].key.val)@20
+$2 = "report_zend_debug\000\000"
+/*第一个key是report_zend_debug*/
+(gdb) p (*configuration_hash.arData[1].key.val)@20
+$3 = "display_errors\000\000A\002\000"
+/*第二个key是display_errors*/</code></pre>
+<p>通过在编写$HOME/.gdbinit文件，实现一个用来打印php hashTable变量的命令，其内容如下</p>
+<pre><code>define print_zval
+    printf "  "
+    if $arg0.u1.v.type == 0
+            printf "IS_UNDEF\n"
+    end
+    if $arg0.u1.v.type == 1
+            printf "IS_NULL\n"
+    end
+    if $arg0.u1.v.type == 2
+            printf "IS_FALSE\n"
+    end
+    if $arg0.u1.v.type == 3
+            printf "IS_TRUE\n"
+    end
+    if $arg0.u1.v.type == 4
+            printf "IS_LONG\n"
+    end
+    if $arg0.u1.v.type == 5
+            printf "IS_DOUBLE\n"
+    end
+    if $arg0.u1.v.type == 6
+            printf "IS_STRING %s\n",$arg0.value.str.val
+    end
+    if $arg0.u1.v.type == 7
+            printf "IS_ARRAY\n"
+    end
+    if $arg0.u1.v.type == 8
+            printf "IS_OBJECT\n"
+    end
+    if $arg0.u1.v.type &gt;= 9
+            printf "%d\n",$arg0.u1.v.type
+    end
+end
+
+define print_hash
+    set $i = 0
+    set $num = 0
+    set $len = $arg0.nTableSize - 1
+    while $i &lt; $len
+            if $arg0.arData[$i].key.len &gt; 0
+                    printf "%s",$arg0.arData[$i].key.val
+                    print_zval $arg0.arData[$i].val
+                    set $num = $num + 1
+            end
+            set $i = $i + 1
+    end
+    printf "total:%d\n",$num
+end</code></pre>
+<p>调试php_init_config函数，在PHP-SRC/main/php_ini.c:595前停止</p>
+<pre><code>591             if (fh.handle.fp) {
+(gdb) 
+592                     fh.type = ZEND_HANDLE_FP;
+(gdb) 
+593                     RESET_ACTIVE_INI_HASH();
+(gdb) 
+595                     zend_parse_ini_file(&amp;fh, 1, ZEND_INI_SCANNER_NORMAL, (zend_ini_parser_cb_t)
+                             php_ini_parser_cb, &amp;configuration_hash);
+(gdb) print_hash configuration_hash
+report_zend_debug  IS_STRING 0
+display_errors  IS_STRING 1
+Cannot access memory at address 0x10
+(gdb) n
+600                             ZVAL_NEW_STR(&amp;tmp, zend_string_init(fh.filename, strlen(fh.filename), 1));
+(gdb) print_hash configuration_hash
+report_zend_debug  IS_STRING 0
+display_errors  IS_STRING 1
+engine  IS_STRING 1
+short_open_tag  IS_STRING 
+precision  IS_STRING 14
+//...
+url_rewriter.tags  IS_STRING a=href,area=href,frame=src,input=src,form=fakeentry
+mssql.allow_persistent  IS_STRING 1
+mssql.max_persistent  IS_STRING -1
+mssql.max_links  IS_STRING -1
+mssql.min_error_severity  IS_STRING 10
+mssql.min_message_severity  IS_STRING 10
+mssql.compatibility_mode  IS_STRING 
+mssql.secure_connection  IS_STRING 
+tidy.clean_output  IS_STRING 
+soap.wsdl_cache_enabled  IS_STRING 1
+soap.wsdl_cache_dir  IS_STRING /tmp
+soap.wsdl_cache_ttl  IS_STRING 86400
+soap.wsdl_cache_limit  IS_STRING 5
+ldap.max_links  IS_STRING -1
+Cannot access memory at address 0x1700000048
+(gdb) </code></pre>
+<p>我们可以发现，所有的元素都是STRING类型的，并且on、off已经被转换成1、-1了。</p>
+<h3>2.模块扩展的配置</h3>
+<p>配置完configuration_hash后，紧接着就进行扩展的配置。</p>
+<pre><code>if (php_init_config() == FAILURE) {
+    return FAILURE;
+}
+
+/* Register PHP core ini entries */
+REGISTER_INI_ENTRIES();</code></pre>
+<p>REGISTER_INI_ENTRIES宏展开</p>
+<pre><code>#define REGISTER_INI_ENTRIES() zend_register_ini_entries(ini_entries, module_number)</code></pre>
+<p>ini_entries是一个zend_ini_entry_def结构体</p>
+<pre><code>typedef struct _zend_ini_entry_def {
+    const char *name;
+    ZEND_INI_MH((*on_modify));  /*配置项注册或修改的时候会调用*/
+    void *mh_arg1;
+    void *mh_arg2;
+    void *mh_arg3;
+    const char *value;
+    void (*displayer)(zend_ini_entry *ini_entry, int type);
+    int modifiable;
+
+    uint name_length;
+    uint value_length;
+} zend_ini_entry_def;
+
+#define ZEND_INI_MH(name) int name(zend_ini_entry *entry, 
+        zend_string *new_value, void *mh_arg1, void *mh_arg2, void *mh_arg3, int stage)</code></pre>
+<p>通过分析，得出zend_register_ini_entries的ini_entries来自main.c:524的PHP_INI_BEGIN()宏</p>
+<pre><code>#define PHP_INI_BEGIN       ZEND_INI_BEGIN
+#define ZEND_INI_BEGIN()        static const zend_ini_entry_def ini_entries[] = {
+#define ZEND_INI_END()      { NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0} };</code></pre>
+<p>zend_register_ini_entries实现如下</p>
+<pre><code>ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int module_number) /* {{{ */
+{
+    zend_ini_entry *p;
+    zval *default_value;
+    HashTable *directives = registered_zend_ini_directives;
+//...
+
+    /*通过ZEND_INI_END可以看出第一个元素的name属性是NULL*/
+    while (ini_entry-&gt;name) {
+        p = pemalloc(sizeof(zend_ini_entry), 1);
+        p-&gt;name = zend_string_init(ini_entry-&gt;name, ini_entry-&gt;name_length, 1);
+        p-&gt;on_modify = ini_entry-&gt;on_modify;
+        p-&gt;mh_arg1 = ini_entry-&gt;mh_arg1;
+        p-&gt;mh_arg2 = ini_entry-&gt;mh_arg2;
+        p-&gt;mh_arg3 = ini_entry-&gt;mh_arg3;
+        p-&gt;value = NULL;
+        p-&gt;orig_value = NULL;
+        p-&gt;displayer = ini_entry-&gt;displayer;
+        p-&gt;modifiable = ini_entry-&gt;modifiable;
+
+        p-&gt;orig_modifiable = 0;
+        p-&gt;modified = 0;
+        p-&gt;module_number = module_number;
+
+        if (zend_hash_add_ptr(directives, p-&gt;name, (void*)p) == NULL) {
+            if (p-&gt;name) {
+                zend_string_release(p-&gt;name);
+            }
+            zend_unregister_ini_entries(module_number);
+            return FAILURE;
+        }
+        if (((default_value = zend_get_configuration_directive(p-&gt;name)) != NULL) &amp;&amp;
+            (!p-&gt;on_modify || p-&gt;on_modify(p, Z_STR_P(default_value), p-&gt;mh_arg1, p-&gt;mh_arg2, p-&gt;mh_arg3, ZEND_INI_STAGE_STARTUP) == SUCCESS)) {
+
+            p-&gt;value = zend_string_copy(Z_STR_P(default_value));
+        } else {
+            p-&gt;value = ini_entry-&gt;value ?
+                zend_string_init(ini_entry-&gt;value, ini_entry-&gt;value_length, 1) : NULL;
+
+            if (p-&gt;on_modify) {
+                p-&gt;on_modify(p, p-&gt;value, p-&gt;mh_arg1, p-&gt;mh_arg2, p-&gt;mh_arg3, ZEND_INI_STAGE_STARTUP);
+            }
+        }
+        ini_entry++;
+    }
+    return SUCCESS;
+}</code></pre>
+<p>zend_get_configuration_directive用来获取配置参数</p>
+<pre><code>zend_get_configuration_directive_p = utility_functions-&gt;get_configuration_directive;
+
+:main.c:2097
+
+zuf.get_configuration_directive = php_get_configuration_directive_for_zend;
+static zval *php_get_configuration_directive_for_zend(zend_string *name)
+{
+    return cfg_get_entry_ex(name);
+}
+PHPAPI zval *cfg_get_entry_ex(zend_string *name)
+{
+    return zend_hash_find(&amp;configuration_hash, name);
+}</code></pre>
+<p>最后我们可以看到，是获取configuration_hash中的值</p>
+<pre><code>/*如果配置文件中存在配置项，那么就使用配置文件中的值,否则的话，就使用模块硬编码的默认值*/
+if (((default_value = zend_get_configuration_directive(p-&gt;name)) != NULL) &amp;&amp;
+    (!p-&gt;on_modify || p-&gt;on_modify(p, Z_STR_P(default_value), p-&gt;mh_arg1, p-&gt;mh_arg2, p-&gt;mh_arg3, ZEND_INI_STAGE_STARTUP) == SUCCESS)) {
+
+    p-&gt;value = zend_string_copy(Z_STR_P(default_value));
+}</code></pre>
+<p>这里初始化了ini_entries的值，现在我们对比一下扩展,以bcmath为例</p>
+<pre><code>php_bcmath.h
+PHP_INI_BEGIN()
+    STD_PHP_INI_ENTRY("bcmath.scale", "0", PHP_INI_ALL, OnUpdateLongGEZero, bc_precision, zend_bcmath_globals, bcmath_globals)
+PHP_INI_END()
+
+PHP_MINIT_FUNCTION(bcmath)
+{
+    REGISTER_INI_ENTRIES();
+
+    return SUCCESS;
+}</code></pre>
+<p>在MINIT函数中，调用REGISTER_INI_ENTRIES,读取configuration_hash中配置文件的内容，然后更新到自己的ini_entries变量中
+这个同main.c中的ini_entries由于是不同文件的全局静态变量，所以没有联系。</p>
+<p>同理，看一下swoole的实现</p>
+<pre><code>PHP_INI_BEGIN()
+STD_PHP_INI_ENTRY("swoole.aio_thread_num", "2", PHP_INI_ALL, OnUpdateLong, aio_thread_num, zend_swoole_globals, swoole_globals)
+STD_PHP_INI_ENTRY("swoole.display_errors", "2", PHP_INI_ALL, OnUpdateBool, display_errors, zend_swoole_globals, swoole_globals)
+STD_PHP_INI_ENTRY("swoole.message_queue_key", "0", PHP_INI_ALL, OnUpdateString, message_queue_key, zend_swoole_globals, swoole_globals)
+/**
+ * Unix socket buffer size
+ */
+STD_PHP_INI_ENTRY("swoole.unixsock_buffer_size", "8388608", PHP_INI_ALL, OnUpdateLong, unixsock_buffer_size, zend_swoole_globals, swoole_globals)
+PHP_INI_END()
+
+PHP_MINIT_FUNCTION(swoole)
+{
+    ZEND_INIT_MODULE_GLOBALS(swoole, php_swoole_init_globals, NULL);
+    /*同样调用这个宏，让配置文件中的配置值覆盖硬编码的默认值*/
+    REGISTER_INI_ENTRIES();</code></pre>
+<p>其中的ZEND_INIT_MODULE_GLOBALS展示</p>
+<pre><code>#define ZEND_INIT_MODULE_GLOBALS(module_name, globals_ctor, globals_dtor)   \
+    globals_ctor(&amp;module_name##_globals);   
+#endif</code></pre>
+<p>即</p>
+<pre><code>php_swoole_init_globals(&amp;swoole_globals);
+
+static void php_swoole_init_globals(zend_swoole_globals *swoole_globals)
+{
+    swoole_globals-&gt;message_queue_key = 0;
+    swoole_globals-&gt;aio_thread_num = SW_AIO_THREAD_NUM_DEFAULT;
+    swoole_globals-&gt;socket_buffer_size = SW_SOCKET_BUFFER_SIZE;
+    swoole_globals-&gt;display_errors = 1;
+}</code></pre>
+<h3>3.总结</h3>
+<ol>
+<li>解析配置文件，把解析的结果添加到configuration_hash变量中</li>
+<li>每个模块调用EGISTER_INI_ENTRIES();宏，来读取配置文件中用户设置的值，来覆盖自己的默认值</li>
+</ol>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

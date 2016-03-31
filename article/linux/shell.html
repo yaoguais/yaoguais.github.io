@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>Shell 简介与使用</h2>
+<p>工作中难免会使用一些shell脚本进行自动化管理，今天就简单的总结下shell的使用。</p>
+<p>目录：</p>
+<ol>
+<li>shell 的简单介绍</li>
+<li>shell 脚本的一般格式</li>
+<li>shell 脚本的执行</li>
+<li>一个简单的例子</li>
+<li>卷标与运算符号：declare</li>
+<li>shell 的输入输出</li>
+<li>逻辑判断与比较运算符</li>
+<li>条件式判断 if</li>
+<li>条件式判断 case</li>
+<li>循环语句 for((;;))、for in、while、until</li>
+<li>自定义函数</li>
+<li>如何 debug shell</li>
+<li>结语</li>
+</ol>
+<h3>shell 的简单介绍</h3>
+<p>部分摘自<a href="http://www.cnblogs.com/suyang/archive/2008/05/18/1201990.html">Linux Shell编程入门</a>、
+<a href="http://vbird.dic.ksu.edu.tw/linux_basic/0320bash.php">鸟哥的认识与学习 BASH </a>、
+<a href="http://vbird.dic.ksu.edu.tw/linux_basic/Mandrake9.0/0340bashshell-scripts.php">鸟哥的学习 shell scripts</a></p>
+<p>从程序员的角度来看， Shell本身是一种用C语言编写的程序，从用户的角度来看，Shell是用户与Linux操作系统沟通的桥梁。用户既可以输入命令执行，又可以利用 Shell脚本编程，完成更加复杂的操作。在Linux GUI日益完善的今天，在系统管理等领域，Shell编程仍然起着不可忽视的作用。深入地了解和熟练地掌握Shell编程，是每一个Linux用户的必修 功课之一。 </p>
+<p>Linux的Shell种类众多，常见的有：Bourne Shell（/usr/bin/sh或/bin/sh）、Bourne Again Shell（/bin/bash）、C Shell（/usr/bin/csh）、K Shell（/usr/bin/ksh）、Shell for Root（/sbin/sh），等等。不同的Shell语言的语法有所不同，所以不能交换使用。每种Shell都有其特色之处，基本上，掌握其中任何一种 就足够了。在本文中，我们关注的重点是Bash，也就是Bourne Again Shell，由于易用和免费，Bash在日常工作中被广泛使用；同时，Bash也是大多数Linux系统默认的Shell。在一般情况下，人们并不区分 Bourne Shell和Bourne Again Shell，所以，在下面的文字中，我们可以看到#!/bin/sh，它同样也可以改为#!/bin/bash。 </p>
+<h3>shell 脚本的一般格式</h3>
+<p>利用vi等文本编辑器编写Shell脚本的格式是固定的，如下：</p>
+<pre><code>#!/bin/sh   
+#comments   
+Your commands go here</code></pre>
+<p>首行中的符号#!告诉系统其后路径所指定的程序即是解释此脚本文件的Shell程序。如果首行没有这句话，在执行脚本文件的时候，将会出现错误。后续的部分就是主程序，Shell脚本像高级语言一样，也有变量赋值，也有控制语句。除第一行外，以#开头的行就是注释行，直到此行的结束。如果一行未完成，可以在行尾加上&quot;，这个符号表明下一行与此行会合并为同一行。 </p>
+<h3>shell 脚本的执行</h3>
+<p>编辑完毕，将脚本存盘为filename.sh，文件名后缀sh表明这是一个Bash脚本文件。执行脚本的时候，要先将脚本文件的属性改为可执行的：</p>
+<pre><code>chmod +x filename.sh</code></pre>
+<p>执行脚本的方法是：</p>
+<pre><code>./filename.sh</code></pre>
+<p>使用 &quot;sh 文件名&quot; 也可以执行shell程序。</p>
+<h3>一个简单的例子</h3>
+<p>这个例子很简单，就是在屏幕上打印&quot;Hello ! How are you ?&quot;。</p>
+<pre><code>#!/bin/bash                        &lt;==在 # 之后加上 ! 与 shell 的名称，用来宣告使用的 shell
+# 这个脚本的用途在于列出 Hello ! How are you 在屏幕上
+# 建檔日期： 2002/05/20
+# Made by VBird
+hello=Hello\ \!\ How\ are\ you\ \?      &lt;==这就是变量啦！
+echo $hello</code></pre>
+<p>下面这个例子，用来区别单引号与双引号的。这个跟php中的效果是一样的。</p>
+<pre><code>[root @test test]# vi test02-2var.sh
+#!/bin/bash 
+# 这个脚本用途在于引用两个变量，顺便比较一下 " 与 ' 的异同
+# Date: 2002/06/27
+# Made by VBird
+name="V.Bird"
+myname1="My name is $name"
+myname2='My name is $name'
+echo $name
+echo $myname1
+echo $myname2
+
+[root @test test]# sh test02-2var.sh
+V.Bird
+My name is V.Bird
+My name is $name</code></pre>
+<h3>卷标与运算符号：declare</h3>
+<p>declare 这个用作声明变量的类型，跟SQL Server的存储过程类似。shell中变量的类型默认是字符型的，我们可以通过下面的例子看出。</p>
+<pre><code>[root @test test]# a=3
+[root @test test]# b=5
+[root @test test]# c=$a*$b
+[root @test test]# echo $c
+3*5  &lt;==糟糕！怎么变成了字符串了？！</code></pre>
+<p>declare的用法如下：</p>
+<pre><code>[test @test test]# declare [-afirx]
+参数说明：
+-a  ：定义为数组 array
+-f  ：定义为函数 function 
+-i  ：定义为整数 integer
+-r  ：定义为『只读』
+-x  ：定义为透过环境输出变量
+范例：
+[test @test test]# declare -i a=3
+[test @test test]# declare -i b=5
+[test @test test]# declare -i c=$a*$b
+[test @test test]# echo $c
+15  &lt;==变成数字啰！ ^_^</code></pre>
+<h3>shell 的输入输出</h3>
+<p>输出在前面就用到很多次了，就是echo $name</p>
+<p>而输入的话，用的是read命令，它的作用跟c中的scanf类似，将用户输入保存到某个变量。</p>
+<pre><code>[root @test test]# vi test04-read.sh
+#!/bin/bash
+# This program is used to "read" variables
+# VBird 2002/06/27
+echo "Please keyin your name, and press Enter to start."
+read name
+echo "This is your keyin data ==&gt; $name"
+[root @test test]# sh test04-read.sh
+Please keyin your name, and press Enter to start.
+VBird Tsai
+This is your keyin data ==&gt; VBird Tsai</code></pre>
+<p>而命令行参数的读入，是保存在$0等变量中的。</p>
+<pre><code>myscript opt1 opt2 opt3 opt4
+$0 : myscript 亦即是 script 的檔名
+$1 : opt1 亦即是第一个附加的参数 (parameter)
+$2 : opt2
+$3 : opt3
+
+$$ : Shell本身的PID（ProcessID） 
+$! : Shell最后运行的后台Process的PID 
+$? : 最后运行的命令的结束代码（返回值） 
+$- : 使用Set命令设定的Flag一览 
+$* : 所有参数列表。如"$*"用「"」括起来的情况、以"$1 $2 … $n"的形式输出所有参数。 
+$@ : 所有参数列表。如"$@"用「"」括起来的情况、以"$1" "$2" … "$n" 的形式输出所有参数。 
+$# : 添加到Shell的参数个数 
+$0 : Shell本身的文件名 
+$1～$n : 添加到Shell的各参数值。$1是第1参数、$2是第2参数…。</code></pre>
+<h3>逻辑判断与比较运算符</h3>
+<p>shell中逻辑表达式多而复杂，分为很多种类型，下面一一列举。</p>
+<h6>逻辑判断式一：关于档案与目录的侦测逻辑卷标！</h6>
+<pre><code>-f  常用！侦测『档案』是否存在
+-d  常用！侦测『目录』是否存在
+-b  侦测是否为一个『 block 档案』
+-c  侦测是否为一个『 character 档案』
+-S  侦测是否为一个『 socket 标签档案』
+-L  侦测是否为一个『 symbolic link 的档案』
+-e  侦测『某个东西』是否存在！</code></pre>
+<h6>逻辑判断式二：关于程序的逻辑卷标！</h6>
+<pre><code>-G  侦测是否由 GID 所执行的程序所拥有
+-O  侦测是否由 UID 所执行的程序所拥有
+-p  侦测是否为程序间传送信息的 name pipe 或是 FIFO</code></pre>
+<h6>逻辑判断式三：关于档案的属性侦测！</h6>
+<pre><code>-r  侦测是否为可读的属性
+-w  侦测是否为可以写入的属性
+-x  侦测是否为可执行的属性
+-s  侦测是否为『非空白档案』
+-u  侦测是否具有『 SUID 』的属性
+-g  侦测是否具有『 SGID 』的属性
+-k  侦测是否具有『 sticky bit 』的属性</code></pre>
+<h6>逻辑判断式四：两个档案之间的判断与比较 ；例如『 test file1 -nt file2 』</h6>
+<pre><code>-nt 第一个档案比第二个档案新
+-ot 第一个档案比第二个档案旧
+-ef 第一个档案与第二个档案为同一个档案（ link 之类的档案）</code></pre>
+<h6>逻辑判断式五：逻辑的『与(and)』『或(or)』！</h6>
+<pre><code>&amp;&amp;  逻辑的 AND 的意思
+||  逻辑的 OR 的意思</code></pre>
+<h6>比较运算符</h6>
+<pre><code>=   等于
+!=  不等于
+&lt;   小于
+&gt;   大于
+-eq 等于
+-ne 不等于
+-lt 小于
+-gt 大于
+-le 小于或等于
+-ge 大于或等于
+-a  双方都成立（and）
+-o  单方成立（or）
+-z  空字符串
+-n  非空字符串</code></pre>
+<p>接下面是控制流程，一般的控制流程就是顺序、条件、循环。顺序就不用说了。</p>
+<h3>条件式判断 if</h3>
+<p>if主要有两种，一种只有一个条件判断，另一种是有多个条件判断。</p>
+<p>一：if then fi 的方式
+二：if ... then .... else if .... then ... end if</p>
+<p>下面举个例子：</p>
+<pre><code>if [ 条件判断一 ] &amp;&amp; (||) [ 条件判断二 ]; then       &lt;== if 是起始的意思，后面可以接若干个判断式，使用 &amp;&amp; 或 ||
+    执行内容程序
+elif [ 条件判断三 ] &amp;&amp; (||) [ 条件判断四 ]; then     &lt;==第二段的判断，如果第一段没有符合就来此搜寻条件
+    执行第二段内容程序
+else                                            &lt;==当前两段都不符合时，就以这段内容来执行！
+    执行第三段内容程序
+fi                                              &lt;==结束 if then 的条件判断！</code></pre>
+<p>不过，这里有几个新手常犯的错误，我们需要来加强说明一下：</p>
+<ul>
+<li>在 [ ] 当中，只能有一个判别式；</li>
+<li>在 [ ] 与 [ ] 当中，可以使用 &amp;&amp; 或 || 来组织判别式；</li>
+<li>每一个独立的组件之间『都需要有空格键来隔开』！</li>
+</ul>
+<p>尤其是最后一点，最容易犯的错啦！好了，我们来进行一个简单的判别式好了！ </p>
+<h3>条件式判断 case</h3>
+<p>shell中的case跟c中的switch-case类似。</p>
+<pre><code>case 种类方式(string) in          &lt;==开始阶段，那个种类方式可分成两种类型，通常使用 $1 这一种直接下达类型！
+    种类方式一)
+       程序执行段
+       ;;                     &lt;==种类方式一的结束符号！
+    种类方式二)
+       程序执行段
+       ;;
+    *)
+       echo "Usage: {种类方式一|种类方式二}"     &lt;==列出可以利用的参数值！
+       exit 1
+esac                         &lt;==这个 case 的设定结束处！</code></pre>
+<p>下面是一个具体的例子：</p>
+<pre><code>[root @test test]# vi test10-case.sh
+#!/bin/bash
+# program:      Using case mode
+# Made by:      VBird
+# date:         2002/06/27
+# content:      I will use this program to study the case mode!
+# 1. print this program
+echo "Press your select one, two, three"
+read number
+
+case $number in
+  one)
+        echo "your choice is one"
+        ;;
+  two)
+        echo "your choice is two"
+        ;;
+  three)
+        echo "your choice is three"
+        ;;
+  *)
+        echo "Usage {one|two|three}"
+        exit 1
+esac
+[root @test test]# sh test10-case.sh
+Press your select one, two, three
+two   &lt;=这一行是您输入的呦！
+your choice is two</code></pre>
+<h3>循环语句 for((;;))、for in、while、until</h3>
+<p>这几种循环的意思跟其他语言是一致的，就不再解释了。只需要明白其写法就OK了，直接上例子。</p>
+<p><strong>for((;;))</strong></p>
+<pre><code>[test @test test]# vi test11-loop.sh
+#!/bin/bash
+# Using for and loop
+# VBird 2002/06/27
+declare -i s  # &lt;==变量宣告
+for (( i=1; i&lt;=100; i=i+1 ))
+do
+        s=s+i
+done
+echo "The count is ==&gt; $s"
+
+[test @test test]# sh test11-loop.sh
+The count is ==&gt; 5050</code></pre>
+<p><strong>while</strong></p>
+<pre><code>[test @test test]# vi test12-loop.sh
+#!/bin/bash
+# Using while and loop
+# VBird 2002/06/27
+declare -i i
+declare -i s
+while [ "$i" != "101" ]
+do
+        s=s+i
+        i=i+1
+done
+echo "The count is ==&gt; $s"</code></pre>
+<p><strong>until</strong></p>
+<pre><code>[test @test test]# vi test13-loop.sh
+#!/bin/bash
+# Using until and loop
+# VBird 2002/06/27
+declare -i i
+declare -i s
+until [ "$i" = "101" ]
+do
+        s=s+i
+        i=i+1
+done
+echo "The count is ==&gt; $s"
+
+[test @test test]# sh test12-loop.sh
+The count is ==&gt; 5050</code></pre>
+<p><strong>for in</strong></p>
+<pre><code>[test @test test]# vi test14-for.sh
+#!/bin/bash
+# using for...do ....done
+# VBird 2002/06/27
+
+LIST="Tomy Jony Mary Geoge"
+
+for i in $LIST
+do
+        echo $i
+done
+
+[test @test test]# sh test5.sh
+Tomy
+Jony
+Mary
+Geoge</code></pre>
+<p>上面的 $LIST 这个变量当中，以空格键来分隔的时候，共可以分离出来四个！所以当以 do ..... done ... 就可以分别打印四个变量。</p>
+<p>for in的类型较多，<a href="http://blog.csdn.net/hainan16/article/details/6667483">这里贴一篇讲解for in的文章</a>，
+总结下面大概有这么几种：</p>
+<ul>
+<li>用空格分开的单个字符串</li>
+<li>字符串数组-如 for i in a b c</li>
+<li>字符串数组-利用``或$()合成的，如for i in $(ls *.txt)</li>
+</ul>
+<h3>自定义函数</h3>
+<p>自定义函数主要有以下几个方面：</p>
+<ul>
+<li>函数定义的格式</li>
+<li>函数相关变量作用域</li>
+<li>函数的作用域</li>
+</ul>
+<p><a href="http://www.cnblogs.com/chengmo/archive/2010/10/17/1853356.html">有参考这篇文章</a></p>
+<p>函数的定义如下：</p>
+<pre><code>[ function ] funname [()]
+{
+    action;
+    [return int;]
+}</code></pre>
+<p>说明：</p>
+<ol>
+<li>可以带function fun()  定义，也可以直接fun() 定义,不带任何参数。</li>
+<li>参数返回，可以显示加：return 返回，如果不加，将以最后一条命令运行结果，作为返回值。 return后跟数值n(0-255)</li>
+<li>必须在调用函数地方之前，声明函数，shell脚本是逐行运行。不会像其它语言一样先预编译。一次必须在使用函数前先声明函数。</li>
+<li>shell中函数看作新的命令，因此各个输入参数直接用空格分隔。参数可以通过：$0…$n得到。 $0代表函数本身。 </li>
+<li>函数返回值，只能通过$? 系统变量获得。直接通过=,获得是空值。</li>
+</ol>
+<p>函数相关变量作用域：</p>
+<pre><code>#!/bin/sh
+
+declare num=1000;
+
+uname()
+{
+    echo "test!";
+    ((num++));
+    return 100;
+}
+testvar()
+{
+    local num=10;
+    ((num++));
+    echo $num;
+
+}
+
+uname;
+echo $?
+echo $num;
+testvar;
+echo $num;
+
+sh testfun2.sh
+test!
+100
+1001
+11
+1001</code></pre>
+<p>从上面可以看出：</p>
+<ul>
+<li>在函数外面申请的变量是全局变量</li>
+<li>在函数内用local申明的变量是局部变量</li>
+</ul>
+<p>函数的作用域：</p>
+<p>还有个例子就不举了，函数在申明之后才能使用。在申明以前调用会报未定义的错误。</p>
+<h3>如何 debug shell</h3>
+<p>scripts 在执行之前，最怕的就是出现问题了！那么我们如何 debug 呢？有没有办法不需要透过直接执行该 scripts 就可以来判断是否有问题呢！？呵呵！当然是有的！我们就直接以 sh 来进行判断吧！ </p>
+<pre><code>[test @test test]# sh [-nvx] scripts
+-n ：不要执行 scripts ，查询 scripts 内的语法，若有错误则予以列出！
+-v ：在执行 scripts 之前，先将 scripts 的内容显示在屏幕上；
+-x ：将有使用到的 scripts 内容显示在屏幕上，与 -v 稍微不同！
+[test @test test]# sh -n test01-hello.sh
+[test @test test]# sh -v test01-hello.sh
+#!/bin/bash
+# This program will print the "Hello! How are you" in your monitor
+# Date: 2002/06/27
+# User: VBird
+hello="Hello! How are you"
+echo $hello
+Hello! How are you
+[test @test test]# sh -x test01-hello.sh
++ hello=Hello! How are you
++ echo 'Hello!' How are you
+Hello! How are you</code></pre>
+<p>对于 Shell scripts 的学习方法上面，需要『多看、多模仿、并加以修改成自己的样式！』是最快的学习手段了！网络上有相当多的朋友在开发一些相当有用的 scripts ，若是您可以将对方的 scripts 拿来，并且改成适合自己主机的样子！那么学习的效果会是最快的呢！</p>
+<h3>结语</h3>
+<p>shell在当今窗口程序盛行的时代，还是占有一席之地。就我作为一个PHPer，用到shell的场景并不是很多，如果单单作为开发，把运维的工作也包了，这个我也是醉了。对于某些提高工作效率的工具，能够使用自己更得心应手的语言实现，就没有用shell的必要了。比如文本分析，我就个PHPer，肯定不会去学英汉字典厚的AWK。</p>
+<p>所以，对于我来说，shell的学习，更多的是熟悉Linux的命令，做点低级的运维。</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

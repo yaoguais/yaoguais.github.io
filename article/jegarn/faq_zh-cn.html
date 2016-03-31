@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h1>minions 聊天系统常见问题</h1>
+<p>开发这个系统已经有一段时间了，注册用户也超过300人，但是由于整个系统是英文版的，
+而且没有使用说明，对于没有阅读过源代码的同学来说，大多不知道怎么使用，因此在这里做一个统一的说明。
+而且我从日志中经常可以看到有同学问怎么使用，这么久没有给出一个说明，实在有点汗颜...
+<a href="http://yaoguais.com/?s=md/jegarn/faq_en-us.md">English-Version Faq</a></p>
+<p>注：希望同我交流的同学可以联系我，邮箱：newtopstdio[at]163.com ([at]换成@)</p>
+<h2>系统简单介绍</h2>
+<p>该聊天系统的名称叫做&quot;minions&quot;,取义&quot;小黄人&quot;，代表叽叽喳喳的欢快聊天声。</p>
+<p>聊天系统使用聊天框架&quot;jegarn&quot;开发，网页版支持单聊、群聊、聊天室、添加好友、创建群组、创建聊天室等功能。客户端SDK支持PHP、JS、Android等语言。</p>
+<h2>如何进行单聊？</h2>
+<p>首先，需要添加一位会员成为好友，在网页版左侧有系统推荐用户，右键该用户会弹出添加好友的按钮，
+点击添加好友，将会给该用户发送添加好友请求，该用户同意后，你们即可成为好友，
+然后他会自动添加到你的联系人列表，点击他的头像，即可发起聊天。</p>
+<p>tips: 你可以打开两个浏览器窗口，然后注册两个用户，就可以体验相互聊天了。因为平时在线的人太少了，大家基本看个新鲜。</p>
+<h2>如何进行群聊？</h2>
+<p>群聊就是给该群的所有成员发送消息，如果当前他不在线，下次登录后他也会收到的。</p>
+<p>当前把所有注册的用户添加到了一个叫&quot;Counter Group&quot;的群组里面，如果你要发送消息，可以直接在这个组发送。</p>
+<h2>如何发送聊天室消息？</h2>
+<p>聊天室就是给这个房间里面所有在线的用户发送消息，不在线的用户就永远收不到该消息。</p>
+<p>当前把所有注册的用户添加到了一个叫&quot;Counter Room&quot;的聊天室里面，如果你要发送消息，可以直接在这个房间发送。</p>
+<h2>如何创建群组？</h2>
+<p>点击&quot;GroupChat&quot;切换到群组窗口状态，在上方空白处右键，会弹出创建面板，按提示要求填写群组信息，即可发送创建请求。</p>
+<h2>如何创建聊天室？</h2>
+<p>点击&quot;ChatRoom&quot;切换到聊天室窗口状态，在上方空白处右键，会弹出创建面板，按提示要求填写聊天室信息，即可发送创建请求。</p>
+<h2>如何加入别人的群组？</h2>
+<p>在系统左侧有推荐的群组，在推荐用户下方，滑动鼠标滚轮即可看见。右键该群组，选择加入。</p>
+<p>群主会收到你的请求加入消息，如果群主同意你加入，该群组会自动添加到你的群组列表。
+如果群组不同意，你也会收到相应的拒绝信息。</p>
+<h2>如何加入别人的聊天室？</h2>
+<p>在系统左侧有推荐的聊天室，在推荐用户的下方，滚动鼠标滚轮即可看见。右键该聊天室，选择加入。
+聊天室不需要创建人同意，发送请求即刻会成为该聊天室的成员。</p>
+<h2>用户&quot;Counter&quot;是什么鬼？</h2>
+<p>&quot;Counter&quot;是使用PHP-SDK写的机器人，在创建它的同时，使用它创建了一个群组&quot;Counter Group&quot;，一个聊天室&quot;Counter Room&quot;，
+当有新用户注册的时候，会自动把&quot;Counter&quot;添加为注册用户的好友，并自动把注册用户添加到前面的群组与聊天室中。</p>
+<p>该机器人每30秒给所有在线的用户发送一个自增的数字，在我写这篇说明的时候，该数字已经超过7万了。
+题外话：最初的版本该机器人还会给&quot;Counter Group&quot;的所有成员发送自增数字，因为大多数人基本也就登录一次，
+导致离线消息不停堆积，我那1G的机子内存严重不够，后来就只给在线的用户发送了。</p>
+<p>tips: 可以通过查看&quot;Counter Group&quot;的信息得知当前系统总注册用户数，在推荐的群组中，列表元素的右边数字即为群组成员数。</p>
+<h2>如何退出群组？如何查看群成员？等等</h2>
+<p>目前网页端还不支持这些功能，但是后台已经提供了接口调用，你可以使用curl等工具发送请求，即可完成相关功能。</p>
+<p>当然你也可以提交你的代码，让其他用户也可以使用这些功能。</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

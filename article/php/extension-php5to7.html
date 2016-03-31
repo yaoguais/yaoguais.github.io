@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>把扩展从php5升级到php7(翻译)</h2>
+<p>目录：</p>
+<ol>
+<li>概述</li>
+<li>建议</li>
+<li>zval</li>
+<li>reference</li>
+<li>Boolean</li>
+<li>string</li>
+<li>zend_string API</li>
+<li>smart_str and smart_string</li>
+<li>strpprintf</li>
+<li>arrays</li>
+<li>HashTable API</li>
+<li>HashTable Iteration API</li>
+<li>object</li>
+<li>custom object</li>
+<li>zend_object_handlers</li>
+<li>resource</li>
+<li>parameters Parsing API</li>
+<li>call frame (zend_execute_data)</li>
+<li>executor globals</li>
+<li>opcodes</li>
+<li>temp variable</li>
+<li>pcre</li>
+</ol>
+<h3>概述</h3>
+<p>很多常用的ZEND API已经发生了变化，例如HashTable API。这篇文章会尽可能多的记录这些变化。强烈建议你先阅读PHP7的实现(<a href="?s=md/php/php7-vm.md">我这里有个现成的翻译</a>)。</p>
+<p>当然，这肯定不会一篇完整的指南，它不可能涵盖所有的内容，但它收集了那些最常用的案例。</p>
+<h3>建议</h3>
+<ul>
+<li>在php7下编译你的扩展，编译错误与警告会告诉你绝大部分需要修改的地方。</li>
+<li>在DEBUG模式下编译与调试你的扩展，在run-time你可以通过断言捕捉一些错误。你还可以看到内存泄露的情况。</li>
+</ul>
+<h3>zval</h3>
+<ul>
+<li>PHP7不再需要指针的指针，绝大部分zval**需要修改成zval*。Z_*_PP()宏也需要修改成 Z_*_P().</li>
+<li>如果PHP7直接操作zval，那么zval*也需要改成zval，Z_*P()也要改成Z_*(),ZVAL_*(var, …) 需要改成 ZVAL_*(&amp;var, …).一定要谨慎使用&amp;符号，因为PHP7几乎不要求使用zval*,那么很多地方的&amp;也是要去掉的。</li>
+<li>
+<p>ALLOC_ZVAL, ALLOC_INIT_ZVAL, MAKE_STD_ZVAL 这几个分配内存的宏已经被移除了。大多数情况下，zval*应该修改为zval，而 INIT_PZVAL宏也被移除了。</p>
+<pre><code>//初始化的一些示例代码
+-  zval *zv;
+-  ALLOC_INIT_ZVAL();
+-  ZVAL_LONG(zv, 0);
++  zval zv;
++  ZVAL_LONG(&amp;zv, 0);</code></pre>
+</li>
+</ul>
+<p>zval 结构体也发生变化，它如今的定义如下</p>
+<pre><code>struct _zval_struct {
+    zend_value        value;            /* value */
+    union {
+        struct {
+            ZEND_ENDIAN_LOHI_4(
+                zend_uchar    type,         /* active type */
+                zend_uchar    type_flags,
+                zend_uchar    const_flags,
+                zend_uchar    reserved)     /* various IS_VAR flags */
+        } v;
+        zend_uint type_info;
+    } u1;
+    union {
+        zend_uint     var_flags;
+        zend_uint     next;                 /* hash collision chain */
+        zend_uint     str_offset;           /* string offset */
+        zend_uint     cache_slot;           /* literal cache slot */
+    } u2;
+};
+
+typedef union _zend_value {
+    long              lval;             /* long value */
+    double            dval;             /* double value */
+    zend_refcounted  *counted;
+    zend_string      *str;
+    zend_array       *arr;
+    zend_object      *obj;
+    zend_resource    *res;
+    zend_reference   *ref;
+    zend_ast_ref     *ast;
+    zval             *zv;
+    void             *ptr;
+    zend_class_entry *ce;
+    zend_function    *func;
+} zend_value;</code></pre>
+<p>主要的区别是，现在处理基本类型和复杂类型有所不同。基本类型是在VM栈上分配的，而不是堆，包括HashTable与Object，并且他们不支持引用计数与垃圾回收。基本类型没有引用计数，也就不再支持Z_ADDREF*(), Z_DELREF*(), Z_REFCOUNT*(),Z_SET_REFCOUNT*()这些宏了。你扩展中的基本类型使用了这些宏，那么程序会得到一个asset或者直接崩溃。</p>
+<pre><code>- Z_ADDREF_P(zv)
++ if (Z_REFCOUNTED_P(zv)) {Z_ADDREF_P(zv);}
+# or equivalently
++ Z_TRY_ADDREF_P(zv);</code></pre>
+<p>一下是几点注意事项：</p>
+<ul>
+<li>应该使用ZVAL_COPY_VALUE()进行值复制</li>
+<li>使用ZVAL_COPY()拷贝是增加引用计数</li>
+<li>可以使用ZVAL_DUP() 替代zval_copy_ctor进行复制</li>
+<li>原本的NULL被替换成IS_UNDEF类型了，可以使用Z_ISUNDEF(zv)进行读取，ZVAL_UNDEF(&amp;zv)进行初始化</li>
+<li>
+<p>可以使用zval_get_long(zv), zval_get_double(zv), zval_get_string(zv)等函数获取zval的值，这样不会改变原始的zval</p>
+<pre><code>//一些示例代码
+- zval tmp;
+- ZVAL_COPY_VALUE(&amp;tmp, zv);
+- zval_copy_ctor(&amp;tmp);
+- convert_to_string(&amp;tmp);
+- // ...
+- zval_dtor(&amp;tmp);
++ zend_string *str = zval_get_string(zv);
++ // ...
++ zend_string_release(str);</code></pre>
+</li>
+</ul>
+<p>更多请查看<a href="https://github.com/php/php-src/blob/master/Zend/zend_types.h">zend_types.h</a></p>
+<h3>reference</h3>
+<p>PHP7中的zval不再有is_ref字段了，而是使用zend_reference复合类型。如果你仍然使用Z_ISREF*()去检验zval是否是引用，实际上你是在判断zval是否是IS_REFERENCE类型。is_ref相关的宏已经被移除了。Z_SET_ISREF*(), Z_UNSET_ISREF*(), Z_SET_ISREF_TO*()这些宏的用法已经发生了改变，请参照下面。</p>
+<pre><code>- Z_SET_ISREF_P(zv);
++ ZVAL_MAKE_REF(zv);
+
+- Z_UNSET_ISREF_P(zv);
++ if (Z_ISREF_P(zv)) {ZVAL_UNREF(zv);}</code></pre>
+<p>以前我们直接通过引用类型检测引用，但是现在我们需要使用Z_REFVAL*()间接检测了。</p>
+<pre><code>- if (Z_ISREF_P(zv) &amp;&amp; Z_TYPE_P(zv) == IS_ARRAY) {
++ if (Z_ISREF_P(zv) &amp;&amp; Z_TYPE_P(Z_REFVAL_P(zv)) == IS_ARRAY) {</code></pre>
+<p>或者手动使用ZVAL_DEREF()来减少引用计数。</p>
+<pre><code>- if (Z_ISREF_P(zv)) {...}
+- if (Z_TYPE_P(zv) == IS_ARRAY) {
++ if (Z_ISREF_P(zv)) {...}
++ ZVAL_DEREF(zv);
++ if (Z_TYPE_P(zv) == IS_ARRAY) {</code></pre>
+<h3>Boolean</h3>
+<p>IS_BOOL已经被IS_TRUE和IS_FALSE取代了。</p>
+<pre><code>- if ((Z_TYPE_PP(item) == IS_BOOL || Z_TYPE_PP(item) == IS_LONG) &amp;&amp; Z_LVAL_PP(item)) {
++ if (Z_TYPE_P(item) == IS_TRUE || (Z_TYPE_P(item) == IS_LONG &amp;&amp; Z_LVAL_P(item))) {</code></pre>
+<p>The Z_BVAL*() macros are removed. Be careful, the return value of Z_LVAL*() on IS_FALSE/IS_TRUE is undefined. </p>
+<p>Z_BVAL*()宏已经被移除，注意，对IS_FALSE/IS_TRUE使用Z_LVAL*()得到的结果将是undefined。</p>
+<h3>string</h3>
+<p>string的值、长度可以分别使用Z_STRVAL*()、Z_STRLEN*()进行获取。而且现在使用zend_string来表示字符串，可以使用Z_STR*()从zval中获取zend_string的值，也是用使用Z_STRHASH*()获取字符串的HASH值。</p>
+<p>如果现在要检测是否是驻留字符串，参数应该是zend_string而不是char*。</p>
+<pre><code>- if (IS_INTERNED(Z_STRVAL_P(zv))) {
++ if (IS_INTERNED(Z_STR_P(zv))) {</code></pre>
+<p>创建string类型的zval也发生了一些变化。 之前ZVAL_STRING()有个参数是控制字符串是否被复制的。现在这些宏都是用来创建zend_string的，所以这个参数变得没有必要了。 However if its actual value was 0, 你需要释放原始字符串来避免内存泄露。</p>
+<pre><code>- ZVAL_STRING(zv, str, 1);
++ ZVAL_STRING(zv, str);
+
+- ZVAL_STRINGL(zv, str, len, 1);
++ ZVAL_STRINGL(zv, str, len);
+
+- ZVAL_STRING(zv, str, 0);
++ ZVAL_STRING(zv, str);
++ efree(str);
+
+- ZVAL_STRINGL(zv, str, len, 0);
++ ZVAL_STRINGL(zv, str, len);
++ efree(str);</code></pre>
+<p>RETURN_STRING(), RETVAL_STRNGL()和一些核心API并没有发生变化。</p>
+<pre><code>- add_assoc_string(zv, key, str, 1);
++ add_assoc_string(zv, key, str);
+
+- add_assoc_string(zv, key, str, 0);
++ add_assoc_string(zv, key, str);
++ efree(str);</code></pre>
+<p>The double reallocation may be avoided using zend_string API directly and creating zval directly from zend_string. </p>
+<pre><code>- char * str = estrdup("Hello");
+- RETURN_STRING(str);
++ zend_string *str = zend_string_init("Hello", sizeof("Hello")-1, 0);
++ RETURN_STR(str);</code></pre>
+<p>Z_STRVAL*()返回的变量应该当作只读的，它不应该被赋值。但是如果一定要修改，那么你应该确定它并没有在其他地方被引用，也就意味着它不能是驻留字符串并且引用计数是1。还有，如果你修改了字符串的值，那么你需要手动计算并保存其HASH值。</p>
+<pre><code>+ SEPARATE_ZVAL(zv);
++ Z_STRVAL_P(zv)[0] = Z_STRVAL_P(zv)[0] + ('A' - 'a');
++ zend_string_forget_hash_val((Z_STR_P(zv))</code></pre>
+<h3>zend_string API</h3>
+<p>新引擎有新的zend_string API，以前大量使用char*+int的地方，都替换成了zend_string。</p>
+<p>zend_string(not IS_STRING zvals)变量可以使用zend_string_init(char *val, int len, int persistent)进行创建。The actual characters may be accessed as str→val and string length as str→len.可以使用zend_string_hash_val获取hash值，它会再必要的时候重新进行计算。</p>
+<p>应该使用zend_string_release()来释放string占用的内存，但是不一定会立即释放，因为这个string可能被多次引用。</p>
+<p>如果你想保持一个zend_string的指针，那么你需要增加其引用计数，或者你可以直接使用zend_string_copy()来实现。很多时候拷贝只是为了获取其值，那么请尽量使用该函数。</p>
+<pre><code>- ptr-&gt;str = estrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv));
++ ptr-&gt;str = zend_string_copy(Z_STR_P(zv));
+  ...
+- efree(str);
++ zend_string_release(str);</code></pre>
+<p>复制string现在使用zend_string_dup()替代了。</p>
+<pre><code>- char *str = estrndup(Z_STRVAL_P(zv), Z_STRLEN_P(zv));
++ zend_string *str = zend_string_dup(Z_STR_P(zv));
+  ...
+- efree(str);
++ zend_string_release(str);</code></pre>
+<p>原来string的那些宏还是支持的，所以并不是一定要用新的写法。</p>
+<p>如果一些string的长度是知道的但是需要一个缓冲区，那么你可以使用zend_string_alloc()或zend_string_realloc()进行内存分配。</p>
+<pre><code>- char *ret = emalloc(16+1);
+- md5(something, ret); 
+- RETURN_STRINGL(ret, 16, 0);
++ zend_string *ret = zend_string_alloc(16, 0);
++ md5(something, ret-&gt;val);
++ RETURN_STR(ret);</code></pre>
+<p>并不是所有的扩展都要更新到zend_string来替换char*,主要还是看哪一个更合适。</p>
+<p>查看zend_string.h可以找到更详细的用法。</p>
+<h3>smart_str and smart_string</h3>
+<p>smart_str相关的API已经被重命名为smart_string了，除了新名字，用法基本没变。</p>
+<pre><code>- smart_str str = {0};
+- smart_str_appendl(str, " ", sizeof(" ") - 1);
+- smart_str_0(str);
+- RETURN_STRINGL(implstr.c, implstr.len, 0);
++ smart_string str = {0};
++ smart_string_appendl(str, " ", sizeof(" ") - 1);
++ smart_string_0(str);
++ RETVAL_STRINGL(str.c, str.len);
++ smart_string_free(&amp;str);
+
+- smart_str str = {0};
+- smart_str_appendl(str, " ", sizeof(" ") - 1);
+- smart_str_0(str);
+- RETURN_STRINGL(implstr.c, implstr.len, 0);
++ smart_str str = {0};
++ smart_str_appendl(str, " ", sizeof(" ") - 1);
++ smart_str_0(str);
++ if (str.s) {
++   RETURN_STR(str.s);
++ } else {
++   RETURN_EMPTY_STRING();
++ }
+
+typedef struct {
+    zend_string *s;
+    size_t a;
+} smart_str;</code></pre>
+<p>事实上smart_str和smart_string非常类似，在PHP5中它们基本算重复的，所以更新代码并不是必要的。</p>
+<p>the biggest question what AI to select for each particular case, but it depends the way the final result is used.</p>
+<p>但是检测其是否为空发生了一些变化。</p>
+<pre><code>- if (smart_str-&gt;c) {
++ if (smart_str-&gt;s) {</code></pre>
+<h3>strpprintf</h3>
+<p>spprintf()和vspprintf()的返回值从char*变成了zend_string,那么你需要改变你的代码了。</p>
+<pre><code>+ PHPAPI zend_string *vstrpprintf(size_t max_len, const char *format, va_list ap);
++ PHPAPI zend_string *strpprintf(size_t max_len, const char *format, ...);</code></pre>
+<h3>arrays</h3>
+<p>array的实现或多或少是不变的，但是之前是用一个指针指向HashTable，而现在指向的是zend_array。读取HashTable同样使用Z_ARRVAL*()宏，但是现在不可能改变该HashTable的指针了，现在唯一可以读取和改变zend_array的方法是通过Z_ARR*()宏。</p>
+<p>使用array_init()同样是创建array的最好方法，但是也可以使用ZVAL_NEW_ARR()创建一个未初始化的array，用ZVAL_ARR()进行初始化。</p>
+<p>可不变数组可以使用Z_IMMUTABLE()进行检测，但是如果想改变该数组，请先复制它。使用internal position pointer迭代不可变数组也是不行的。但是可以使用external position pointer结合原来的迭代API可以遍历数组，或者也可以使用新的HashTable迭代API。</p>
+<h3>HashTable API</h3>
+<p>HashTable API的变化很显著，移植扩展中要特别注意这点。</p>
+<ul>
+<li>
+<p>HashTable的元素始终是zval，即使存的是指针，也是被封装成IS_PTR类型的zval。</p>
+<pre><code>- zend_hash_update(ht, Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void*)&amp;zv, sizeof(zval**), NULL) == SUCCESS) {
++ if (zend_hash_update(EG(function_table), Z_STR_P(key), zv)) != NULL) {</code></pre>
+</li>
+<li>
+<p>API基本直接返回zval，而不是返回bool+参数返回zval。</p>
+<pre><code>- if (zend_hash_find(ht, Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void**)&amp;zv_ptr) == SUCCESS) {
++ if ((zv = zend_hash_find(ht, Z_STR_P(key))) != NULL) {</code></pre>
+</li>
+<li>元素的key是用zend_string封装的，但是也同样提供了两类函数：zend_string或者char*+int</li>
+<li>
+<p>注意：key不再包含&quot;\0&quot;,一些地方+1/-1会发生变化。</p>
+<pre><code>- if (zend_hash_find(ht, "value", sizeof("value"), (void**)&amp;zv_ptr) == SUCCESS) {
++ if ((zv = zend_hash_str_find(ht, "value", sizeof("value")-1)) != NULL) {</code></pre>
+</li>
+</ul>
+<p>上面的规则同样也适用其他一些API。</p>
+<pre><code>- add_assoc_bool_ex(&amp;zv, "valid", sizeof("valid"), 0);
++ add_assoc_bool_ex(&amp;zv, "valid", sizeof("valid") - 1, 0);</code></pre>
+<ul>
+<li>
+<p>同样提供了一组适用指针类型的参数，它们都有_ptr后缀。</p>
+<pre><code>- if (zend_hash_find(EG(class_table), Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void**)&amp;ce_ptr) == SUCCESS) {
++ if ((ce_ptr = zend_hash_find_ptr(EG(class_table), Z_STR_P(key))) != NULL) {
+
+- zend_hash_update(EG(class_table), Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void*)&amp;ce, sizeof(zend_class_entry*), NULL) == SUCCESS) {
++ if (zend_hash_update_ptr(EG(class_table), Z_STR_P(key), ce)) != NULL) {</code></pre>
+</li>
+<li>
+<p>API provides a separate group of functions to store memory blocks of arbitrary size. Such functions have the same names with _mem suffix and they implemented as inline wrappers of corresponding _ptr functions. It doesn't mean if something was stored using _mem or _ptr variant. It always may be retrieved back using zend_hash_find_ptr().</p>
+<pre><code>- zend_hash_update(EG(function_table), Z_STRVAL_P(key), Z_STRLEN_P(key)+1, (void*)func, sizeof(zend_function), NULL) == SUCCESS) {
++ if (zend_hash_update_mem(EG(function_table), Z_STR_P(key), func, sizeof(zend_function))) != NULL) {</code></pre>
+</li>
+<li>
+<p>提供了一些新的添加函数，它们被用在添加新的zval并且当前不存在同样的key。它们都有同样的后缀_new。</p>
+<pre><code>zval* zend_hash_add_new(HashTable *ht, zend_string *key, zval *zv);
+zval* zend_hash_str_add_new(HashTable *ht, char *key, int len, zval *zv);
+zval* zend_hash_index_add_new(HashTable *ht, pzval *zv);
+zval* zend_hash_next_index_insert_new(HashTable *ht, pzval *zv);
+void* zend_hash_add_new_ptr(HashTable *ht, zend_string *key, void *pData);
+...</code></pre>
+</li>
+<li>
+<p>HashTable destructors 的参数总是zval*类型。(even if we use zend_hash_add_ptr or zend_hash_add_mem to add elements). Z_PTR_P() macro may be used to reach the actual pointer value in destructors. Also, if elements are added using zend_hash_add_mem, destructor is also responsible for deallocation of the pointers themselves. </p>
+<pre><code>- void my_ht_destructor(void *ptr)
++ void my_ht_destructor(zval *zv)
+  {
+-    my_ht_el_t *p = (my_ht_el_t*) ptr;
++    my_ht_el_t *p = (my_ht_el_t*) Z_PTR_P(zv);
+     ...
++    efree(p); // this efree() is not always necessary
+  }
+);</code></pre>
+</li>
+<li>
+<p>像zend_hash_apply_*(),zend_hash_copy(),zend_hash_merge()的参数同样需要用zval*代替void*&amp;&amp;。一些函数可能接收zend_hash_key指针变量作为参数，该结构被定义为下，如果key是字符串，那么h保存hash值，key保存字符串；如果key是数字，那么h就是该数字，而key是NULL。</p>
+<pre><code>typedef struct _zend_hash_key {
+    ulong        h;
+    zend_string *key;
+} zend_hash_key;</code></pre>
+</li>
+</ul>
+<p>注意：应该使用新的迭代API替换zend_hash_apply*()此类函数，因为效率更高，代码更短。</p>
+<p>更多请查看zend_hash.h</p>
+<h3>HashTable Iteration API</h3>
+<p>我们提供了一些特别的宏来遍历HashTable，第一个参数是HashTable，剩下的参数变量将在每一步迭代中被复制。</p>
+<pre><code>ZEND_HASH_FOREACH_VAL(ht, val)
+ZEND_HASH_FOREACH_KEY(ht, h, key)
+ZEND_HASH_FOREACH_PTR(ht, ptr)
+ZEND_HASH_FOREACH_NUM_KEY(ht, h)
+ZEND_HASH_FOREACH_STR_KEY(ht, key)
+ZEND_HASH_FOREACH_STR_KEY_VAL(ht, key, val)
+ZEND_HASH_FOREACH_KEY_VAL(ht, h, key, val)</code></pre>
+<p>最好适用新的宏代替原来的那么操作函数。</p>
+<pre><code>- HashPosition pos;
+  ulong num_key;
+- char *key;
+- uint key_len;
++ zend_string *key;
+- zval **pzv;
++ zval *zv;
+-
+- zend_hash_internal_pointer_reset_ex(&amp;ht, &amp;pos);
+- while (zend_hash_get_current_data_ex(&amp;ht, (void**)&amp;ppzval, &amp;pos) == SUCCESS) {
+-   if (zend_hash_get_current_key_ex(&amp;ht, &amp;key, &amp;key_len, &amp;num_key, 0, &amp;pos) == HASH_KEY_IS_STRING){
+-   }
++ ZEND_HASH_FOREACH_KEY_VAL(ht, num_key, key, val) {
++   if (key) { //HASH_KEY_IS_STRING
++   }
+    ........
+-   zend_hash_move_forward_ex(&amp;ht, &amp;pos);
+- }
++ } ZEND_HASH_FOREACH_END();</code></pre>
+<h3>object</h3>
+<p>TODO: … </p>
+<h3>custom object</h3>
+<p>TODO: … </p>
+<p>zend_object被定义为：</p>
+<pre><code>struct _zend_object {
+    zend_refcounted   gc;
+    zend_uint         handle; // TODO: may be removed ???
+    zend_class_entry *ce;
+    const zend_object_handlers *handlers;
+    HashTable        *properties;
+    HashTable        *guards; /* protects from __get/__set ... recursion */
+    zval              properties_table[1];
+};</code></pre>
+<p>新的结构中properties_table是内联的，这就带来了问题。以前我们是这样自定义对象的：</p>
+<pre><code>struct custom_object {
+   zend_object std;
+   void  *custom_data;
+}
+
+zend_object_value custom_object_new(zend_class_entry *ce TSRMLS_DC) {
+
+   zend_object_value retval;
+   struct custom_object *intern;
+
+   intern = emalloc(sizeof(struct custom_object));
+   zend_object_std_init(&amp;intern-&gt;std, ce TSRMLS_CC);
+   object_properties_init(&amp;intern-&gt;std, ce);
+   retval.handle = zend_objects_store_put(intern,
+        (zend_objects_store_dtor_t)zend_objects_destroy_object,
+        (zend_objects_free_object_storage_t) custom_free_storage, 
+        NULL TSRMLC_CC);
+   intern-&gt;handle = retval.handle;
+   retval.handlers = &amp;custom_object_handlers;
+   return retval;
+}
+
+struct custom_object* obj = (struct custom_object *)zend_objects_get_address(getThis());</code></pre>
+<p>但是现在由于内联属性，zend_object的长度是变化的，所以我们要做出下面的改变了。</p>
+<pre><code>struct custom_object {
+   void  *custom_data;
+   zend_object std;
+}
+
+zend_object * custom_object_new(zend_class_entry *ce TSRMLS_DC) {
+     # Allocate sizeof(custom) + sizeof(properties table requirements)
+     struct custom_object *intern = ecalloc(1, 
+         sizeof(struct custom_object) + 
+         zend_object_properties_size(ce));
+     # Allocating:
+     # struct custom_object {
+     #    void *custom_data;
+     #    zend_object std;
+     # }
+     # zval[ce-&gt;default_properties_count-1]
+     zend_object_std_init(&amp;intern-&gt;std, ce TSRMLS_CC);
+     ...
+     custom_object_handlers.offset = XtOffsetof(struct custom_obj, std);
+     custom_object_handlers.free_obj = custom_free_storage;
+
+     return &amp;intern-&gt;std;
+}
+
+# Fetching the custom object:
+
+static inline struct custom_object * php_custom_object_fetch_object(zend_object *obj) {
+      return (struct custom_object *)((char *)obj - XtOffsetOf(struct custom_object, std));
+}
+
+#define Z_CUSTOM_OBJ_P(zv) php_custom_object_fetch_object(Z_OBJ_P(zv));
+
+struct custom_object* obj = Z_CUSTOM_OBJ_P(getThis());</code></pre>
+<h3>zend_object_handlers</h3>
+<p>一个新的字段offset被定义进zend_object_handlers,当你使用自定义对象的时候，一定要对它赋值。</p>
+<p>请使用zend_objects_store_*来找到分配的地址。</p>
+<pre><code>// An example in spl_array
+memcpy(&amp;spl_handler_ArrayObject, zend_get_std_object_handlers(), sizeof(zend_object_handlers));
+spl_handler_ArrayObject.offset = XtOffsetOf(spl_array_object, std);</code></pre>
+<p>对象的内存会自动被zend_objects_store_*释放，所以你不必通过free_obj句柄来释放。</p>
+<h3>resource</h3>
+<p>IS_RESOURCE类型zval不再保持resource handle，也不能使用Z_LVAL*()获取resource handle了,现在应该使用Z_RES*()宏获取。It contains type - resource type, ptr - pointer to actual data, handle - numeric resource index (for compatibility) and service fields for reference counter. Actually this zend_resurce structure is a replacement for indirectly referred zend_rsrc_list_entry. 所有与zend_rsrc_list_entry相关的应该被zend_resource代替.</p>
+<ul>
+<li>
+<p>zend_list_find()已被移除，因为资源能够被直接获取。</p>
+<pre><code>- long handle = Z_LVAL_P(zv);
+- int  type;
+- void *ptr = zend_list_find(handle, &amp;type);
++ long handle = Z_RES_P(zv)-&gt;handle;
++ int  type = Z_RES_P(zv)-&gt;type;
++ void *ptr = = Z_RES_P(zv)-&gt;ptr;</code></pre>
+</li>
+<li>
+<p>Z_RESVAL_*()已被移除，用 Z_RES*()代替。</p>
+<pre><code>- long handle = Z_RESVAL_P(zv);
++ long handle = Z_RES_P(zv)-&gt;handle;</code></pre>
+</li>
+<li>
+<p>ZEND_REGISTER_RESOURCE/ZEND_FETCH_RESOURCE()都被移除了。</p>
+<pre><code>- ZEND_FETCH_RESOURCE2(ib_link, ibase_db_link *, &amp;link_arg, link_id, LE_LINK, le_link, le_plink);
+
+//if you are sure that link_arg is a IS_RESOURCE type, then use :
++if ((ib_link = (ibase_db_link *)zend_fetch_resource2(Z_RES_P(link_arg), LE_LINK, le_link, le_plink)) == NULL) {
++    RETURN_FALSE;
++}
+
+//otherwise, if you know nothing about link_arg's type, use
++if ((ib_link = (ibase_db_link *)zend_fetch_resource2_ex(link_arg, LE_LINK, le_link, le_plink)) == NULL) {
++    RETURN_FALSE;
++}
+
+- REGISTER_RESOURCE(return_value, result, le_result);
++ RETURN_RES(zend_register_resource(result, le_result);</code></pre>
+</li>
+<li>
+<p>zend_list_addref()，zend_list_delref()都被移除。</p>
+<pre><code>- zend_list_addref(Z_LVAL_P(zv));
++ Z_ADDREF_P(zv);
+
+- zend_list_addref(Z_LVAL_P(zv));
++ Z_RES_P(zv)-&gt;gc.refcount++;</code></pre>
+</li>
+<li>
+<p>zend_list_delete()需传入 zend_resource 指针变量</p>
+<pre><code>- zend_list_delete(Z_LVAL_P(zv));
++ zend_list_delete(Z_RES_P(zv));</code></pre>
+</li>
+<li>
+<p>在多数扩展函数中，像mysql_close()，你应该使用zend_list_close()代替zend_list_delete()，因为close只是关闭实际连接与释放扩展特别的结构，但是不会释放zend_reference structure，所以还可以从其他地方引用该zval，close同样也不会减少引用计数。</p>
+<pre><code>- zend_list_delete(Z_LVAL_P(zv));
++ zend_list_close(Z_RES_P(zv));</code></pre>
+</li>
+</ul>
+<h3>parameters Parsing API</h3>
+<ul>
+<li>
+<p>PHP7不再需要zval**，所以请用&quot;z&quot;标识替换&quot;Z&quot;</p>
+<pre><code>- zval **pzv;
+- if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Z", &amp;pzv) == FAILURE) {
++ zval *zv;
++ if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z", &amp;zv) == FAILURE) {</code></pre>
+</li>
+<li>
+<p>PHP7建议适用&quot;S&quot;标识接收zend_string变量。</p>
+<pre><code>- char *str;
+- int len;
+- if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "s", &amp;str, &amp;len) == FAILURE) {
++ zend_string *str;
++ if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "S", &amp;str) == FAILURE) {</code></pre>
+</li>
+<li>
+<p>&quot;+&quot;/&quot;*&quot;只接收zval数组了</p>
+<pre><code>- zval ***argv = NULL;
++ zval *argv = NULL;
+  int argn;
+  if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "+", &amp;argv, &amp;argn) == FAILURE) {</code></pre>
+</li>
+<li>
+<p>arguments passed by reference should be assigned into the referenced value. It's possible to separte such arguments, to get referenced value at first place.</p>
+<pre><code>- zval **ret;
+- if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "Z", &amp;ret) == FAILURE) {
++ zval *ret;
++ if (zend_parse_parameters(ZEND_NUM_ARGS() TSRMLS_CC, "z/", &amp;ret) == FAILURE) {
+    return;
+  }
+- ZVAL_LONG(*ret, 0);
++ ZVAL_LONG(ret, 0);</code></pre>
+</li>
+</ul>
+<h3>call frame (zend_execute_data)</h3>
+<p>每一次的函数调用都记录在zend_execute_data结构链表中，EG(current_execute_data)指向当前执行函数的调用栈，之前只有PHP用户函数才这样。我会尽量解释清楚新旧调用栈之间的区别。</p>
+<ul>
+<li>
+<p>zend_execute_data.opline - 当前执行的用户函数的指针。内核函数它的值是未定义，之前是NULL。</p>
+</li>
+<li>
+<p>zend_execute_data.function_state - 被移除，用 zend_execute_data.call代替。</p>
+</li>
+<li>
+<p>zend_execute_data.call - 旧引擎中是call_slot的指针，现在是当前调用函数的指针，它被初始化为NULL, 然后被ZEND_INIT_FCALL (or similar) opcodes改变，最后被ZEND_FO_FCALL回复. 嵌套函数调用，例如foo($a, bar($c)), 将通过zend_execute_data.prev_nested_call构造一个链表。</p>
+</li>
+<li>
+<p>zend_execute_data.op_array - 已被zend_execute_data.func替代, 因为现在它不仅代表用户函数也代表内核函数。</p>
+</li>
+<li>
+<p>zend_execute_data.func - 当前执行的函数</p>
+</li>
+<li>
+<p>zend_execute_data.object - $this of the currently executed function (previously it was a zval*, now it's a zend_object*)</p>
+</li>
+<li>
+<p>zend_execute_data.symbol_table - current symbol table or NULL</p>
+</li>
+<li>
+<p>zend_execute_data.prev_execute_data - link of backtrace call chain</p>
+</li>
+<li>
+<p>original_return_value, current_scope, current_called_scope, current_this - 这些缓存变量值以便在调用后恢复现场的字段已被移除。</p>
+</li>
+<li>
+<p>zend_execute_data.scope - scope of the currently executed function (this is a new field).</p>
+</li>
+<li>
+<p>zend_execute_data.called_scope - called_scope of the currently executed function (this is a new field).</p>
+</li>
+<li>
+<p>zend_execute_data.run_time_cache - run-time-cache of the currently executed function. this is a new field and actually it's a copy of op_array.run_time_cache.</p>
+</li>
+<li>
+<p>zend_execute_data.num_args - number of arguments passed to the function (this is a new field)</p>
+</li>
+<li>zend_execute_data.return_value - pointer to zval* where the currently executed op_array should store the result. 如果不关心返回值它可能就是NULL. (this is a new field).</li>
+</ul>
+<p>函数参数都被直接储存在zval插槽中，在内存中紧接着zend_execute_data结构。他们可以通过ZEND_CALL_ARG(execute_data, arg_num)宏获取。如果是用户函数，函数的第一个参数内存位置将会和第一个compiled variable - CV0 重合。In case caller passes more arguments that callee receives, all extra arguments are copied to be after all used by calee CVs and TMP variables.</p>
+<h3>executor globals</h3>
+<ul>
+<li>
+<p>EG(symbol_table)已经变成了zend_array了，而非HashTable。</p>
+<pre><code>- symbols = zend_hash_num_elements(&amp;EG(symbol_table));
++ symbols = zend_hash_num_elements(&amp;EG(symbol_table).ht);</code></pre>
+</li>
+<li>EG(uninitialized_zval_ptr) and EG(error_zval_ptr) were removed. Use &amp;EG(uninitialized_zval) and &amp;EG(error_zval) instead.</li>
+<li>
+<p>EG(current_execute_data) - 此字符发生了一些变化，之前是一个指向最后调用函数的栈帧。现在它指向最后执行的调用栈帧，并不区别是脚本函数还是内核函数。It's possible to get the zend_execute_data structure for the last op_array traversing call chain list.</p>
+<pre><code>  zend_execute_data *ex = EG(current_execute_data);
++ while (ex &amp;&amp; (!ex-&gt;func || !ZEND_USER_CODE(ex-&gt;func-&gt;type))) {
++    ex = ex-&gt;prev_execute_data;
++ }
+  if (ex) {</code></pre>
+</li>
+<li>
+<p>EG(opline_ptr) - 被移除，用execute_data-&gt;opline替代</p>
+</li>
+<li>
+<p>EG(return_value_ptr_ptr) - 被移除，用execute_data-&gt;return_value替代</p>
+</li>
+<li>
+<p>EG(active_symbol_table) - 被移除，用execute_data-&gt;symbol_table替代</p>
+</li>
+<li>
+<p>EG(active_op_array) - 被移除，用execute_data-&gt;func替代</p>
+</li>
+<li>
+<p>EG(called_scope) - 被移除，用execute_data-&gt;called_scope替代</p>
+</li>
+<li>
+<p>EG(This) - 变成zval, 之前是zval*。不应被修改。</p>
+</li>
+<li>
+<p>EG(in_execution) - 被移除. If EG(current_excute_data) is not NULL, we are executing something.</p>
+</li>
+<li>EG(exception) and EG(prev_exception) - 被改成zend_object*,之前是zval*</li>
+</ul>
+<h3>opcodes</h3>
+<ul>
+<li>
+<p>ZEND_DO_FCALL_BY_NAME - 已被移除,新增ZEND_INIT_FCALL_BY_NAME.</p>
+</li>
+<li>
+<p>ZEND_BIND_GLOBAL - &quot;global $var&quot;的handler</p>
+</li>
+<li>
+<p>ZEND_STRLEN - 代替了strlen函数</p>
+</li>
+<li>
+<p>ZEND_TYPE_CHECK - 在必要的时候,用来代替is_array/is_int/is_*</p>
+</li>
+<li>
+<p>ZEND_DEFINED - 在必要的时候代替zif_defined(if only one parameter and it's constant string and it's not in namespace style)</p>
+</li>
+<li>
+<p>ZEND_SEND_VAR_EX - was added to do more check than ZEND_SEND_VAR if the condition can not be settled in compiling time</p>
+</li>
+<li>
+<p>ZEND_SEND_VAL_EX - was added to do more check than ZEND_SEND_VAL if the condition can not be settled in compiling time</p>
+</li>
+<li>
+<p>ZEND_INIT_USER_CALL - was added to replace call_user_func(_array) if possible if the function can not be found in compiling time, otherwise it can convert to ZEND_INIT_FCALL</p>
+</li>
+<li>
+<p>ZEND_SEND_ARRAY - was added to send the second parameter, the array of the call_user_func_array after it is converted to opcode</p>
+</li>
+<li>ZEND_SEND_USER - was added to send the the parameters of call_user_func after it is converted to opcode</li>
+</ul>
+<h3>temp variable</h3>
+<p>TODO: … </p>
+<h3>pcre</h3>
+<p>一些正则API使用zend_string作为参数或者返回值了。php_pcre_replace returns a zend_string and takes a zend_string as 1st argument. 仔细检查函数申明与编译错误, 可以发现多数是类型错误。</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

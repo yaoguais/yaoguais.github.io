@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>PHP7简介</h2>
+<p>目录:</p>
+<ol>
+<li>关于PHP7的相关资源</li>
+<li>PHP7简单的介绍</li>
+<li>PHP7性能压测</li>
+</ol>
+<h3>关于PHP7的相关资源</h3>
+<p>进入wiki.php.net搜索phpng即可找到很多相关的介绍内容.</p>
+<ul>
+<li><a href="https://wiki.php.net/phpng">php7介绍</a></li>
+<li><a href="https://wiki.php.net/phpng-int">php7实现的细节</a></li>
+<li><a href="https://wiki.php.net/phpng-upgrading">怎样把扩展从php5升级到php7</a></li>
+<li><a href="http://www.laruence.com/">鸟哥的博客</a></li>
+</ul>
+<h3>PHP7简单的介绍</h3>
+<p>PHPNG即PHP7,其中的NG是Next Generation下一代的意思.</p>
+<p>这里有个<a href="https://wiki.php.net/ideas/php6">关于php7内容的讨论页面</a>,介绍了php7一些可能的特性.</p>
+<p>1.OpCache integration(整合opcache),已经做了,是一个zend扩展,就叫做opcahce,在php.ini中配置好就可以使用了.</p>
+<p>2.Improved and actual 64bit support(64位的支持)</p>
+<p>3.Unicode support(unicode编码支持)</p>
+<p>4.internals API Cleanup(核心API的整改)</p>
+<p>5.Warning free code(提示无用代码),PHP目前是没有做代码优化的,做代码优化的第一个目标就是提示无用的代码,比如一个条件分支永远进不了,那么里面的代码肯定是无用的,这个在java的编辑器中就有提示的.</p>
+<p>6.Improve OPcodes, compilation and runtime(优化opcode,编译与运行时),整体来说就是优化zend引擎对脚本的解释执行.</p>
+<p>7.JIT compiler(即时编译支持)</p>
+<p>8.HTTP2 support(HTTP2协议的支持)</p>
+<p>9.Native Annotation Support(原生注释的支持),就是在方法前面加一些标签,然后就能实现某种功能,比如java中的@inject@test这些.</p>
+<p>10.Getter/Setter,从RFC看到语法跟C#的比较类似.</p>
+<p>11.Scalar type hinting and return typing,函数参数与返回值支持限定类型,这个已经在做了,但是可以配置是否使用.</p>
+<h3>PHP7性能压测</h3>
+<p>性能肯定是比较出来的，PHP7比较php5在某些压测数据下提交了3以上.而最多的比较应该是php7 vs hhvm，中国用php两大阵营应该就是百度贴吧与新浪微博了，贴吧直接转成hhvm了.这里贴出鸟哥的压测数据,结果显示性能基本差不多,php7在这个条件下还有一点小优.</p>
+<p><a href="http://www.laruence.com/2014/12/18/2976.html">php7 vs hhvm</a></p>
+<p>结论,</p>
+<ul>
+<li>PHP7 – 258.22 QPS</li>
+<li>HHVM – 230.97 QPS</li>
+</ul>
+<p>考虑到HHVM的运维复杂度, 他是多线程模型, 这就代表着如果一个线程导致crash了, 那么整个服务就挂了, 并且它不会自动重启</p>
+<p>另外它采用JIT, 那么意味着, 重启以后要预热, 没有预热的情况下, 性能较为糟糕</p>
+<p>并且多线程模型调试困难, 这对于追求稳定来说的Web服务来说, 是非常不适合的.</p>
+<p>那么, PHP7性能提升以后, 我们还有什么理由要用HHVM么?</p>
+<p>最后, PHP7将会在明年10月发布正式版, 我相信我们还会让它更快, 大家拭目以待吧</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>排序算法之插入排序</h2>
+<ol>
+<li>直接插入</li>
+<li>折半插入</li>
+<li>希尔排序</li>
+</ol>
+<h3>直接插入</h3>
+<p>算法思想： 将整个序列分为两个序列,前面序列{V0,V1...Vi-1}是已经排列好了，在插入Vi时，依次比较Vi-1,Vi-2至V0,如果不是当前即把元素后移，找到合适的位置，将元素插入。
+核心思路：将序列分为V0与剩下的元素两个序列，执行倒着顺序比较插入，因此额外的空间开销为零。</p>
+<p>php版代码：</p>
+<pre><code>function insert_sort(&amp;$list,$left,$right){
+    $right = $right&lt;0 ? count($list)-1 : $right;
+    for($i=$left+1;$i&lt;=$right;$i++){
+        if($list[$i]&lt;$list[$i-1]){
+            $tmp = $list[$i];
+            for($j=$i;$j&gt;$left;$j--){
+                if($tmp&lt;$list[$j-1])
+                    $list[$j] = $list[$j-1];
+                else
+                    break;
+            }
+            $list[$j] = $tmp;
+        }
+    }
+}</code></pre>
+<p>C语言代码：2014-4-11优化版</p>
+<pre><code>void insert_sort(int list[],int left,int right){
+    for(int i=left+1;i&lt;=right;i++){
+        for(int j=i-1;j&gt;=left;j--){
+            if(list&lt;list[j])
+                list[j+1] = list[j];
+            else
+                break;
+        }
+        //考察情况一 当第一次比较就不成立 pos= j+1
+        //情况二 进行比较 但没有到尾 pos= j+1
+        //情况三 比较到尾部 pos=j+1
+        list[j+1] = list;
+    }
+}</code></pre>
+<p>时间复杂度：O(n^2)</p>
+<p>算法稳定性：由于元素比前面的小才会移动，而相等情况下并不移动，因此直接插入排序是一种稳定的排序算法。</p>
+<h3>折半插入</h3>
+<p>核心思路：基本思想与直接插入一致，唯一的区别是折半插入在比较的时候，不是倒着顺序比较插入，而是在已经拍好的前部序列中折半查找待插入的位置，找到后，先把元素依次后移，然后再把元素插入。</p>
+<p>php版代码：</p>
+<pre><code>function binary_insert_sort(&amp;$list,$left,$right){
+    $right = $right&lt;0 ? count($list)-1 : $right;
+    for($i=$left+1;$i&lt;=$right;$i++){
+        $tmp = $list[$i];
+        $low = $left;
+        $high = $i-1;
+        while($low&lt;=$high){
+            $middle = floor(($low+$high)/2);
+            if($tmp&lt;$list[$middle])
+                $high = $middle - 1;
+            else
+                $low = $middle + 1;
+        }
+        for($k=$i-1;$k&gt;=$low;$k--)
+            $list[$k+1] = $list[$k];
+        $list[$low] = $tmp;
+    }
+}</code></pre>
+<p>//当与中间元素比较时，比它小，自然区间在它左边，比它大自然在右边，相等也应该在右边，因此出现middle+1和middle-1;而当low=high时区间中应该还有一个元素，应该与这个元素做最后一次比较，所以退出循环的条件是区间长度小于零，即high-low&lt;0;反过来循环执行的条件即是high&gt;=low;
+时间复杂度：O(n^2)</p>
+<p>算法稳定性：与直接插入一样是稳定的插入排序。</p>
+<h3>希尔排序</h3>
+<p>核心思路：将原本的序列，按照相隔gap个元素的元素集合到一个序列，因此形成了gap个子序列，最后几个子序列的元素可能是少一个的哦！然后在这些子序列中执行直接插入排序，先前的gap选择比较大，比如2/n,3/n+1等等，然后按照gap=gap/2或gap=gap/3+1来缩小gap，直到gap=1时，这时就是跟直接插入排序一模一样了，但是由于前面已经做了很多的工作，所以排序起来移动的次数很少，很快就结束。</p>
+<p>php版代码：</p>
+<pre><code>//取gap=gap/3+1
+function shell_sort(&amp;$list,$left,$right){
+    $right = $right&lt;0 ? count($list)-1 : $right;
+    //减少gap的值
+    $gap = $right-$left+1;
+    do{
+        $gap = floor($gap/3)+1;
+        //由于划分成几个子序列，每个子序列插入排序一次，所以外循环可以写到一起
+        for($i=$left+$gap;$i&lt;=$right;$i++){
+            if($list[$i]&lt;$list[$i-$gap]){
+                $tmp = $list[$i];
+                for($j=$i;$j&gt;=$left+$gap;$j=$j-$gap){
+                    if($list[$j-$gap]&gt;$tmp)
+                        $list[$j] = $list[$j-$gap];
+                    else
+                        break;
+                }
+                $list[$j] = $tmp;
+            }
+        }
+
+    }while($gap&gt;1);
+}</code></pre>
+<p>这里取gap=gap/2注意这里要调用floor函数向下取整，因为php跟C语言不一样，整数相除可能会带小数。</p>
+<pre><code>function shell_sort(&amp;$list,$left,$right){
+    $right = $right&lt;0 ? count($list)-1 : $right;
+    for($gap=floor(($right-$left+1)/2);$gap&gt;0;$gap=floor($gap/=2)){
+        for($i=$left+$gap;$i&lt;=$right;++$i){
+            for($j=$i-$gap;$j&gt;=$left&amp;&amp;$list[$j+$gap]&lt;$list[$j];$j-=$gap){
+                //这里使用交换的思路来后移元素 并非真正的插入
+                $tmp=$list[$j];
+                $list[$j]=$list[$j+$gap];
+                $list[$j+$gap]=$tmp;
+            }
+        }
+    }
+}</code></pre>
+<p>时间复杂度：由于增量的不同希尔排序的时间复杂度也不同，总结下来&lt;=O(n^2),但是比直接插入快很多！</p>
+<p>算法稳定性：由于相等的数据项可能被分到不同的子序列中，虽然每个子序列排序稳定，但是整体看来就会造成不稳定的现象产生，所以希尔排序是一种不稳定的排序算法！</p>
+<p>总的来说：插入排序只适用于数据量小的排序场合，可以在大序列中使用快速排序，然后在小序列中使用插入排序。</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

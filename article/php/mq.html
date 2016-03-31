@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>PHP消息队列的一些实现</h2>
+<p>消息队列（Message Queue）：把消息按照产生的次序加入队列，而由另外的处理程序/模块将其从队列中取出，并加以处理；从而形成了一个基本的消息队列。使用消息队列可以很好地将任务以异步的方式进行处理，或者进行数据传送和存储等。例如，当你频繁地向数据库中插入数据、频繁地向搜索引擎提交数据，就可采取消息队列来异步插入。另外，还可以将较慢/较复杂的处理逻辑、有并发数量限制的处理逻辑，通过消息队列放在后台处理。</p>
+<p>应用场景：短信服务、电子邮件服务、图片处理服务、好友动态推送服务等。总结下来就是，一些耗时的操作，但是并不要求立即获取执行的结果。
+<a href="http://www.360doc.com/content/15/0324/11/203871_457622006.shtml">(参考文章)</a></p>
+<p>目录：</p>
+<ol>
+<li>应用场景-短信服务</li>
+<li>消息队列的实现-redis</li>
+<li>消息队列的实现-mongodb</li>
+<li>消息队列的实现-memcached</li>
+<li>redis-mongodb-memcached性能的对比</li>
+<li>消息队列的实现amqp-rabbitmq</li>
+<li>消息队列的总结</li>
+</ol>
+<h3>应用场景-短信服务</h3>
+<p>一般发送短信，都是调用服务商的接口，大多都是基于HTTP协议的，body的封装可能是js、xml等。在php中，使用socket，大概有<code>file_get_contents</code> 、curl 、 fsockopen 、stream系等。而这个过程是比较耗时的，如果存在大量这样的操作，必然会降低服务器的响应时间。</p>
+<p>所以我们可以使用消息队列来解决这个问题。</p>
+<h3>消息队列的实现-redis</h3>
+<p><a href="https://github.com/Yaoguais/message-queue">整个项目的源代码</a></p>
+<p>利用redis实现消息队列，是基于redis本身支持的列表数据类型，其本身就是队列的一种的实现，支持入队rPush、出队lPop。</p>
+<p>安装redis、php-redis的步骤省略，下面几个实现也省略了，都比较简单。</p>
+<p>其关键的代码如下:</p>
+<pre><code>class RedisQueue implements IQueue{
+
+    private $_conn = null;
+    private $_connInfo = null;
+
+    public function __construct($connInfo){
+        if(empty($connInfo['key'])){
+            $connInfo['key'] = 'rmq';
+        }
+        $this-&gt;_connInfo = $connInfo;
+    }
+
+    public function open(){
+        if(empty($this-&gt;_connInfo)){
+            return false;
+        }
+        if($this-&gt;_connInfo['newlink']){
+            $this-&gt;close();
+        }
+        if($this-&gt;_conn){
+            return true;
+        }
+        $this-&gt;_conn = new Redis();
+        if(empty($this-&gt;_conn)){
+            return false;
+        }
+        if($this-&gt;_connInfo['persistent']){
+            if(!$this-&gt;_conn-&gt;pconnect($this-&gt;_connInfo['host'],$this-&gt;_connInfo['port'])){
+                return false;
+            }
+        }else{
+            if(!$this-&gt;_conn-&gt;connect($this-&gt;_connInfo['host'],$this-&gt;_connInfo['port'])){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    public function push($message){
+        if(!$this-&gt;open()){
+            return false;
+        }
+        return $this-&gt;_conn-&gt;rPush($this-&gt;_connInfo['key'],$message);
+    }
+
+    public function pop(){
+        if(!$this-&gt;open()){
+            return false;
+        }
+        return $this-&gt;_conn-&gt;lPop($this-&gt;_connInfo['key']);
+    }
+}</code></pre>
+<p>经测试，redis的性能体现得不错。性能数据请看下面。</p>
+<h3>消息队列的实现-mongodb</h3>
+<p>mongodb使用的是timestamp+index实现的消息队列。还有一种使用findAndModify实现队列,但是出队并不删除元素,这个随着时间的推移,内存必爆，这里就不推荐了，网上有人做的这种实现。timestamp各种关系性数据库都能实现,这里也不实现mysql等数据库的了.</p>
+<p>其关键的代码如下:</p>
+<pre><code>class MongodbQueue implements IQueue{
+
+    private $_conn;
+    private $_connInfo;
+
+    /**
+     * 返回当前的毫秒数
+     * @return number
+     */
+    private function _getTimeStamp(){
+        return intval(microtime(true)*1000);
+    }
+
+    public function __construct($connInfo){
+        if(empty($connInfo['db_name'])){
+            $connInfo['db_name'] = 'mmq';
+        }
+        if(empty($connInfo['collection_name'])){
+            $connInfo['collection_name'] = 'cmmq';
+        }
+        $this-&gt;_connInfo = $connInfo;
+    }
+
+    public function open(){
+        if($this-&gt;_conn){
+            return true;
+        }
+        if(!class_exists('MongoClient')){
+            return false;
+        }
+        $this-&gt;_conn = new MongoClient($this-&gt;_connInfo['server'],$this-&gt;_connInfo['server_options']);
+        if(empty($this-&gt;_conn)){
+            return false;
+        }
+        //初始化数据库，集合，索引等
+        $collection = $this-&gt;_conn-&gt;{$this-&gt;_connInfo['db_name']}-&gt;{$this-&gt;_connInfo['collection_name']};
+        $collection-&gt;createIndex(array('timestamp'=&gt;1));
+        return true;
+    }
+
+    public function push($message){
+        if(!$this-&gt;open()){
+            return false;
+        }
+        $arr = array(
+                'timestamp' =&gt; $this-&gt;_getTimeStamp(),
+                'message' =&gt; $message
+        );
+        $collection = $this-&gt;_conn-&gt;{$this-&gt;_connInfo['db_name']}-&gt;{$this-&gt;_connInfo['collection_name']};       
+        $ret = $collection-&gt;insert($arr);
+        return isset($ret['ok']) ? ($ret['ok'] ? true : false) : ($ret ? true : false);
+    }
+
+    public function pop(){
+        if(!$this-&gt;open()){
+            return false;
+        }
+        $collection = $this-&gt;_conn-&gt;{$this-&gt;_connInfo['db_name']}-&gt;{$this-&gt;_connInfo['collection_name']};
+        $cursor = $collection-&gt;find()-&gt;sort(array('timestamp'=&gt;1))-&gt;limit(1);
+        $ret = $cursor-&gt;getNext();
+        if(empty($ret)){
+            return false;
+        }
+        if($collection-&gt;remove(array('_id'=&gt;$ret['_id']),array("justOne"=&gt;true))){
+            return $ret;
+        }else{
+            return false;
+        }
+    }
+}</code></pre>
+<p>关于mongodb的使用这里也不多说了，可以关注一下<a href="http://blog.csdn.net/DrifterJ/article/category/1191327/2">这篇文章</a>。</p>
+<p>这里额外提一下遇到的坑，我在安装的时候，居然安装错了mongodb。
+php 扩展mongodb与mongo的区别:
+mongodb:<a href="http://php.net/manual/zh/book.mongodb.php">帮助手册</a>
+mongo:<a href="http://php.net/manual/zh/book.mongo.php">帮助手册</a>
+说简单点就是提供的接口不同。</p>
+<p>mongodb(version 0.6.3)安装中的坑:</p>
+<pre><code>apt-get install openssl
+apt-get install libssl-dev
+apt-get install libssl0.9.8</code></pre>
+<p>但是扩展在make的时候报X509未定义,经过分析得知是头文件未包含，但存在。在mongodb下有个php-ssl.h中<code>HAVE_OPENSSL_EXT</code>宏起着开关作用，注释即可。</p>
+<h3>消息队列的实现-memcached</h3>
+<p>memcached版的消息队列是参照<a href="http://www.jb51.net/article/50286.htm">这篇文章-memcache消息队列</a>
+实现的。该实现是用两个指针,分别指向队首与队尾,然后对队列进行操作。
+这不具备事务特性,在多进程下会导致数据混乱的情况。</p>
+<ul>
+<li>不具备事务特性：设想移动指针成功，但出队失败。</li>
+<li>不具备原子性：设想只有一个元素，两个进程同时读取指针，发现合法，同时移动指针。但是后出队的会出现没有元素出队而失败的情况。</li>
+</ul>
+<p>但是我们还是实现一下,看看其性能怎么样。</p>
+<p>其关键的代码如下:</p>
+<pre><code>class MemcachedQueue implements IQueue{
+    private $_conn = null;
+    private $_connInfo = null;
+    private $_key = 'mmq';
+
+    public function __construct($connInfo){
+        if($connInfo['key']){
+            $this-&gt;_key = $connInfo['key'];
+        }
+        $this-&gt;_connInfo = $connInfo;
+    }
+
+    public function open(){
+        if(empty($this-&gt;_connInfo)){
+            return false;
+        }
+        if($this-&gt;_conn){
+            return true;
+        }
+        if($this-&gt;_connInfo['persistent_id ']){
+            $this-&gt;_conn = new Memcached($this-&gt;_connInfo['persistent_id ']);
+        }else{
+            $this-&gt;_conn = new Memcached();
+        }
+        if(empty($this-&gt;_conn)){
+            return false;
+        }
+        if($this-&gt;_connInfo['servers']){
+            $this-&gt;_conn-&gt;addServers($this-&gt;_connInfo['servers']);
+        }else{
+            $this-&gt;_conn-&gt;addServer($this-&gt;_connInfo['host'],$this-&gt;_connInfo['port'],$this-&gt;_connInfo['weight'] ? : 0);
+        }
+        return true;
+    }
+
+    private function _setCounter( $key, $offset, $time=0 ){
+        if(!$this-&gt;open()){
+            return false;
+        }
+        $val = $this-&gt;_conn-&gt;get($key);
+        if( !is_numeric($val) || $val &lt; 0 ){
+            $ret = $this-&gt;_conn-&gt;set( $key, 0, $time );
+            if( !$ret ) return false;
+            $val = 0;
+        }
+        $offset = intval( $offset );
+        if( $offset &gt; 0 ){
+            return $this-&gt;_conn-&gt;increment( $key, $offset );
+        }elseif( $offset &lt; 0 ){
+            return $this-&gt;_conn-&gt;decrement( $key, -$offset );
+        }
+        return $val;
+    }
+
+    public function push($message){
+        if(!$this-&gt;open()){
+            return false;
+        }
+        $pushKey = $this-&gt;_key.'w';
+        if(false === ($pushIndex = $this-&gt;_setCounter($pushKey, 1))){
+            return false;
+        }
+        $valueKey = $this-&gt;_key.$pushIndex;
+        return $this-&gt;_conn-&gt;set($valueKey,$message);
+    }
+
+    public function pop(){
+        if(!$this-&gt;open()){
+            return false;
+        }   
+        $pushKey = $this-&gt;_key.'w';
+        if(false === ($pushIndex = $this-&gt;_setCounter($pushKey, 0))){
+            return false;
+        }
+        $popKey = $this-&gt;_key.'r';
+        if(false === ($popIndex = $this-&gt;_setCounter($popKey, 0))){
+            return false;
+        }
+        ++$popIndex;
+        if($pushIndex &lt; $popIndex){
+            return false;
+        }
+        $valueKey = $this-&gt;_key.$popIndex;
+        if(false === ($this-&gt;_setCounter($popKey, 1))){
+            return false;
+        }
+        $ret = $this-&gt;_conn-&gt;get($valueKey);
+        if(empty($ret)){
+            return false;
+        }
+        $this-&gt;_conn-&gt;delete($valueKey);
+        return $ret;
+    }
+}</code></pre>
+<p>性能测试发现数据表现还不错！</p>
+<h3>redis-mongodb-memcached性能的对比</h3>
+<p>最后我们比较一下三种实现的性能，最后写了一个benchmark的脚本：</p>
+<pre><code>error_reporting(~E_WARNING &amp; ~E_NOTICE &amp; E_ALL);
+
+require 'IQueue.php';
+require 'MemcachedQueue.php';
+require 'MongodbQueue.php';
+require 'RedisQueue.php';
+require 'MessageQueueProxy.php';
+
+$config = require 'config.php';
+$class = $config['driver'];
+$mq = new $class($config['driverInfo']);
+$mobileMessageObj = new MessageQueueProxy($mq);
+
+$time = 100;
+$num = 10000;
+
+$success = 0;
+
+for($j=0;$j&lt;$time;++$j){
+    $start = microtime(true);
+
+    for($i=0;$i&lt;$num;++$i){
+        $mobile = '1355'.rand(1000000,9999999);
+        $content = 'this is your phone number: '.$mobile.'.';
+        $message = array(
+                'mobile' =&gt; $mobile,
+                'content' =&gt; $content
+        );
+        if(!$mobileMessageObj-&gt;push(serialize($message))){
+            echo "on index:",($j*$num+$i+1)," push error !";
+            goto pushout;
+        }
+        ++$success;
+    }
+    $result[] = microtime(true) - $start;
+    echo intval(($j+1)/$time*100),"% ";
+}
+
+pushout:
+
+$request = $num * $time;
+echo "\n";
+echo "class: $class\n";
+echo "push\n";
+echo "times: $time num: $num\n";
+echo "request: ",$request,"\n";
+echo "faild: ",$request-$success,"\n";
+echo "max: ",max($result)," s/{$num}times\n";
+echo "min: ",min($result)," s/{$num}times\n";
+echo "takes: ",$sum = array_sum($result)," s\n";
+echo "average: ",$sum/count($result)," s/{$num}times\n";
+echo "rqs: ",intval($time*$num/$sum),"\n";
+
+if($success&lt;$request){
+    echo "push exit\n";
+    exit();
+}
+
+$result = array();
+$success = 0;
+for($j=0;$j&lt;$time;++$j){
+    $start = microtime(true);
+
+    for($i=0;$i&lt;$num;++$i){
+        if($mobileMessageObj-&gt;pop()===false){
+            echo "on index:",($j*$num+$i+1)," pop error !";
+            goto popout;
+        }
+        ++$success;
+    }
+    $result[] = microtime(true) - $start;
+    echo intval(($j+1)/$time*100),"% ";
+}
+
+popout:
+echo "\n";
+
+echo "pop\n";
+echo "times: $time num: $num\n";
+echo "request: ",$request,"\n";
+echo "faild: ",$request-$success,"\n";
+echo "max: ",max($result)," s/{$num}times\n";
+echo "min: ",min($result)," s/{$num}times\n";
+echo "takes: ",$sum = array_sum($result)," s\n";
+echo "average: ",$sum/count($result)," s/{$num}times\n";
+echo "rqs: ",intval($time*$num/$sum),"\n";</code></pre>
+<p>其中各项软件的版本如下(都是当前最新版本的):</p>
+<pre><code>php: 5.4.40
+Linux: 3.13.0-34-generic(buildd@allspice) (gcc version 4.8.2 (Ubuntu 4.8.2-19ubuntu1) )
+memory: 4GB
+cpu: Intel(R)_Core(TM)_i5@3.00GHz*4
+redis: 3.0.1
+php-redis: 2.2.7
+mongodb: mongodb-linux-x86_64-ubuntu1404-3.0.2
+php-mongo: 1.6.7
+memcached: 1.4.24
+php-memcached: 2.2.0</code></pre>
+<p>redis的数据如下：</p>
+<pre><code>class: RedisQueue
+push
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 0.37430000305176 s/10000times
+min: 0.26855707168579 s/10000times
+takes: 32.56348824501 s
+average: 0.3256348824501 s/10000times
+rqs: 30709
+pop
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 0.28984785079956 s/10000times
+min: 0.21943783760071 s/10000times
+takes: 26.595669269562 s
+average: 0.26595669269562 s/10000times
+rqs: 37600</code></pre>
+<p>mongodb+index的数据如下：</p>
+<pre><code>class: MongodbQueue
+push
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 1.8860659599304 s/10000times
+min: 1.038162946701 s/10000times
+takes:115.00487303734 s
+average: 1.1500487303734 s/10000times
+rqs: 8695
+pop
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 2.2940940856934 s/10000times
+min: 1.8466329574585 s/10000times
+takes: 197.70558190346 s
+average: 1.9770558190346 s/10000times
+rqs: 5058</code></pre>
+<p>mongodb+noindex的数据如下:</p>
+<pre><code>class: MongodbQueue
+push
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 1.4391729831696 s/10000times
+min: 1.0708310604095 s/10000times
+takes: 120.37140989304 s
+average: 1.2037140989304 s/10000times
+rqs: 8307
+//下面根本跑不动了</code></pre>
+<p>memcached的数据如下:</p>
+<pre><code>class: MemcachedQueue
+push
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 0.83561706542969 s/10000times
+min: 0.67476201057434 s/10000times
+takes: 76.049747467041 s
+average: 0.76049747467041 s/10000times
+rqs: 13149
+pop
+times: 100 num: 10000
+request: 1000000
+faild: 0
+max: 1.3662950992584 s/10000times
+min: 1.2345328330994 s/10000times
+takes: 129.71623921394 s
+average: 1.2971623921394 s/10000times
+rqs: 7709</code></pre>
+<p>可以看出：</p>
+<ul>
+<li>可以看出redis在push上是mongodb的3.53倍,在pop上是mongodb的7.43倍.</li>
+<li>mongodb没有索引,pop根本跑不动了。过了10多秒，我进数据库一看，才删除了99条.</li>
+<li>可以看出redis的push是memcached的2.3倍,redis的pop是memcached的4.5倍.</li>
+</ul>
+<h3>消息队列的实现amqp-rabbitmq</h3>
+<p>先吐槽一下rabbitmq的安装，最开始我是在Ubuntu上面安装的，首先是源码编译，不行。然后apt-get，也不行！最后dpkg安装，还是不行！！
+没办法，Ubuntu实在搞不动了。</p>
+<p>我就换了centos，还是源码编译，php-amqp老是过不了。然后pecl安装，还是不行。</p>
+<p>最后发现，这两样都会用到librabbitmq这个库，而报错是没有<code>amqp_tcp_socket.h</code>这个头文件。</p>
+<p>正好我源码编译过<code>rabbitmq-c</code>源代码，发现刚好会提供这个文件，但是API对不上啊，这个库是0.6.0的，地址是https://github.com/alanxz/rabbitmq-c/releases/tag/v0.6.0，机智的我突然反应过来，很可能是版本不对。但是没有以前版本的链接啊，机智的我又突然反应过来，就是把v0.6.0改成v0.4.0，妈蛋，居然有下载页面了。</p>
+<p>然后我小心翼翼的下载下来，删除原来的文件，重新一编译,php-amqp居然通过了。立马修改php.ini,再编写测试代码，发现队列成功入队出队了！！而这时，已经一点了，距我刚开始安装软件已经四个多小时了，一上午就装软件装完了。然后下午把RabbitQueue.php写完，然后做Benchmark，又发现两个内存相关的参数老是调不对，每次跑到70万就要停半天才继续。应该是内存数据交换到硬盘造成的。最后的benchmark就降低到50万了。但是效果还是不错。</p>
+<p>下面是测试的数据：</p>
+<pre><code>class: RabbitQueue
+push
+times: 100 num: 5000
+request: 500000
+faild: 0
+max: 0.56668591499329 s/5000times
+min: 0.019957065582275 s/5000times
+takes: 17.697237014771 s
+average: 0.17697237014771 s/5000times
+rqs: 28252
+pop
+times: 100 num: 5000
+request: 500000
+faild: 0
+max: 1.709969997406 s/5000times
+min: 0.56408095359802 s/5000times
+takes: 85.071734666824 s
+average: 0.85071734666824 s/5000times
+rqs: 5877
+
+VMware 10
+centos 6.6
+memory 2GB
+cpu i5*4</code></pre>
+<p>翻阅了N多的rabbitmq的资料，对其机制还是有基本的了解了。最后总结一下，rabbitmq可能在性能上不是很优越，但是它是一套完善的解决方案。个人觉得比redis更适合生产环境。还有redis没有通知机制，而rabbitmq是基于长连接的，是有推送的。这个就比redis的轮询高级很多了。</p>
+<h3>消息队列的总结</h3>
+<ol>
+<li>性能redis&gt;memcached&gt;mongodb</li>
+<li>rabbitmq是成熟的解决方案</li>
+<li>mongodb与amqp扩展的安装比较坑</li>
+</ol>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

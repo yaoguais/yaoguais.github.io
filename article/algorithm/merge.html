@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>排序算法之归并排序</h2>
+<h3>两路归并排序</h3>
+<p>核心思路：将序列评分为AB两个子序列，直至将子序列的长度小于2，然后进行归并，直至最后的序列有序。</p>
+<p>php代码：</p>
+<pre><code>&lt;?php
+function merge_sort(&amp;$list,&amp;$copyList,$left,$right){
+    //当长度大于等于2时才进行划分
+    if($right&gt;$left){
+        //进行做划分
+        $mid = floor(($left+$right)/2);
+        merge_sort($list,$copyList,$left,$mid);
+        //进行右划分
+        merge_sort($list,$copyList,$mid+1,$right);
+        //合并划分的元素
+        merge($list,$copyList,$left,$mid,$right);
+    }
+}
+function merge(&amp;$list,&amp;$copyList,$left,$mid,$right){
+    //将排序后的序列复制给复制序列
+    //这里不采用复制给原序列是因为最初复制序列是空的，
+    //否则调用排序函数前还需复制一下浪费操作
+    for($i=$left;$i&lt;=$right;$i++){
+        $copyList[$i] = $list[$i];
+    }
+    //依次拷贝至最短的子序列结束
+    for($t=$left,$i=$left,$j=$mid+1;$i&lt;=$mid &amp;&amp; $j&lt;=$right;$t++){
+        if($copyList[$i]&lt;$copyList[$j]){
+            $list[$t] = $copyList[$i];
+            $i++;
+        }else{
+            $list[$t] = $copyList[$j];
+            $j++;
+        }
+    }
+    //拷贝剩下的
+    for(;$i&lt;=$mid;$i++,$t++)
+        $list[$t] = $copyList[$i];
+    for(;$j&lt;=$right;$j++,$t++)
+        $list[$t] = $copyList[$j];
+}
+
+$arr = array(6,4,7,2,5,3);
+merge_sort($arr,$arr2,0,count($arr)-1);
+print_r($arr);</code></pre>
+<p>时间复杂度：O(nlgn)
+算法稳定性：由于从左序列进行比较，前面的仍然会排到前面，所以归并排序是稳定的排序算法。</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

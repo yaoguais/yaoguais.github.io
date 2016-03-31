@@ -64,14 +64,14 @@
 		if(on){
 			$(obj).addClass(hlClass);
 		}else{
-			var url = $(".mbBlock:visible").attr("data-href");
+			var url = $(".mdBlock:visible").attr("data-href");
 			$(".nav li a[href='"+url+"']").addClass(hlClass);
 		}		
 	}
 	$.nav_high_light.timeOutHandle = null;
     $(document).ready(function(){
         $(".nav li a").click(function(){
-            $.nav_load_md(this,"markDownContent","mbBlock",function(){
+            $.nav_load_md(this,"markDownContent","mdBlock",function(){
 				var $nav = $(".nav");
 				$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 			});
@@ -92,7 +92,7 @@
 			if(($article = $(".nav li a[href='"+articleTag[1]+"']")) && $article.length>0){
 				$article.click();
 			}else{
-				$.load_md(articleTag[1],"markDownContent","mbBlock",function(){
+				$.load_md(articleTag[1],"markDownContent","mdBlock",function(){
 					var $nav = $(".nav");
 					$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 				});
@@ -108,15 +108,15 @@
 			$("html,body").stop().animate( { scrollTop: 0}, 200);
 		});;
 		$(window).bind('scroll resize',function(){
-			if($("html,body").scrollTop()>=$(window).height()){
+			if($("body").scrollTop()>=$(window).height()){
 				$(".back-to-top").show();
 			}else{
 				$(".back-to-top").hide();
 			}
 		});
 		$("body>span").hide();
-		$(document).on('click','.mbBlock ol li',function(e){
-			if($(".mbBlock[data-href='md/index.md']:visible").length>0){
+		$(document).on('click','.mdBlock ol li',function(e){
+			if($(".mdBlock[data-href='md/index.md']:visible").length>0){
 				return;
 			}
 			var index = $(this).index(),

@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>c语言函数与变量的内存布局</h2>
+<p>今天突然想知道C中函数是怎么在内存中分布的，虽然肯定是听过或看过结论的，但是还是想自己亲手试试，一探究竟！</p>
+<p>目录：</p>
+<ol>
+<li>测试的源代码</li>
+<li>测试的汇编代码</li>
+<li>gdb中的汇编代码</li>
+<li>调试程序</li>
+<li>总结</li>
+</ol>
+<h3>测试的源代码</h3>
+<p>测试的文件比较简单，写了一个sum函数，计算3个参数的和并返回。</p>
+<p>test.c:</p>
+<pre><code>#include &lt;stdio.h&gt;
+
+int sum(int x,int y,int z){
+    int sum = x + y + z;
+    return sum;
+}
+
+int main(int argc,char ** argv){
+    int x,y;
+    x = sum(1,2,3);
+    y = sum(4,5,6);
+    return 0;
+}</code></pre>
+<h3>测试的汇编代码</h3>
+<p>使用gcc -S test.c，会自动在当前目录下生成test.s文件，其内容如下：</p>
+<p>注：这里只是贴出文件内容，但是其对后面的分析并没有什么作用。分析使用的是整理后的汇编代码。</p>
+<pre><code>    .file   "test.c"
+    .text
+    .globl  sum
+    .type   sum, @function
+sum:
+.LFB0:
+    .cfi_startproc
+    pushq   %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset 6, -16
+    movq    %rsp, %rbp
+    .cfi_def_cfa_register 6
+    movl    %edi, -20(%rbp)
+    movl    %esi, -24(%rbp)
+    movl    %edx, -28(%rbp)
+    movl    -24(%rbp), %eax
+    movl    -20(%rbp), %edx
+    addl    %eax, %edx
+    movl    -28(%rbp), %eax
+    addl    %edx, %eax
+    movl    %eax, -4(%rbp)
+    movl    -4(%rbp), %eax
+    popq    %rbp
+    .cfi_def_cfa 7, 8
+    ret
+    .cfi_endproc
+.LFE0:
+    .size   sum, .-sum
+    .globl  main
+    .type   main, @function
+main:
+.LFB1:
+    .cfi_startproc
+    pushq   %rbp
+    .cfi_def_cfa_offset 16
+    .cfi_offset 6, -16
+    movq    %rsp, %rbp
+    .cfi_def_cfa_register 6
+    subq    $32, %rsp
+    movl    %edi, -20(%rbp)
+    movq    %rsi, -32(%rbp)
+    movl    $3, %edx
+    movl    $2, %esi
+    movl    $1, %edi
+    call    sum
+    movl    %eax, -8(%rbp)
+    movl    $6, %edx
+    movl    $5, %esi
+    movl    $4, %edi
+    call    sum
+    movl    %eax, -4(%rbp)
+    movl    $0, %eax
+    leave
+    .cfi_def_cfa 7, 8
+    ret
+    .cfi_endproc
+.LFE1:
+    .size   main, .-main
+    .ident  "GCC: (Ubuntu 4.8.2-19ubuntu1) 4.8.2"
+    .section    .note.GNU-stack,"",@progbits</code></pre>
+<h3>gdb中的汇编代码</h3>
+<p>使用gcc test.c，生成a.out文件。然后gdb a.out进行调试，通过b main,b sum,disassemble等命令。可以得到main,sum函数的汇编代码。</p>
+<p>整理后如下：</p>
+<pre><code>Dump of assembler code for function main:
+   0x000000000040050f &lt;+0&gt;: push   %rbp
+   0x0000000000400510 &lt;+1&gt;: mov    %rsp,%rbp
+   0x0000000000400513 &lt;+4&gt;: sub    $0x20,%rsp
+   0x0000000000400517 &lt;+8&gt;: mov    %edi,-0x14(%rbp)
+   0x000000000040051a &lt;+11&gt;:    mov    %rsi,-0x20(%rbp)
+   0x000000000040051e &lt;+15&gt;:    mov    $0x3,%edx
+   0x0000000000400523 &lt;+20&gt;:    mov    $0x2,%esi
+   0x0000000000400528 &lt;+25&gt;:    mov    $0x1,%edi
+   0x000000000040052d &lt;+30&gt;:    callq  0x4004ed &lt;sum&gt;
+   0x0000000000400532 &lt;+35&gt;:    mov    %eax,-0x8(%rbp)
+   0x0000000000400535 &lt;+38&gt;:    mov    $0x6,%edx
+   0x000000000040053a &lt;+43&gt;:    mov    $0x5,%esi
+   0x000000000040053f &lt;+48&gt;:    mov    $0x4,%edi
+   0x0000000000400544 &lt;+53&gt;:    callq  0x4004ed &lt;sum&gt;
+   0x0000000000400549 &lt;+58&gt;:    mov    %eax,-0x4(%rbp)
+   0x000000000040054c &lt;+61&gt;:    mov    $0x0,%eax
+   0x0000000000400551 &lt;+66&gt;:    leaveq 
+   0x0000000000400552 &lt;+67&gt;:    retq
+End of assembler dump.
+
+Dump of assembler code for function sum:
+   0x00000000004004ed &lt;+0&gt;: push   %rbp
+   0x00000000004004ee &lt;+1&gt;: mov    %rsp,%rbp
+   0x00000000004004f1 &lt;+4&gt;: mov    %edi,-0x14(%rbp)
+   0x00000000004004f4 &lt;+7&gt;: mov    %esi,-0x18(%rbp)
+   0x00000000004004f7 &lt;+10&gt;:    mov    %edx,-0x1c(%rbp)
+   0x00000000004004fa &lt;+13&gt;:    mov    -0x18(%rbp),%eax
+   0x00000000004004fd &lt;+16&gt;:    mov    -0x14(%rbp),%edx
+   0x0000000000400500 &lt;+19&gt;:    add    %eax,%edx
+   0x0000000000400502 &lt;+21&gt;:    mov    -0x1c(%rbp),%eax
+   0x0000000000400505 &lt;+24&gt;:    add    %edx,%eax
+   0x0000000000400507 &lt;+26&gt;:    mov    %eax,-0x4(%rbp)
+   0x000000000040050a &lt;+29&gt;:    mov    -0x4(%rbp),%eax
+   0x000000000040050d &lt;+32&gt;:    pop    %rbp
+   0x000000000040050e &lt;+33&gt;:    retq   
+End of assembler dump.</code></pre>
+<p>从上面可以看出，整个程序的入口地址应该是0x000000000040050f(如果b main的话,会停在0x0000000000400513)。</p>
+<h3>调试程序</h3>
+<p>下面使用gdb调试a.out可执行文件：(中间可能有部分内容就直接省略了，这个都是我事后整理的)</p>
+<pre><code>(gdb) b *0x000000000040050f
+Breakpoint 1 at 0x40050f
+(gdb) run
+Starting program: /home/yaoguai/c/a.out
+(gdb) p $rsp
+$1 = (void *) 0x7fffffffe388
+(gdb) ni
+0x0000000000400510 in main ()
+(gdb) p $rsp
+$2 = (void *) 0x7fffffffe380    ;执行push以后，%rsp减到8。这里跟网上减少4不一样，我的机子是64位的。
+(gdb) ni
+0x0000000000400513 in main ()   ;执行完mov %rsp,%rbp后，两个寄存器内容一致。
+(gdb) p $rsp
+$3 = (void *) 0x7fffffffe380
+(gdb) p $rbp
+$4 = (void *) 0x7fffffffe380
+(gdb) ni
+0x0000000000400517 in main ()
+(gdb) p $rsp
+$5 = (void *) 0x7fffffffe360    ;执行%rsi,-0x20(%rbp)，大概是给局部变量等分配内存</code></pre>
+<p>进入sum函数前一步：</p>
+<pre><code>(gdb) ni
+0x000000000040052d in main ()   ;进入sum函数前，查看两寄存器内容
+(gdb) p $rsp
+$9 = (void *) 0x7fffffffe360
+(gdb) 
+(gdb) p $rbp
+$11 = (void *) 0x7fffffffe380</code></pre>
+<p>刚好进入sum函数：</p>
+<pre><code>(gdb) si
+0x00000000004004ed in sum ()
+(gdb) p $rsp
+$13 = (void *) 0x7fffffffe358   ;这里为什么减2还有待研究
+(gdb) p $rbp
+$14 = (void *) 0x7fffffffe380   ;未发生改变
+
+0x00000000004004f1 in sum ()
+(gdb) p $rsp
+$18 = (void *) 0x7fffffffe350   ;执行push后减8
+(gdb) p $rbp
+$19 = (void *) 0x7fffffffe350   ;%rsp赋值给%rbp</code></pre>
+<p>在main中，把三个实参的值存到了三个寄存器中，在sum函数中又从寄存器中读出，并拷贝到内存空间中。</p>
+<pre><code>(gdb) ni
+0x00000000004004f7 in sum ()
+(gdb) x/32x $rbp
+0x7fffffffe350: 0xffffe380  0x00007fff  0x00400532  0x00000000
+(gdb) x/4x $rbp-0x20
+0x7fffffffe330: 0xf7ffe1c8  0x00000003  0x00000002  0x00000001</code></pre>
+<p>因为x=1,y=2,z=3。</p>
+<pre><code>main中                   sum中
+
+mov    $0x3,%edx        mov    %edx,-0x1c(%rbp)
+mov    $0x2,%esi        mov    %esi,-0x18(%rbp)
+mov    $0x1,%edi        mov    %edi,-0x14(%rbp)</code></pre>
+<p>我们知道，在操作系统中，高地址空间是内核代码，低地址是用户空间。结合dump的信息，我们可以画出下面的图来表示当前的内存结构。</p>
+<pre><code>kernel space
+...........
+
+0x7fffffffe378              0x00000006;main函数中x的值
+0x7fffffffe37c              0x0000000c;main函数中y的值   
+0x7fffffffe380              ;第一次在main函数中%rbp的值
+
+0x7fffffffe358              0x0000000000400532  ;sum中%rbp的值,也是main中call sum下一条指令的地址。
+0x7fffffffe350              0x00007fffffffe380  ;上一次%rbp的地址
+0x7fffffffe34c              0x00000006          ;sum函数中sum的值
+
+0x7fffffffe330              0xf7ffe1c8  0x00000003  0x00000002  0x00000001;存放xyz的形参值
+...........
+;main函数的代码,从下往上看
+0x0000000000400552 &lt;+67&gt;:   retq
+0x0000000000400551 &lt;+66&gt;:   leaveq
+...
+0x000000000040052d &lt;+30&gt;:   callq  0x4004ed &lt;sum&gt;
+0x0000000000400528 &lt;+25&gt;:   mov    $0x1,%edi
+0x0000000000400523 &lt;+20&gt;:   mov    $0x2,%esi
+0x000000000040051e &lt;+15&gt;:   mov    $0x3,%edx
+0x000000000040050f &lt;+0&gt;:    push   %rbp
+..........
+；第一次sum求和的情况
+0x000000000040050e &lt;+33&gt;:   retq   
+0x000000000040050d &lt;+32&gt;:   pop    %rbp
+...
+0x00000000004004f7 &lt;+10&gt;:   mov    %edx,-0x1c(%rbp) ；z $0x03    0x7fffffffe334
+0x00000000004004f4 &lt;+7&gt;:    mov    %esi,-0x18(%rbp) ；y $0x02    0x7fffffffe338
+0x00000000004004f1 &lt;+4&gt;:    mov    %edi,-0x14(%rbp) ；x $0x01    0x7fffffffe33c
+0x00000000004004ee &lt;+1&gt;:    mov    %rsp,%rbp
+0x00000000004004ed &lt;+0&gt;:    push   %rbp</code></pre>
+<p>从上面我们可以看出，main函数通过寄存器传参给sum函数，sum函数中从寄存器读到栈空间，然后进行计算，将结果保存到%eax中。然后main函数再从%eax中读入。而%rbp中存放上一次%rbp的值，其前八个字节存放的是主调函数调用完子函数后即将执行的指令的地址。</p>
+<h3>总结</h3>
+<ul>
+<li>函数参数可以通过寄存器传参</li>
+<li>函数参数并不一定是从右向左入栈，查阅资料得知还与编译器有关</li>
+<li>基址寄存器中，存放的是上一次该寄存器的值</li>
+<li>基址寄存器前八字节，是主调函数的下一条指令地址</li>
+</ul>
+<p><a href="http://blog.chinaunix.net/uid-27018250-id-3867588.html">扩展阅读：LINUX下目标文件的BSS段、数据段、代码段 </a></p>
+<ul>
+<li>代码编译后的机器指令经常被放在代码段里，代码段名为&quot;.text&quot;;</li>
+<li>已初始化的全局变量和已初始化的局部静态变量经常放在数据段里，数据段名为&quot;.data&quot;;</li>
+<li>未初始化的全局变量和未初始化局部静态变量一般放在“.bss”段里，.bss在文件中不占据空间。</li>
+<li>字符串常量一般放在“.rodata”段里。</li>
+</ul>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

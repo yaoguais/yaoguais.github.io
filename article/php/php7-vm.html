@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>PHP7 实施细节(翻译)</h2>
+<p>目录:</p>
+<ol>
+<li>值的表示简介</li>
+<li>zval的结构</li>
+<li>VM的变化</li>
+</ol>
+<h3>值的表示简介</h3>
+<p>在现有的ZEND引擎中,所有的值都是从堆上分配,并且受到引用计数、垃圾回收机制的影响.ZEND引擎操作zval大多是通过指针的,许多地方还是通过指针的指针.</p>
+<p>在新的ZEND引擎中,直接操作的是zval自身,而不是指针.zval被直接的储存在VM栈、哈希表的桶中、属性槽中。这样极大的减少了堆分配/堆释放操作.这样还避免了一些基本类型的引用计数与垃圾回收，如null、bool、long、double、interned string(驻留字符串)、immutable arrays(不可变数组).</p>
+<p>新的ZEND引擎实现更多的使用栈空间而不是堆,因为现在是直接保存zval结构而不是通过指针指向它.总之,内存的使用率减少了.某些时候，新引擎会进行直接复制,取代之前的写时复制，但是这不造成性能损失.因为,它会进行两次读+两次写,而之前的是一次读+一次写+引用计数自增,算下来同样是两次读+两次写.</p>
+<h3>zval的结构</h3>
+<p>新的zval占64位.前32位包含实际的值，它被定义成一个联合体.余下的位包含类型标记和一些标识.类型与标识有效的储存在同一个32位字中.最后32位字会因为zval类型的不同而拥有不同的作用.</p>
+<ul>
+<li>IS_UNDEF – 我们使用一个单独的类型来标识未定义的变量</li>
+<li>IS_NULL</li>
+<li>IS_FALSE –我们把IS_BOOL分成IS_FALSE和IS_TRUE了</li>
+<li>IS_TRUE</li>
+<li>IS_LONG</li>
+<li>IS_DOUBLE</li>
+<li>IS_STRING – 一般字符串或驻留字符串</li>
+<li>IS_ARRAY – 一般数组或者不可变数组</li>
+<li>IS_OBJECT</li>
+<li>IS_RESOURCE</li>
+<li>IS_REFERENCE – 单独的引用类型 (后面将会特别讲解)</li>
+<li>IS_CONSTANT – 常量</li>
+<li>IS_CONSTANT_AST – 常量表达式</li>
+<li>IS_CALLABLE – 仅用作类型提示</li>
+<li>_IS_BOOL – 仅用作类型提示</li>
+<li>IS_INDIRECT – 指向其他值</li>
+<li>IS_STR_OFFSET – 处理字符串偏移(used only in VM)</li>
+<li>IS_PTR – 指向某些东西 (e.g. zend_function, zend_class_entry, etc)</li>
+</ul>
+<p>我们还定义了一些宏来处理这些类型</p>
+<p>IS_TYPE_CONSTANT - 类型是一个常数（IS_CONSTANT，IS_CONSTANT_AST）</p>
+<p>IS_TYPE_REFCOUNTED - 类型是引用计数（IS_STRING不包括驻留字符串，IS_ARRAY不包括不变数组,IS_OBJECT，IS_RESOURCE，IS_REFERENCE)。所有引用计数类型指针指向的值都有共同的（zend_refcounted）结构，可以使用Z_COUNTD()、Z_GC_TYPE()、Z_GC_FLAGS()、G_GC_INFO()、Z_GC_TYPE_INFO()等宏函数获取zval的GC信息，也可以使用Z_REFCOUNT()、Z_SET_REFCOUNT()、Z_ADDREF()、Z_DELREF()访问zval的引用计数。</p>
+<p>IS_TYPE_COLLECTABLE - 垃圾回收对象(IS_ARRAY, IS_OBJECT)</p>
+<p>IS_TYPE_COPYABLE - 使用zval_copy_ctor（）进行复制的（IS_STRING不包括驻留字符串，IS_ARRAY）</p>
+<p>IS_TYPE_IMMUTABLE - 类型不能直接改变，但在写实复制时可能改变。用于不可变数组，避免了不必要的复制。</p>
+<p>还有几个关于常量更加详细的宏</p>
+<ul>
+<li>IS_CONSTANT_UNQUALIFIED (不合格常量)</li>
+<li>IS_LEXICAL_VAR          </li>
+<li>IS_LEXICAL_REF</li>
+<li>IS_CONSTANT_IN_NAMESPACE</li>
+</ul>
+<p>变量的类型可以使用Z_TYPE() 或者 Z_TYPE_P() 来读取，type flags 可以使用Z_TYPE_FLAGS() 或 Z_TYPE_FLAGS_P()读取，the combination of type and flags可以使用Z_TYPE_INFO() 或 Z_TYPE_INFO_P()读取。PHP7不再使用指针的指针来访问zval，所以就没有Z_TYPE_PP这类的宏了。</p>
+<h6>IS_UNDEF类型</h6>
+<p>我们使用IS_UNDEF标识未定义的IS_CV变量(编译变量)或者空的哈希元素,之前都是NULL指针进行初始化的.引擎只在少数的地方支持IS_UNDEF,PHP脚本就不能，它们得到的依旧是NULL.</p>
+<p>初始化: ZVAL_UNDEF()</p>
+<h6>IS_NULL类型</h6>
+<p>初始化：ZVAL_NULL()</p>
+<h6>IS_FALSE and IS_TRUE类型</h6>
+<p>原来的IS_BOOL被拆分成了IS_TRUE和IS_FALSE了，现在检测值可以避免额外的读内存了。</p>
+<p>初始化: ZVAL_BOOL(), ZVAL_FALSE() , ZVAL_TRUE() </p>
+<h6>IS_LONG类型</h6>
+<p>读取：Z_LVAL() or Z_LVAL_P()
+初始化： ZVAL_LONG()</p>
+<h6>IS_DOUBLE类型</h6>
+<p>读取： Z_DVAL() or Z_DVAL_P()
+初始化：ZVAL_DOUBLE()</p>
+<h6>IS_STRING类型</h6>
+<p>实际的值是保存在zend_string中的，zval只是指向它。zend_string的第一个字段是zend_reference(它保存了引用计数)。It consists from reference counter, type that repeats the type of zval (might be with some variations), additional flags and some data used during GC.</p>
+<p>zend_string保存了hash值(被初始化成了0，但只会在第一次请求时被计算),长度，字符串。</p>
+<p>字符串可能是保留的或动态的。保留字符串不必进行引用计数与复制，另一方面它也不能被修改。</p>
+<p>一些字符串标识：</p>
+<p>IS_STR_PERSISTENT - allocated using malloc (otherwise using emalloc)
+IS_STR_INTERNED - interned string
+IS_STR_PERMANENT – interned string that relives request boundary
+IS_STR_CONSTANT – constant index
+IS_STR_CONSTANT_UNQUALIFIED - the same as IS_CONSTANT_UNQUALIFIED
+IS_STR_AST - constant expression index</p>
+<p>读取：Z_STRVAL(), Z_STRLEN(), Z_STRHASH() or Z_STR()
+初始化：ZVAL_STRINGL(), ZVAL_STRING(), ZVAL_STR(), ZVAL_INT_STR() or ZVAL_NEW_STR()</p>
+<h6>IS_ARRAY类型</h6>
+<p>IS_ARRAY representation is more or less the same. 引用计数同zend_string一样被转移到zend_array中了, and embedded HashTable structure there, so the cost of HashTable fields access is the same. array 的赋值依旧是写时复制 (增加引用计数), 而不是直接复制.</p>
+<p>The HashTable representation, on the other hand, is changed significantly. At first, now, it's an adaptive data structure that uses plain array of preallocated Buckets and construct hash index only if necessary (for some use case it's always possible to access array values by their index, like in C arrays). </p>
+<p>读取：Z_ARR() and Z_ARRVAL()
+初始化：ZVAL_ARR(), ZVAL_NEW_ARRAY() and ZVAL_PERSISTENT_ARRAY()</p>
+<h6>IS_OBJECT类型</h6>
+<p>IS_OBJECT类型变化更加显著，We removed double indirection (through) object store handle and double reference counting. 但是依旧保证了兼容性。预定义的属性储存在embedded cells中，在分配zend_object内存时一起被分配。dynamic_properties table默认是NULL，它们在请求时才被构造。In this case it'll contain IS_INDIRECT references to embedded cells.</p>
+<p>读取：Z_OBJ(), Z_OBJ_HT(), Z_OBJ_HANDLER(), Z_OBJ_HANDLE(), Z_OBJCE(), Z_OBJPROP(), Z_OBJDEBUG()
+初始化：object_init() or object_init_ex()</p>
+<h6>IS_RESOURCE类型</h6>
+<p>资源对象我们使用直接指针来避免双重引用。当前也向前兼容。</p>
+<p>读取：Z_RES(), Z_RES_HANDLE(), Z_RES_TYPE() and Z_RES_VAL()
+初始化：ZVAL_RES(), ZVAL_NEW_RES() and ZVAL_PERSISTENT_RES()</p>
+<h6>IS_REFERENCE类型</h6>
+<p>最显著的变化应该是php的reference了，以前每个zval中保存一个is_ref字段，现在reference被单独储存zend_reference结构中，这个结构有额外的引用计数字段。名称不同的zval都指向同一个zend_reference变量.</p>
+<p>注：被引用的值可能是另一种标量，例如IS_STRING, IS_ARRAY, IS_OBJECT, IS_RESOURCE，但不会是IS_REFERENCE、IS_UNDEF。</p>
+<p>注：当引用计数减到1后，PHP references很容易编程简单的值，而不会像以前那么繁琐了。</p>
+<p>是否引用：Z_ISREF()
+读取：Z_REF() and Z_REFVAL()
+初始化：ZVAL_REF(), ZVAL_NEW_REF() and ZVAL_NEW_PERSISTENT_REF()</p>
+<h6>IS_CONSTANT and IS_CONSTANT_AST</h6>
+<p>执行zend_string,与一般的string和array不同。</p>
+<h6>IS_INDIRECT类型</h6>
+<p>新zend引擎假定，zval被储存在array和函数栈中，而非指针。 It must not be a problem for arrays because scalar values are going to be just duplicated, and compound values may point to shared reference-couned structures anyway. However it is a problem for local variables (IS_CV), because they may be referenced through stack frame (by index) and through symbol table (by name). Both must point to the same structure. IS_INDIRECT的值只是实际值得弱指针。 当我们延迟创建局部符号表, 我们在符号表中储存IS_INDIRECT的值，然后用该指针指向的真正的CV槽的值初始化它。这意味着CV变量是通过索引访问的，很高效, as we don't need to perform double or even triple dereferences as before.</p>
+<p>Global symbol tales are handled a bit differently. When we enter into some user code that uses global variables, we copy them from EG(symbol_table) into CV slots and initialize symtable values with IS_INDIRECT pointers. On exit we have to restore them back.</p>
+<p>The same concept is used for object properties access. In case dynamic properties table is required it's first initialized with IS_INDIRECT references to predefined object properties slots.</p>
+<p>Also, IS_INDIRECT pointers are used in VM during execution to pass address of variables between opcode handlers. </p>
+<h6>IS_STR_OFFSET (used internally in VM)</h6>
+<p>This is another type used only in run-time to pass address of string element between opcodes. </p>
+<h6>IS_PTR (used internally by the Engine)</h6>
+<p>This type might be used to reuse the new HashTable implementation for some internal entities, not related to PHP values. (e.g. each zend_class_entry has to keep a HashTable of methods). </p>
+<p>这个类型用来辅助新的HashTable，跟php值没有关系。</p>
+<h3>VM的变化</h3>
+<p>新的zend引擎中， IS_TMP_VAR、IS_VAR、IS_CV的操作非常的相似。三种变量被保存在了当前上下文的函数栈中。 Such slots are allocated on segmented VM stack together with frame header (zend_execute_data). 插槽前面是CV变量，紧接着是IS_TMP_VAR与IS_VAR变量。 Except for local and temporary variables we also allocate space for syntactically nested function calls and actual parameters, that this function may push. </p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

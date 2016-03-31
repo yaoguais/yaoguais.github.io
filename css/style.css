@@ -86,11 +86,11 @@ ul.nav li a.hover {
 	background-position:-19px 0;
 }
 
-.mbBlock ol li{
-	cursor: pointer;
+.mdBlock ol li{
+    cursor: pointer;
 }
 
-.mbBlock ol li:hover{
-	color: #000000;
-	font-weight: bold;
+.mdBlock ol li:hover{
+    color: #000000;
+    font-weight: bold;
 }

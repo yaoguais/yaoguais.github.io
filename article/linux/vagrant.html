@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>VisualBox&amp;Vagrant搭建开发环境</h2>
+<p>前言: 以前都是使用破解版的VMware,感觉也是挺好用的,但是需要周边的东西的话,可能还要找破解版的,不胜麻烦.干脆换成免费版的VisualBox,听过完全备份出来的文件也要小些,但是实际我测出来并没有小多少.</p>
+<p>目录:</p>
+<ol>
+<li>setup VisualBox</li>
+<li>set Vagrant</li>
+<li>setup dev</li>
+<li>setup db</li>
+<li>package box</li>
+<li>setup bat</li>
+</ol>
+<h3>setup VisualBox</h3>
+<p>VisualBox下载地址<a href="https://www.virtualbox.org/wiki/Downloads"><a href="https://www.virtualbox.org/wiki/Downloads">https://www.virtualbox.org/wiki/Downloads</a></a></p>
+<p>我这里选择的是<a href="http://download.virtualbox.org/virtualbox/5.0.4/VirtualBox-5.0.4-102546-Win.exe">Windows版的</a></p>
+<p>安装好之后就不用再管它了,Vagrant会自动关联的.(配置网络时要用到一次)</p>
+<h3>set Vagrant</h3>
+<p>Vagrant下载地址<a href="https://www.vagrantup.com/downloads.html"><a href="https://www.vagrantup.com/downloads.html">https://www.vagrantup.com/downloads.html</a></a></p>
+<p>我选的还是<a href="https://dl.bintray.com/mitchellh/vagrant/vagrant_1.7.4.msi">Windows版的</a></p>
+<p>它的配置较为繁琐,这里还要下载一个box文件,来安装我们的系统.这里有个<a href="http://www.vagrantbox.es/">Vagrant的库</a>.</p>
+<p>我这里下载的是<a href="http://www.lyricalsoftware.com/downloads/centos65.box
+">centos65</a>.作为我的初始操作系统.</p>
+<p>搭建的过程中会经常使用到<a href="https://docs.vagrantup.com/v2/">Vagrant的文档</a>.
+我这里也参考了<a href="http://segmentfault.com/a/1190000000264347">另一篇文章</a>.</p>
+<p>Vagrant的box文件我存放到G:\VagrantWorkspace\box下。
+虚拟机有两个，分别是dev和db.</p>
+<h3>setup dev</h3>
+<pre><code>&gt; win+R
+&gt; mkdir G:\VagrantWorkspace\project\dev
+&gt; notepad ./Vagrantfile
+/*
+Vagrant.configure(2) do |config|
+  config.vm.box = "dev"
+  config.vm.define "dev" do |dev|
+  end
+  config.vm.network "public_network", 
+    adapter: 1, 
+    ip: "192.168.1.143", 
+    bridge: "Realtek RTL8188EU Wireless LAN 802.11n USB 2.0 Network Adapter", 
+    auto_config: false
+  config.ssh.host     = "192.168.1.143"
+  config.ssh.username = "vagrant"
+  config.ssh.password = "vagrant"
+  config.vm.provision "shell",
+    run: "always",
+    inline: "/bin/sh /etc/init.d/network restart"
+#  config.vm.synced_folder "G:/workspace-143/", "/home/yaoguai/project",
+#    owner: "yaoguai", group: "yaoguai"
+end
+*/</code></pre>
+<p>我这里使用的是桥接的方式,ssh使用账号密码登录,但是首次使用桥接的话,因为系统是没有正确配置网络的,所以我们打开VisualBox找到改虚拟机并使用账号密码登录，编辑其网络配置.</p>
+<pre><code>$sudo passwd root
+// 111111
+// 111111
+$su root
+#cd /etc/sysconfig/network-scripts
+#mkdir backup
+#cp ifcfg-eth0 backup/
+#vi ifcfg-eth0
+/*
+DEVICE="eth0"
+BOOTPROTO=static
+HWADDR="08:00:27:07:9E:3D"
+ONBOOT="yes"
+TYPE="Ethernet"
+BROADCAST=192.168.0.255
+IPADDR=192.168.1.143
+NETMASK=255.255.255.0
+NETWORK=192.168.1.0
+*/
+#cd /etc/udev/rules.d/
+#rm -f 70-persistent-net.rules
+#vi /etc/sysconfig/network
+/*
+NETWORKING=yes
+HOSTNAME=vagrant
+GATEWAY=192.168.1.1
+*/
+#vi /etc/resolv.conf
+// nameserver 192.168.1.1
+#service network restart
+#ifconfig
+#ping www.baidu.com
+// 一般能够正常ping通</code></pre>
+<p>这里的70-persistent-net.rules很特别,在我使用VMware时,如果把一个备份虚拟机考到另外一台电脑上,不删除这个文件就会出现网络问题,猜测应该是Mac地址造成的.</p>
+<h3>setup db</h3>
+<p>创建db虚拟机的过程与dev的基本一致,也包括创建其配置文件与网络配置.这里只贴出其配置文件.</p>
+<pre><code>Vagrant.configure(2) do |config|
+  config.vm.box = "db"
+  config.vm.define "db" do |db|
+  end
+  config.vm.network "public_network", 
+    adapter: 1, 
+    ip: "192.168.1.144", 
+    bridge: "Realtek RTL8188EU Wireless LAN 802.11n USB 2.0 Network Adapter", 
+    auto_config: false
+  config.ssh.host     = "192.168.1.144"
+  config.ssh.username = "vagrant"
+  config.ssh.password = "vagrant"
+  config.vm.provision "shell",
+    run: "always",
+    inline: "/bin/sh /etc/init.d/network restart"
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
+    v.cpus = 1
+  end
+end</code></pre>
+<h3>package box</h3>
+<p>打包后的虚拟机可以直接发送给其他用户,这对开发来说是很方便的.</p>
+<pre><code>&gt; vagrant -h
+&gt; G:
+&gt; cd G:\VagrantWorkspace\project\dev
+&gt; vagrant halt
+&gt; vagrant package --output ../../box/dev.box
+&gt; cd G:\VagrantWorkspace\project\db
+&gt; vagrant halt
+&gt; vagrant package --output ../../box/db.box</code></pre>
+<p>我们开发的虚拟机就相当于做了一个快照保存到box文件夹下了.</p>
+<h3>setup bat</h3>
+<p>其实单个配置文件是可以配置多个虚拟机同时启动的,但是我还是希望一个虚拟机一个配置文件,这样拷给别人也方便.</p>
+<p>这个做了两个简单的批处理脚本,以免每次打开所有虚拟机都要在命令行中敲半天,还可以直接把他们添加到开机自启动中.</p>
+<pre><code>&gt; notepad G:\vagrant-up.bat
+/*
+G:
+cd VagrantWorkspace\project\dev
+vagrant up
+
+cd G:\VagrantWorkspace\project\db
+vagrant up
+*/
+&gt; notepad G:\vagrant-halt.bat
+/*
+G:
+cd VagrantWorkspace\project\dev
+vagrant halt
+cd G:\VagrantWorkspace\project\db
+vagrant halt
+*/</code></pre>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

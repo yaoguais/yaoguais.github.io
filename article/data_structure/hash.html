@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>yaoguais.github.io</title>
+     <link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>散列表总结</h2>
+<p>核心思想：通过关键字将值映射到一个一维数组上。这个数组通常称之为散列表(HashTable),数组中的索引成为关键字的散列地址(Hash Address),求索引的过程就是建立散列函数(Hash Function)。</p>
+<h3>散列方法的要求:</h3>
+<p>1.对于给定的关键字的集合,选择适当的散列函数将关键字映射到散列地址,要求这个地址的分布是比较均匀的.</p>
+<p>2.如果散列的过程产生了冲突,那么需要拟定解决冲突的方案.</p>
+<h3>散列函数的建立:</h3>
+<p>1.线性函数法
+H(KEY) = A*KEY + B
+由于线性函数是一一映射的，所以关键字集合有多大，散列表就要多大。那么对于大量数据的话，散列的意思就不是很大了。</p>
+<p>2.除留取余法
+设散列数组大小为m，那么可以取最接近m的素数p作为除数,用关键字除以p，把得到的余数作为散列地址。
+H(KEY) = MOD(m,p)
+这个是最常用的方法，C#底层Hash Table实现机制就是这个。</p>
+<p>3.乘余取整法
+先让关键字乘以一个常数a(0&lt;a&lt;1),取乘积的小数部分，再用整数n乘以这个小数部分，对于结果按照向下取整，把得到的关键值作为散列地址。
+n一般为数组的大小，而a一般是黄金分割数0.618 根号5减1的差除以2
+H(KEY) = floor( MOD(a<em>key , 1) </em> n )</p>
+<p>4.平方取中法
+它首先计算关键字的内码(如ASCII码)的平方，然后按照数组的大小决定取几位数，而这几位数来自于平方的正中间。
+如Ab是065098 平方是4327749604，如果空间大小是1000那么我们可以取774或者749。</p>
+<h3>解决冲突的方法：</h3>
+<h5>1.开散列法</h5>
+<p>其中最重要是的拉链法，linux内核中实现哈希表就是用的这种方式。
+其重要内容是，数组的值是一个表头
+表头的定义可以如下</p>
+<pre><code>typedef struct hash_node{
+    struct hash_node * next;//记录下一个不同key但相同散列地址的值
+    void * value;//记录值是什么
+    char * key;//记录关键字是什么，这个可以区分不同的关键字是不同的值
+}HASH_NODE;</code></pre>
+<h5>2.闭散列法</h5>
+<p>核心思想就是，如果产生冲突，那么我们再用一个函数计算出新的散列地址，直至不产生冲突为止。</p>
+<p>方法有如下几个：</p>
+<p>1) 线性探察法
+如果产生冲突的地址是H0,散列表的大小是m，新的地址Hnew = MOD(H0+i,m) i=1,2,...m-1
+定义数组元素为结构体:</p>
+<pre><code>typedef struct hash_node{
+   char * key;
+   void * value;
+}HASH_NODE;</code></pre>
+<p>这个进行查找的时候才能找到正确的值。
+（注：网上解释的开放散列法一般指的值就是key，那么你把值存到数组，通过值找值还有意思吗？）</p>
+<p>2) 二次探察法
+Hnew = MOD(H0+I^2 ， m) i=1,2,...m-1</p>
+<p>线性探测法和二次探察法会随着时间的增加出现“群集”现象，导致插入查找的时候确定位置要花很多的时间，所以不太好。</p>
+<p>3) 双散列法
+顾名思义就是冲突后，还有一个新的散列函数，进行计算新的散列地址
+H0 = HASH(KEY)
+冲突：Hnew = (H0 + i* REHASH(KEY) ,m ) i=1,2...m-1</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>
