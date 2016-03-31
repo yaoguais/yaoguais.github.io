@@ -14,20 +14,24 @@ preg_match_all('/\/article\/(.+?)\/(.+?)\.html/', $html, $matches);
 $navFiles = array_map(function ($val) use ($root) {
     return $root . $val;
 }, $matches[0]);
+$finalHtml = str_replace(['{{title}}', '{{content}}'], ["YaoGuai's Blog", $html], $tpl);
+file_put_contents($toFile, $finalHtml);
 
 $mdFiles = getFiles($root . '/md');
 foreach ($mdFiles as $file) {
     if (!strrpos($file, '/md/index.md')) {
         $toFile = str_replace(['/md/', '.md'], ['/article/', '.html'], $file);
         if (!in_array($toFile, $navFiles)) {
-            echo '[error] ',$file,"\n";
+            echo '[error] ', $file, "\n";
         }
         $toFileDir = dirname($toFile);
         if (!file_exists($toFileDir)) {
             mkdir($toFileDir);
         }
         $html = $parseDown->text(file_get_contents($file));
-        $finalHtml = str_replace('{{content}}', $html, $tpl);
+        preg_match('/<h\d>(.+?)<\/h\d>/is', $html, $match);
+        $title = $match[1];
+        $finalHtml = str_replace(['{{title}}', '{{content}}'], [$title, $html], $tpl);
         file_put_contents($toFile, $finalHtml);
     }
 }
