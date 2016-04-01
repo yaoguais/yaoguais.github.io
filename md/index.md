@@ -12,6 +12,7 @@
 8. [把扩展从php5升级到php7](?s=md/php/extension-php5to7.md)
 9. [php private修饰符的一些细节](?s=md/php/php-private.md)
 10. [PHP消息队列的一些实现](?s=md/php/mq.md)
+11. [Swoole源码调试准备工作](?s=md/swoole/base.md)
 
 
 
