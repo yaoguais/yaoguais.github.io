@@ -17,13 +17,8 @@
 <li>启动流程</li>
 <li>process模式</li>
 <li>base模式</li>
-<li>Master接收连接</li>
-<li>Worker接收数据</li>
-<li>Worker发送数据</li>
-<li>Master转发数据</li>
+<li>数据读写</li>
 <li>验证脚本</li>
-<li>简单猜想</li>
-<li>单步证实</li>
 </ol>
 <h3>探索什么</h3>
 <p>事情的起因是这样的,进行Swoole应用开发的时候,发现各个Worker可以给任意一个客户端发送消息,即调用$serv-&gt;send($fd, $data),
@@ -40,7 +35,9 @@ fork之后这些进程新产生的fd,只会在当前进程的fd表生成文件�
 然后自然就可以接收与发送数据了.</p>
 <p>二是父进程(Master)将所有客户端发来的数据转发给子进程(Worker),然后子进程收到数据进行处理.如果要发送数据给客户端,
 那么先把数据转发给Master,然后再由Master发送给客户端.</p>
-<p>事实证明Swoole是两种都使用了,一对应的是base模式,二对应的是process模式.(就是swoole_server构造函数的第三个参数)</p>
+<p>事实证明Swoole使用的是第二种,对应的是process模式.(就是swoole_server构造函数的第三个参数)</p>
+<p>Swoole模式总共有三种,Base模式(多个Worker进程之间无法通讯),Thread模式(由于PHP对多线程支持不好已经废弃),Process模式(上面说的那种).
+具体可以参见<a href="http://wiki.swoole.com/wiki/page/353.html">Swoole的官方文档</a>.</p>
 <h3>启动流程</h3>
 <p>在具体分析数据的接收与发送之前我们先分析一下Swoole的启动流程,在将Swoole启动流程之前,先介绍一下PHP的启动流程,因为Swoole是基于PHP的.</p>
 <p>PHP的启动流程大致分为4个过程(忽略sapi,配置文件解析等),我们以php-fpm+nginx举例.</p>
@@ -140,20 +137,20 @@ PHP_MINIT_FUNCTION(swoole)
     serv-&gt;workers = SwooleG.memory_pool-&gt;alloc(SwooleG.memory_pool, serv-&gt;worker_num * sizeof(swWorker));
     ....
 
-    // 创建进程组,包括进程组管理进程 Worker进程 Task进程
+    // 我们在下面专门进行讨论, 这里究竟做了多少东西
     if (factory-&gt;start(factory) &lt; 0)
     {
         return SW_ERR;
     }
-    // 信号处理 比如热更新 平滑重启等实现
+    // 信号处理 比如热更新 平滑重启 计时器通知等实现,这里master进程接收的信号,某些也会通过kill函数发送给manager进程
     swServer_signal_init();
 
-    // base模式, 就是swoole_server构造函数的第三个参数
+    // single模式, 就是swoole_server构造函数的第三个参数
     if (serv-&gt;factory_mode == SW_MODE_SINGLE)
     {
         ret = swReactorProcess_start(serv);
     }
-    // process模式
+    // base &amp; process模式
     else
     {
         ret = swServer_start_proxy(serv);
@@ -162,7 +159,252 @@ PHP_MINIT_FUNCTION(swoole)
 
     return SW_OK;
 }</code></pre>
+<p>我们这里对factory-&gt;start进行讨论</p>
+<pre><code>// factory-&gt;start是怎么进行赋值的
+
+// 在swoole_server-&gt;__construct中
+#ifdef __CYGWIN__
+    // 如果是windows环境
+    serv-&gt;factory_mode = SW_MODE_SINGLE;
+#else
+    // 如果是thread或者base模式
+    if (serv_mode == SW_MODE_THREAD || serv_mode == SW_MODE_BASE)
+    {
+        serv_mode = SW_MODE_SINGLE;
+        // base模式也需要抛出错误???
+        swoole_php_fatal_error(E_WARNING, "PHP can not running at multi-threading. Reset mode to SWOOLE_MODE_BASE");
+    }
+    serv-&gt;factory_mode = serv_mode;
+#endif
+
+* 说明不是process模式的,都是会设置称single模式
+
+swoole_server.start -&gt; php_swoole_server_before_start -&gt; swServer_create
+// 如果是single模式
+if (serv-&gt;factory_mode == SW_MODE_SINGLE)
+{
+    return swReactorProcess_create(serv);
+}
+else
+{
+    return swReactorThread_create(serv);
+}
+
+swReactorProcess_create -&gt; swFactory_create -&gt; "factory-&gt;start = swFactory_start"
+int swFactory_start(swFactory *factory)
+{
+    return SW_OK;
+}
+
+* 说明thread base single等模式什么也不做
+
+swReactorThread_create函数:
+if (serv-&gt;factory_mode == SW_MODE_THREAD)
+{
+    if (serv-&gt;worker_num &lt; 1)
+    {
+        swError("Fatal Error: serv-&gt;worker_num &lt; 1");
+        return SW_ERR;
+    }
+    ret = swFactoryThread_create(&amp;(serv-&gt;factory), serv-&gt;worker_num);
+}
+else if (serv-&gt;factory_mode == SW_MODE_PROCESS)
+{
+    if (serv-&gt;worker_num &lt; 1)
+    {
+        swError("Fatal Error: serv-&gt;worker_num &lt; 1");
+        return SW_ERR;
+    }
+    ret = swFactoryProcess_create(&amp;(serv-&gt;factory), serv-&gt;worker_num);
+}
+else
+{
+    ret = swFactory_create(&amp;(serv-&gt;factory));
+}
+
+* 现在不会有thread模式了,只有process模式调用的才是swFactoryProcess_create
+  该函数执行"factory-&gt;start = swFactoryProcess_start"</code></pre>
+<p>通过以上分析,我们可以得出结论: 只有设置模式为SWOOLE_PROCESS时,才会在&quot;factory-&gt;start&quot;处创建管理进程Worker进程Task进程.</p>
+<p>可以看出虽然base模式被设置成了single模式,但是并没有修改其worker_num参数,也就是说base模式也是可以有多个worker的.通过后面的分析,
+加上实际的测试脚本,也印证了上面的结论.</p>
+<p>然后我们分析swFactoryProcess_start(process模式专有),看看它是怎么创建进程组的.</p>
 <h3>process模式</h3>
+<p>我们接着上面详细分析manager进程,worker进程组,task进程组是怎么创建的.它们又都做了写什么.稍后我们在分析master进程中reactor线程组是怎么工作的.</p>
+<pre><code>static int swFactoryProcess_start(swFactory *factory)
+{
+    ...
+
+    //必须先启动manager进程组，否则会带线程fork
+    if (swManager_start(factory) &lt; 0)
+    {
+        swWarn("swFactoryProcess_manager_start failed.");
+        return SW_ERR;
+    }
+    //主进程需要设置为直写模式
+    factory-&gt;finish = swFactory_finish;
+    return SW_OK;
+}
+
+int swManager_start(swFactory *factory)
+{
+    ...
+
+    // worker进程组初始化,创建workers与master进程通讯的管道
+    for (i = 0; i &lt; serv-&gt;worker_num; i++)
+    {
+        if (swPipeUnsock_create(&amp;object-&gt;pipes[i], 1, SOCK_DGRAM) &lt; 0)
+        {
+            return SW_ERR;
+        }
+        serv-&gt;workers[i].pipe_master = object-&gt;pipes[i].getFd(&amp;object-&gt;pipes[i], SW_PIPE_MASTER);
+        serv-&gt;workers[i].pipe_worker = object-&gt;pipes[i].getFd(&amp;object-&gt;pipes[i], SW_PIPE_WORKER);
+        serv-&gt;workers[i].pipe_object = &amp;object-&gt;pipes[i];
+        swServer_store_pipe_fd(serv, serv-&gt;workers[i].pipe_object);
+    }
+
+    // task进程组初始化
+    if (SwooleG.task_worker_num &gt; 0)
+    {
+        ...
+
+        // 设置task的事件循环为swProcessPool_worker_loop, 设置task任务回调
+        if (swProcessPool_create(&amp;SwooleGS-&gt;task_workers, SwooleG.task_worker_num, SwooleG.task_max_request, key, create_pipe) &lt; 0)
+        {
+            swWarn("[Master] create task_workers failed.");
+            return SW_ERR;
+        }
+        ...
+    }
+
+    // process进程组初始化,现在应该还在完善当中,官方回调中也并没有指出onUserWorkerStart等UserProcess的相关php回调接口.
+    if (serv-&gt;user_worker_num &gt; 0)
+    {
+        serv-&gt;user_workers = sw_calloc(serv-&gt;user_worker_num, sizeof(swWorker *));
+        swUserWorker_node *user_worker;
+        i = 0;
+        LL_FOREACH(serv-&gt;user_worker_list, user_worker)
+        {
+            if (swWorker_create(user_worker-&gt;worker) &lt; 0)
+            {
+                return SW_ERR;
+            }
+            serv-&gt;user_workers[i++] = user_worker-&gt;worker;
+        }
+    }
+
+    pid = fork();
+    switch (pid)
+    {
+    //创建manager进程
+    case 0:
+
+        ...
+
+        // 创建并启动worker进程组
+        for (i = 0; i &lt; serv-&gt;worker_num; i++)
+        {
+            //close(worker_pipes[i].pipes[0]);
+            pid = swManager_spawn_worker(factory, i);
+            if (pid &lt; 0)
+            {
+                swError("fork() failed.");
+                return SW_ERR;
+            }
+            else
+            {
+                serv-&gt;workers[i].pid = pid;
+            }
+        }
+
+        // 创建并启动task进程组
+        if (SwooleG.task_worker_num &gt; 0)
+        {
+            swProcessPool_start(&amp;SwooleGS-&gt;task_workers);
+        }
+
+        // 创建并启动process进程组
+        if (serv-&gt;user_worker_list)
+        {
+            swUserWorker_node *user_worker;
+            LL_FOREACH(serv-&gt;user_worker_list, user_worker)
+            {
+                /**
+                 * store the pipe object
+                 */
+                if (user_worker-&gt;worker-&gt;pipe_object)
+                {
+                    swServer_store_pipe_fd(serv, user_worker-&gt;worker-&gt;pipe_object);
+                }
+                swManager_spawn_user_worker(serv, user_worker-&gt;worker);
+            }
+        }
+
+        //标识为管理进程
+        SwooleG.process_type = SW_PROCESS_MANAGER;
+        SwooleG.pid = getpid();
+
+        if (serv-&gt;reload_async)
+        {
+            ret = swManager_loop_async(factory);
+        }
+        else
+        {
+            ret = swManager_loop_sync(factory);
+        }
+        exit(ret);
+        break;
+
+        //master process
+    default:
+        SwooleGS-&gt;manager_pid = pid;
+        break;
+    case -1:
+        swError("fork() failed.");
+        return SW_ERR;
+    }
+    return SW_OK;
+}</code></pre>
+<p>我们重点关注worker的创建: swManager_spawn_worker</p>
+<pre><code>swManager_spawn_worker -&gt; swWorker_loop
+
+int swWorker_loop(swFactory *factory, int worker_id)
+{
+    ...
+
+    // 创建reactor, 比如epoll
+    if (swReactor_create(SwooleG.main_reactor, SW_REACTOR_MAXEVENTS) &lt; 0)
+    {
+        swError("[Worker] create worker_reactor failed.");
+        return SW_ERR;
+    }
+
+    serv-&gt;workers[worker_id].status = SW_WORKER_IDLE;
+
+    int pipe_worker = serv-&gt;workers[worker_id].pipe_worker;
+
+    swSetNonBlock(pipe_worker);
+    SwooleG.main_reactor-&gt;ptr = serv;
+
+    // 管道文件描述符监听
+    SwooleG.main_reactor-&gt;add(SwooleG.main_reactor, pipe_worker, SW_FD_PIPE | SW_EVENT_READ);
+    SwooleG.main_reactor-&gt;setHandle(SwooleG.main_reactor, SW_FD_PIPE, swWorker_onPipeReceive);
+    SwooleG.main_reactor-&gt;setHandle(SwooleG.main_reactor, SW_FD_PIPE | SW_FD_WRITE, swReactor_onWrite);
+
+    swWorker_onStart(serv);
+
+    ...
+
+    //main loop, 如果是epoll就是调用swReactorEpoll_wait函数
+    SwooleG.main_reactor-&gt;wait(SwooleG.main_reactor, NULL);
+    //clear pipe buffer
+    swWorker_clean();
+    //worker shutdown
+    swWorker_onStop(serv);
+    return SW_OK;
+}</code></pre>
+<p>通过上面的分析,我们可以看出</p>
+<pre><code>worker读master的数据是调用的swWorker_onPipeReceive函数
+写数据给master会调用swReactor_onWrite函数</code></pre>
 <p>上面在启动Server的时候分为了base和process模式,process就是Master负责接收连接,然后通过管道传输数据.</p>
 <pre><code>/**
  * proxy模式
@@ -199,9 +441,9 @@ static int swServer_start_proxy(swServer *serv)
 }</code></pre>
 <p>这里总结下来最多会创建1+reactor_num+1个线程</p>
 <ul>
-<li>心跳线程用户关闭长时间没有发送消息的客户连接</li>
+<li>心跳线程用于关闭长时间没有发送消息的客户连接</li>
 <li>master线程用于接受客户端连接(单独的线程不必加锁)</li>
-<li>其他线程用户接收与发送数据 关闭连接等</li>
+<li>其他线程用于接收与发送数据 关闭连接等</li>
 </ul>
 <p>线程池的事件循环</p>
 <pre><code>static int swReactorThread_loop_stream(swThreadParam *param)
@@ -247,14 +489,16 @@ static int swServer_start_proxy(swServer *serv)
 
     ...
 
-    //主要的事件循环,用于
+    //主要的事件循环,用于读写监听
     reactor-&gt;wait(reactor, NULL);
     //shutdown
     reactor-&gt;free(reactor);
     pthread_exit(0);
     return SW_OK;
 }</code></pre>
-<p>reactor-&gt;wait我们这里以epoll为例,分析事件循环都做些什么,具体的函数就是swReactorEpoll_wait</p>
+<p>reactor-&gt;wait我们这里以epoll为例,分析事件循环都做些什么,具体的函数就是swReactorEpoll_wait.</p>
+<p>这里多说一点,除心跳检测线程外(因为它不需要事件循环),其他线程都会创建一个swReactor对象,并拥有一个epoll_fd资源.</p>
+<p>master线程负责接受客户端连接,然后把连接分配给一个工作线程,并让工作线程添加该连接的读写监听,那么该线程就负责该客户连接的所有读写事务了.</p>
 <pre><code>static int swReactorEpoll_wait(swReactor *reactor, struct timeval *timeo)
 {
     ...
@@ -286,7 +530,14 @@ static int swServer_start_proxy(swServer *serv)
             //read
             if ((events[i].events &amp; EPOLLIN) &amp;&amp; !event.socket-&gt;removed)
             {
-                // 即调用前面的swReactorThread_onRead函数
+                // 这里要区分是worker进程还是客户端的事件(下同)
+                // worker进程由于是管道通讯,所以设置的事件是"SW_FD_PIPE | SW_EVENT_READ"
+                // 其对应的回调是swReactorThread_onPipeReceive函数
+                // 而客户端连接由于是TCP连接,所以设置的是"SW_FD_TCP | SW_EVENT_READ"
+                // 其对应的回调是swReactorThread_onRead函数
+                // 这里的回调函数是通过查表得来的,因为管道的fd跟客户端的fd一定是不同的
+                // swoole即把其fd作为key,回调函数作为value.这样数据不用加锁也不会串,因为他们在不同的信道当中.
+
                 handle = swReactor_getHandle(reactor, SW_EVENT_READ, event.type);
                 ret = handle(reactor, &amp;event);
                 ...
@@ -315,6 +566,245 @@ static int swServer_start_proxy(swServer *serv)
     return 0;
 }</code></pre>
 <p>至此,master进程在process模式下的每个线程的具体工作也分析完毕了.</p>
+<h3>base模式</h3>
+<p>base模式相较process模式就要简单的多了,因为它少了多个reactor线程,也少了worker与reactor之间的通讯,而是由worker独立维护客户端连接,
+从swoole提供的默认参数是process模式来看,大多数服务端的应用场景并不是base模式.</p>
+<p>base模式调用的是swReactorProcess_start,我们就接着这个函数分析.</p>
+<pre><code>int swReactorProcess_start(swServer *serv)
+{
+
+    ...
+
+    // 初始化event_workers字段
+    if (swProcessPool_create(&amp;SwooleGS-&gt;event_workers, serv-&gt;worker_num, serv-&gt;max_request, 0, 1) &lt; 0)
+    {
+        return SW_ERR;
+    }
+
+    SwooleGS-&gt;event_workers.ptr = serv;
+    // 设置worker的事件循环函数
+    SwooleGS-&gt;event_workers.main_loop = swReactorProcess_loop;
+
+    ...
+
+    //
+    if (SwooleG.task_worker_num &gt; 0)
+    {
+
+        ...
+
+        // 指定task的事件循环是swProcessPool_worker_loop函数
+        // 这里主要是通过管道读取worker发过来的数据,然后调用pool-&gt;onTask把数据传输给用户设置的回调函数,消化这个task
+        swTaskWorker_init(&amp;SwooleGS-&gt;task_workers);
+        // 运行task进程组
+        swProcessPool_start(&amp;SwooleGS-&gt;task_workers);
+
+        int i;
+        for (i = 0; i &lt; SwooleGS-&gt;task_workers.worker_num; i++)
+        {
+            // 将task添加到manager管理的进程组中
+            swProcessPool_add_worker(&amp;SwooleGS-&gt;event_workers, &amp;SwooleGS-&gt;task_workers.workers[i]);
+        }
+    }
+
+    // 这里是通过swoole_server-&gt;addProcess添加的进程
+    if (serv-&gt;user_worker_list)
+    {
+        swUserWorker_node *user_worker;
+        LL_FOREACH(serv-&gt;user_worker_list, user_worker)
+        {
+            ...
+
+            // fork进程并运行进程
+            // 这里会调用php_swoole_process_start启动该process进程
+            // 在该函数中,会读取swoole_process对象的callback属性,即用户设置的回调函数
+            // 然后调用sw_call_user_function_ex执行用户设置的php函数
+
+            swManager_spawn_user_worker(serv, user_worker-&gt;worker);
+        }
+        SwooleGS-&gt;event_workers.onWorkerNotFound = swManager_wait_user_worker;
+    }
+
+    ...
+
+    // 信号量的初始化,同process模式
+    swServer_signal_init();
+
+    // worker进程组, 调用swReactorProcess_loop进程事件循环
+    swProcessPool_start(&amp;SwooleGS-&gt;event_workers);
+
+    // manager进程进行循环,主要执行worker重启等操作
+    swProcessPool_wait(&amp;SwooleGS-&gt;event_workers);
+    swProcessPool_shutdown(&amp;SwooleGS-&gt;event_workers);
+
+    return SW_OK;
+}</code></pre>
+<p>worker进程的事件循环回调</p>
+<pre><code>static int swReactorProcess_loop(swProcessPool *pool, swWorker *worker)
+{
+
+    ...
+
+    // 创建事件循环对象,像process模式的例子,就是创建的epoll多路复用
+    if (swReactor_create(reactor, SW_REACTOR_MAXEVENTS) &lt; 0)
+    {
+        swWarn("ReactorProcess create failed.");
+        return SW_ERR;
+    }
+
+    swListenPort *ls;
+    int fdtype;
+
+    //listen the all tcp port
+    LL_FOREACH(serv-&gt;listen_list, ls)
+    {
+        fdtype = swSocket_is_dgram(ls-&gt;type) ? SW_FD_UDP : SW_FD_LISTEN;
+
+        ...
+
+        // 监听TCP与UDP的端口
+        reactor-&gt;add(reactor, ls-&gt;sock, fdtype);
+    }
+    SwooleG.main_reactor = reactor;
+
+    // 设置一系列的监听回调,这里跟比较特别的就是前面讲的设置了accept回调
+
+    //connect
+    reactor-&gt;setHandle(reactor, SW_FD_LISTEN, swServer_master_onAccept);
+    //close
+    reactor-&gt;setHandle(reactor, SW_FD_CLOSE, swReactorProcess_onClose);
+    //pipe
+    reactor-&gt;setHandle(reactor, SW_FD_PIPE | SW_EVENT_WRITE, swReactor_onWrite);
+    reactor-&gt;setHandle(reactor, SW_FD_PIPE | SW_EVENT_READ, swReactorProcess_onPipeRead);
+
+    ...
+
+    // 设置客户端的读写回调
+    swReactorThread_set_protocol(serv, reactor);
+
+    ...
+
+    // 每一个进程都有一个心跳检测的线程
+    if (serv-&gt;heartbeat_check_interval &gt; 0)
+    {
+        swHeartbeatThread_start(serv);
+    }
+
+    ...
+
+    // 进程事件循环, 下面我们仍然以epoll举例
+    struct timeval timeo;
+    timeo.tv_sec = 1;
+    timeo.tv_usec = 0;
+    return reactor-&gt;wait(reactor, &amp;timeo);
+}</code></pre>
+<p>base模式跟process模式一样(epoll为例),最后都是调用的swReactorEpoll_wait函数</p>
+<pre><code>static int swReactorEpoll_wait(swReactor *reactor, struct timeval *timeo)
+{
+    ...
+
+    while (reactor-&gt;running &gt; 0)
+    {
+        msec = reactor-&gt;timeout_msec;
+        n = epoll_wait(epoll_fd, events, max_event_num, msec);
+        if (n &lt; 0)
+        {
+           ...
+        }
+        else if (n == 0)
+        {
+            ...
+        }
+        for (i = 0; i &lt; n; i++)
+        {
+            event.fd = events[i].data.u64;
+            event.from_id = reactor_id;
+            event.type = events[i].data.u64 &gt;&gt; 32;
+            event.socket = swReactor_get(reactor, event.fd);
+
+            // 下面我们以读操作为例
+            if ((events[i].events &amp; EPOLLIN) &amp;&amp; !event.socket-&gt;removed)
+            {
+                handle = swReactor_getHandle(reactor, SW_EVENT_READ, event.type);
+                ret = handle(reactor, &amp;event);
+                if (ret &lt; 0)
+                {
+                    swSysError("EPOLLIN handle failed. fd=%d.", event.fd);
+                }
+            }
+
+            ...
+        }
+        ...
+    }
+    return 0;
+}</code></pre>
+<p>当客户端连接来的时候,epoll会把客户端fd标识为可读,即EPOLLIN标志.</p>
+<p>我们观察代码可以发现一个问题, Swoole并没有用加锁的方式处理惊群,
+关于惊群可以看看<a href="http://blog.csdn.net/russell_tao/article/details/7204260">这篇文章</a>,
+nginx中是所有加锁的方式来处理的惊群,对应其配置文件event模块的accept_mutex配置项.</p>
+<p>Swoole这里采取让epoll_wait等待1秒钟,那么当一个客户连接到来时,每个worker都会收到read事件,但是只有一个worker
+能接收这个客户端连接,这里是不是还有优化的空间呢?仍值得商榷.</p>
+<h3>数据读写</h3>
+<p>通过上面的分析(我们只分析了关于客户端的数据走向,并且是TCP协议的)
+我们已经明确了swoole在启动的时候,做了哪些操作.下面我们仍然分别对base模式跟process模式进行讨论.</p>
+<h6>process模式</h6>
+<pre><code>master线程接收client连接:
+swReactorEpoll_wait -&gt; swServer_master_onAccept -&gt; accept系统调用
+
+master线程将client连接分配给reactor线程:
+swServer_master_onAccept -&gt; "sub_reactor-&gt;add" -&gt; epoll_ctl系统调用
+
+reactor线程读取client数据:
+swReactorEpoll_wait -&gt; swReactorThread_onRead -&gt; "port-&gt;onRead" -&gt; swPort_onRead_raw -&gt; swConnection_recv -&gt; recv系统调用
+
+reactor线程转发数据给worker:
+swPort_onRead_raw -&gt; "serv-&gt;factory.dispatch" -&gt; swFactoryProcess_dispatch -&gt; swReactorThread_send2worker -&gt; write管道
+
+worker接收reactor线程数据:
+swReactorEpoll_wait -&gt; swWorker_onPipeReceive -&gt; read管道 -&gt; swWorker_onTask -&gt; "goto do_task" -&gt; serv-&gt;onReceive
+-&gt; php_swoole_onReceive -&gt; sw_call_user_function_ex(将数据传递给用户设置的函数)
+
+worker发送数据给reactor线程:
+swoole_server.send -&gt; PHP_METHOD(swoole_server, send) -&gt; swServer_tcp_send -&gt; "factory-&gt;finish" -&gt; swFactoryProcess_finish
+-&gt; swWorker_send2reactor -&gt; swSocket_write_blocking -&gt; write管道
+
+reactor线程接收worker数据:
+swReactorEpoll_wait -&gt; swReactorThread_onPipeReceive -&gt; read管道
+
+reactor线程发送数据给client:
+swReactorThread_send -&gt; swConnection_send -&gt; send系统调用
+
+server被动关闭连接:(同reactor线程读取客户端数据,但是recv 0)
+swPort_onRead_raw -&gt; swReactorThread_onClose -&gt; swReactor_close -&gt; close系统调用
+
+server主动关闭连接:
+swoole_server.close(worker发起) -&gt; PHP_METHOD(swoole_server, close) -&gt; "factory-&gt;end" -&gt; swFactoryProcess_end(type:SW_EVENT_CLOSE)
+-&gt; "factory-&gt;finish" -&gt; swFactoryProcess_finish -&gt; swWorker_send2reactor -&gt; swWorker_send2reactor
+-&gt; swSocket_write_blocking -&gt; write管道
+swReactorThread_onPipeReceive(reactor接收) -&gt; read管道 -&gt; swReactorThread_send -&gt; "goto close_fd" -&gt; "reactor-&gt;close"
+-&gt; swReactorThread_close -&gt; swReactor_close -&gt; close系统调用</code></pre>
+<p>至此,process模式下怎么接收客户端连接,怎么关闭客户端连接,怎么接收客户端数据,怎么给客户端发送数据等都有了清晰的分析.</p>
+<p>下面我们分析base模式的.</p>
+<h6>base模式</h6>
+<p>base模式是每个worker进程单独接收client连接,各个client不能在worker端进行共享.</p>
+<pre><code>worker接收连接:
+swServer_master_onAccept -&gt; accept系统调用
+
+worker接收client数据:
+swReactorEpoll_wait -&gt; swReactorThread_onRead -&gt;  "port-&gt;onRead" -&gt; swPort_onRead_raw -&gt; swConnection_recv -&gt; recv系统调用
+swPort_onRead_raw -&gt; "serv-&gt;factory.dispatch" -&gt; swFactory_dispatch -&gt; swWorker_onTask -&gt; "goto do_task" -&gt; serv-&gt;onReceive
+-&gt; php_swoole_onReceive -&gt; sw_call_user_function_ex(将数据传递给用户设置的函数)
+
+// todo
+worker发送数据给client:
+
+server被动关闭连接:
+
+server主动关闭连接:</code></pre>
+<p>base模式下的流程相较process模式要简单的多.</p>
+<h3>验证脚本</h3>
+<p>goon</p>
 		</div>
     </div>
     <div class="right-nav nav-box">
