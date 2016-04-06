@@ -3,9 +3,9 @@
 ### PHP ###
 	
 1. [php cli 执行流程](?s=md/php/cli.md)
-2. [环境及工具，php 扩展开发（一）](?s=md/php/extension.md)
-3. [ini文件解析，php 扩展开发（二）](?s=md/php/extension-ini.md)
-4. [函数与类的实现，php 扩展开发（三）](?s=md/php/extension-function.md)
+2. [php扩展开发之环境及工具](?s=md/php/extension.md)
+3. [php扩展开发之ini文件解析](?s=md/php/extension-ini.md)
+4. [php扩展开发之函数与类的实现](?s=md/php/extension-function.md)
 5. [php 编译流程分析](?s=md/php/compile.md)
 6. [php7 简单介绍](?s=md/php/php7-intro.md)
 7. [php7 内核中的一些改变](?s=md/php/php7-vm.md)
