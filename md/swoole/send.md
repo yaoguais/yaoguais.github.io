@@ -8,6 +8,7 @@
 4. base模式
 5. 数据读写
 6. 验证脚本
+7. 总结
 
 
 
@@ -893,12 +894,18 @@ base模式是每个worker进程单独接收client连接,各个client不能在wor
     swPort_onRead_raw -> "serv->factory.dispatch" -> swFactory_dispatch -> swWorker_onTask -> "goto do_task" -> serv->onReceive
     -> php_swoole_onReceive -> sw_call_user_function_ex(将数据传递给用户设置的函数)
 
-    // todo
     worker发送数据给client:
+    swoole_server.send -> PHP_METHOD(swoole_server, send) -> swServer_tcp_send -> "factory->finish" -> swFactory_finish
+    -> swReactorThread_send -> swConnection_send -> send系统调用
 
     server被动关闭连接:
+    swReactorEpoll_wait -> swReactorThread_onRead ->  "port->onRead" -> swPort_onRead_raw -> swConnection_recv -> recv系统调用
+    -> swPort_onRead_raw(收到数据长度为0) -> swReactorThread_onClose -> swReactor_close -> close系统调用
 
     server主动关闭连接:
+    swoole_server.close(worker发起) -> PHP_METHOD(swoole_server, close) -> "factory->end" -> swFactory_end
+    -> swReactorThread_close -> swReactor_close -> close系统调用
+
 
 
 base模式下的流程相较process模式要简单的多.
@@ -908,4 +915,101 @@ base模式下的流程相较process模式要简单的多.
 
 ### 验证脚本
 
-goon
+我们写验证脚本只是简单的看看当前的分析有没有明显的问题.
+
+其测试脚本模版为:
+
+    <?php
+    $serv = new swoole_server("127.0.0.1", 9501, SWOOLE_BASE);
+    $serv->set(array(
+        'worker_num' => 0,
+        'task_worker_num' => 0,
+        'daemonize' => 1
+    ));
+    function my_onStart($serv){
+        echo "onStart\n";
+    }
+    function my_onShutdown($serv){
+        echo "onShutdown\n";
+    }
+    function my_onTimer($serv, $interval){
+        echo "onTimer\n";
+    }
+    function my_onClose($serv, $fd, $from_id){
+        echo "onClose\n";
+    }
+    function my_onWorkerStart($serv, $worker_id){
+        echo "onWorkerStart\n";
+    }
+    function my_onFinish(swoole_server $serv, $task_id, $from_worker_id, $data){
+        echo "onFinish\n";
+
+    function my_onWorkerStop($serv, $worker_id){
+        echo "onStop\n";
+    }
+    function my_onConnect($serv, $fd, $from_id)
+    {
+        echo "Client: fd=$fd is connect.\n";
+    }
+    function my_onReceive(swoole_server $serv, $fd, $from_id, $data){
+        $serv->send($fd, $data);
+    //  echo "Client: fd=$fd pid: " . posix_getpid() . " send: $data";
+    //  $serv->task($fd . '|' . $data);
+    }
+    function my_onTask(swoole_server $serv, $task_id, $from_id, $data){
+        list($fd, $recv) = explode('|', $data, 2);
+        $serv->send(intval($fd), $recv);
+        echo "Task: fd=$fd pid: " . posix_getpid() ." send: $recv";
+    }
+    function my_onWorkerError(swoole_server $serv, $worker_id, $worker_pid, $exit_code){
+        echo "worker abnormal exit. WorkerId=$worker_id|Pid=$worker_pid|ExitCode=$exit_code\n";
+    }
+    $serv->on('Start', 'my_onStart');
+    $serv->on('Connect', 'my_onConnect');
+    $serv->on('Receive', 'my_onReceive');
+    $serv->on('Close', 'my_onClose');
+    $serv->on('Shutdown', 'my_onShutdown');
+    $serv->on('Timer', 'my_onTimer');
+    $serv->on('WorkerStart', 'my_onWorkerStart');
+    $serv->on('WorkerStop', 'my_onWorkerStop');
+    $serv->on('Task', 'my_onTask');
+    $serv->on('Finish', 'my_onFinish');
+    $serv->on('WorkerError', 'my_onWorkerError');
+    $serv->start();
+
+
+我们通过修改配置选项和构造函数参数等手段并查看输出,来完成测试.
+
+
+1.测试process模式下,Worker可以给任意的fd发送消息.
+
+    $serv = new swoole_server("127.0.0.1", 9501, SWOOLE_BASE);
+    $serv->set(array(
+        'worker_num' => 2,
+        'task_worker_num' => 0,
+        'daemonize' => 1
+    ));
+
+    function my_onReceive(swoole_server $serv, $fd, $from_id, $data){
+        $serv->send(1, $data);
+    //  echo "Client: fd=$fd pid: " . posix_getpid() . " send: $data";
+    //  $serv->task($fd . '|' . $data);
+    }
+
+我们首先启动server, 因为第1个连接的客户端分配的fd我先测试出来都是1,所有我就都给1发.
+我使用两个telnet连接server,并都给server发送消息,结果server显示收到两个连接.
+并且第一个telnet收到两个client发来的消息(包括自己发的).
+
+
+
+
+
+### 总结
+
+我们首先从一个问题引出探索的内容,然后分析了Swoole的启动流程,在每个环节都干了什么.
+
+然后我们分别分析了Swoole内置的两种模式: base和process模式,并分析了各自的执行流程.
+
+最后我们分析了客户端从连接到关闭连接,客户端给服务端发送消息,服务端给客户端发送消息这些操作具体是怎么执行的.
+
+通过对Swoole源代码有目的性的分析,虽然并没有完整的分析其使用的数据结构等,但也明显加深了我们对Swoole的理解.
