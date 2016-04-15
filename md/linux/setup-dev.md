@@ -36,7 +36,7 @@
 ### user add
 
 	// sync time
-	#yum -y install nptdate
+	#yum -y install ntpdate
 	#cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime -y
 	#ntpdate us.pool.ntp.org
 	// add user
