@@ -34,10 +34,10 @@
 
 1. [shell 简介与使用](?s=md/linux/shell.md)
 2. [linux c中函数的内存布局](?s=md/linux/c-memory.md)
-3. [linux vagrant的使用](https://yaoguais.github.io?s=md/linux/vagrant.md)
-4. [linux 开发环境搭建](https://yaoguais.github.io?s=md/linux/setup-dev.md)
-5. [linux ldap搭建](https://yaoguais.github.io?s=md/linux/ldap.md)
-6. [linux phabricator代码审查平台](https://yaoguais.github.io?s=md/linux/phabricator.md)
+3. [linux vagrant的使用](?s=md/linux/vagrant.md)
+4. [linux 开发环境搭建](?s=md/linux/setup-dev.md)
+5. [linux ldap搭建](?s=md/linux/ldap.md)
+6. [linux phabricator代码审查平台](?s=md/linux/phabricator.md)
 
 
 

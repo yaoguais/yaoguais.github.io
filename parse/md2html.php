@@ -24,6 +24,19 @@ h3{border:none}
 $finalHtml = preg_replace('/\/\/index-hidden-begin.+\/\/index-hidden-end/s','',$finalHtml);
 file_put_contents($toFile, $finalHtml);
 
+$navContent = file_get_contents($navFile);
+$navContent = preg_replace('/\?s=md\/(.+?)\/(.+?)\.md/', '/article/\1/\2.html', $navContent);
+preg_match_all('/\[(.+?)\]\s*\((.+?)\)/', $navContent, $matches);
+$readMeContent = "#[Yaoguai's blog](https://yaoguais.github.io)#\n\n";
+foreach ($matches[1] as $i => $title) {
+    if ($i > 0) {
+        $link = $matches[2][$i];
+        $readMeContent .= "$i. [$title](https://yaoguais.github.io$link)\n";
+    }
+}
+$readMeContent .= "\n#[click here to view](https://yaoguais.github.io)#\n";
+file_put_contents($root . '/README.md', $readMeContent);
+
 $mdFiles = getFiles($root . '/md');
 foreach ($mdFiles as $file) {
     if (!strrpos($file, '/md/index.md')) {
