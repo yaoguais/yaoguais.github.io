@@ -14,13 +14,17 @@
 <p>目录:</p>
 <ol>
 <li>简介</li>
-<li>控制报文格式</li>
-<li>控制报文-固定报头</li>
-<li>控制报文-固定报头-报文类型</li>
-<li>控制报文-固定报头-报文类型参数</li>
-<li>控制报文-固定报头-剩余长度</li>
+<li>控制报文格式
+<ul>
+<li>控制报文-固定报头
+<ul>
+<li>报文类型</li>
+<li>报文类型参数</li>
+<li>剩余长度</li>
+</ul></li>
 <li>控制报文-可变报头</li>
 <li>控制报文-有效载荷</li>
+</ul></li>
 <li>QoS总结</li>
 <li>RETAIN总结</li>
 <li>Clean Session总结</li>
@@ -300,13 +304,16 @@ Broker返回qos的可以是0 1 2,如果返回的是0x80,那么就代表订阅失
 				$(".back-to-top").hide();
 			}
 		});
-		$('.mdBlock>ol>li').click(function(){
-			var index = $(this).index(),
-					$title = $(this).parent().parent().find("h3").eq(index);
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3").eq(index);
 			if($title.length>0){
 				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
 			}
+			return false;
 		});
+		//index-hidden-end
 		var $nav = $(".nav");
 		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 	});

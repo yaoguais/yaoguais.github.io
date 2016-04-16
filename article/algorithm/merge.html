@@ -121,13 +121,16 @@ print_r($arr);</code></pre>
 				$(".back-to-top").hide();
 			}
 		});
-		$('.mdBlock>ol>li').click(function(){
-			var index = $(this).index(),
-					$title = $(this).parent().parent().find("h3").eq(index);
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3").eq(index);
 			if($title.length>0){
 				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
 			}
+			return false;
 		});
+		//index-hidden-end
 		var $nav = $(".nav");
 		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 	});

@@ -20,6 +20,7 @@ $finalHtml .= '<style>
 .mdBlock ol{ padding-left: 5px; list-style: none; } .mdBlock ol li{ padding: 2px 0; font-size: 18px; }
 h2 a:hover{text-decoration: none}
 </style>';
+$finalHtml = preg_replace('/\/\/index-hidden-begin.+\/\/index-hidden-end/s','',$finalHtml);
 file_put_contents($toFile, $finalHtml);
 
 $mdFiles = getFiles($root . '/md');

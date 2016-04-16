@@ -130,13 +130,7 @@
 				$(".back-to-top").hide();
 			}
 		});
-		$('.mdBlock>ol>li').click(function(){
-			var index = $(this).index(),
-					$title = $(this).parent().parent().find("h3").eq(index);
-			if($title.length>0){
-				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
-			}
-		});
+		
 		var $nav = $(".nav");
 		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 	});

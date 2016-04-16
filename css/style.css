@@ -94,3 +94,8 @@ ul.nav li a.hover {
     color: #000000;
     font-weight: bold;
 }
+
+.mdBlock ol li:hover ul{
+    color: #333333;
+    font-weight: normal;
+}
