@@ -86,6 +86,11 @@ ul.nav li a.hover {
 	background-position:-19px 0;
 }
 
+.mdBlock>ol{
+    padding-left: 20px;
+    margin-left: 10px;
+}
+
 .mdBlock ol li{
     cursor: pointer;
 }
