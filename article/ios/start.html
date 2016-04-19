@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>YaoGuai's Blog</title>
+    <title>IOS开发之准备工作</title>
      <link rel="stylesheet" type="text/css" href="/css/style.css" />
     <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
@@ -10,62 +10,25 @@
 <div class="main-body">
     <div class="left-content" id="markDownContent">
 		<div class="mdBlock">
-			<h2><a href="https://github.com/Yaoguais/yaoguais.github.io">Yaoguai's <span style="font-size:10px">while($loved || !give_up());</span></a></h2>
-<h3>PHP</h3>
+			<h2>IOS开发之准备工作</h2>
+<p>目录:</p>
 <ol>
-<li><a href="/article/php/cli.html">php cli 执行流程</a></li>
-<li><a href="/article/php/extension.html">php扩展开发之环境及工具</a></li>
-<li><a href="/article/php/extension-ini.html">php扩展开发之ini文件解析</a></li>
-<li><a href="/article/php/extension-function.html">php扩展开发之函数与类的实现</a></li>
-<li><a href="/article/php/compile.html">php 编译流程分析</a></li>
-<li><a href="/article/php/php7-intro.html">php7 简单介绍</a></li>
-<li><a href="/article/php/php7-vm.html">php7 内核中的一些改变</a></li>
-<li><a href="/article/php/extension-php5to7.html">把扩展从php5升级到php7</a></li>
-<li><a href="/article/php/php-private.html">php private修饰符的一些细节</a></li>
-<li><a href="/article/php/mq.html">PHP消息队列的一些实现</a></li>
-<li><a href="/article/swoole/base.html">Swoole源码调试准备工作</a></li>
-<li><a href="/article/swoole/send.html">Swoole源码分析之数据接收与发送</a></li>
-<li><a href="/article/jegarn/faq_zh-cn.html">聊天系统Jegarn的常见问题</a></li>
+<li>学习资料</li>
+<li>开发环境</li>
+<li>语言基础</li>
+<li>简单应用</li>
+<li>总结</li>
 </ol>
-<h3>Xhprof</h3>
-<ol>
-<li><a href="/article/xhprof/intro.html">简介与环境搭建</a></li>
-<li><a href="/article/xhprof/interface.html">输入输出接口</a></li>
-<li><a href="/article/xhprof/theory.html">扩展实现的基本原理</a></li>
-</ol>
-<h3>Linux</h3>
-<ol>
-<li><a href="/article/linux/shell.html">shell 简介与使用</a></li>
-<li><a href="/article/linux/c-memory.html">linux c中函数的内存布局</a></li>
-<li><a href="/article/linux/vagrant.html">linux vagrant的使用</a></li>
-<li><a href="/article/linux/setup-dev.html">linux 开发环境搭建</a></li>
-<li><a href="/article/linux/ldap.html">linux ldap搭建</a></li>
-<li><a href="/article/linux/phabricator.html">linux phabricator代码审查平台</a></li>
-</ol>
-<h3>Others</h3>
-<ol>
-<li><a href="/article/mysql/index.html">Mysql表优化</a></li>
-<li><a href="/article/protocol/mqtt.html">MQTT协议</a></li>
-<li><a href="/article/android/start.html">Android开发之准备工作</a></li>
-<li><a href="/article/golang/start.html">Golang开发之准备工作</a></li>
-<li><a href="/article/ios/start.html">IOS开发之准备工作</a></li>
-</ol>
-<h3>Algorithm</h3>
-<ol>
-<li><a href="/article/algorithm/insert.html">insert sort</a></li>
-<li><a href="/article/algorithm/bubble.html">bubble sort</a></li>
-<li><a href="/article/algorithm/quick.html">quick sort</a></li>
-<li><a href="/article/algorithm/select.html">select sort</a></li>
-<li><a href="/article/algorithm/merge.html">merge sort</a></li>
-<li><a href="/article/algorithm/heap.html">heap sort</a></li>
-</ol>
-<h3>Data Structure</h3>
-<ol>
-<li><a href="/article/data_structure/heap.html">min heap operation</a></li>
-<li><a href="/article/data_structure/binary_search.html">binary search</a></li>
-<li><a href="/article/data_structure/avl.html">avl</a></li>
-<li><a href="/article/data_structure/hash.html">hash table</a></li>
-</ol>
+<h3>学习资料</h3>
+<p>xxx</p>
+<h3>开发环境</h3>
+<p>xxx</p>
+<h3>语言基础</h3>
+<p>xxx</p>
+<h3>简单应用</h3>
+<p>xxx</p>
+<h3>总结</h3>
+<p>xxx</p>
 		</div>
     </div>
     <div class="right-nav nav-box">
@@ -131,7 +94,13 @@
 				$(".back-to-top").hide();
 			}
 		});
-		
+		$('.mdBlock>ol>li').click(function(){
+			var index = $(this).index(),
+					$title = $(this).parent().parent().find("h3").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+		});
 		var $nav = $(".nav");
 		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
 	});
@@ -139,8 +108,3 @@
 </script>
 </body>
 </html>
-<style>
-.mdBlock ol{ padding-left: 5px; list-style: none; } .mdBlock ol li{ padding: 2px 0; font-size: 18px; }
-h2 a:hover{text-decoration: none}
-h3{border:none}
-</style>
