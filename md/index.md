@@ -48,8 +48,8 @@
 1. [Mysql表优化](?s=md/mysql/index.md)
 2. [MQTT协议](?s=md/protocol/mqtt.md)
 3. [Android开发之准备工作](?s=md/android/start.md)
-4. [Golang开发之准备工作](?s=md/golang/start.md)
-5. [IOS开发之准备工作](?s=md/ios/start.md)
+4. [IOS开发之准备工作](?s=md/ios/start.md)
+5. [Golang开发之准备工作](?s=md/golang/start.md)
 
 
 
