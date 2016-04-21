@@ -456,7 +456,7 @@ rqs: 7709</code></pre>
 没办法，Ubuntu实在搞不动了。</p>
 <p>我就换了centos，还是源码编译，php-amqp老是过不了。然后pecl安装，还是不行。</p>
 <p>最后发现，这两样都会用到librabbitmq这个库，而报错是没有<code>amqp_tcp_socket.h</code>这个头文件。</p>
-<p>正好我源码编译过<code>rabbitmq-c</code>源代码，发现刚好会提供这个文件，但是API对不上啊，这个库是0.6.0的，地址是https://github.com/alanxz/rabbitmq-c/releases/tag/v0.6.0，机智的我突然反应过来，很可能是版本不对。但是没有以前版本的链接啊，机智的我又突然反应过来，就是把v0.6.0改成v0.4.0，妈蛋，居然有下载页面了。</p>
+<p>正好我源码编译过<code>rabbitmq-c</code>源代码，发现刚好会提供这个文件，但是API对不上啊，这个库是0.6.0的，地址是<a href="https://github.com/alanxz/rabbitmq-c/releases/tag/v0.6.0，机智的我突然反应过来，很可能是版本不对。但是没有以前版本的链接啊，机智的我又突然反应过来，就是把v0.6.0改成v0.4.0">https://github.com/alanxz/rabbitmq-c/releases/tag/v0.6.0，机智的我突然反应过来，很可能是版本不对。但是没有以前版本的链接啊，机智的我又突然反应过来，就是把v0.6.0改成v0.4.0</a>，妈蛋，居然有下载页面了。</p>
 <p>然后我小心翼翼的下载下来，删除原来的文件，重新一编译,php-amqp居然通过了。立马修改php.ini,再编写测试代码，发现队列成功入队出队了！！而这时，已经一点了，距我刚开始安装软件已经四个多小时了，一上午就装软件装完了。然后下午把RabbitQueue.php写完，然后做Benchmark，又发现两个内存相关的参数老是调不对，每次跑到70万就要停半天才继续。应该是内存数据交换到硬盘造成的。最后的benchmark就降低到50万了。但是效果还是不错。</p>
 <p>下面是测试的数据：</p>
 <pre><code>class: RabbitQueue
