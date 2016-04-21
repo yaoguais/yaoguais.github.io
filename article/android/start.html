@@ -34,15 +34,15 @@
 双击安装文件,打开Android Studio后会提示你找不到Java-SDK,然后引导我们去下载Java.</p>
 <p>注意下载的是Java-SDK,而不是Java-JRE.Android Studio给我的连接版本是1.6的,而Android Studio最低也要Java7,
 所以我们自己从<a href="http://www.oracle.com/technetwork/java/javase/downloads/jdk7-downloads-1880260.html">Java官网下载Java7</a>
-并安装,安装后不必配置JAVA_HOME等环境变量.注意低版本的Android-SDK可能不支持Java8,所以我们选择Java7.</p>
+并安装.注意低版本的Android-SDK可能不支持Java8,所以我们选择Java7.</p>
 <p>下载Android-SDK文件才是国内开发者的痛,不过好在有同学整理的<a href="http://mirrors.neusoft.edu.cn/android/repository/">镜像</a>,
 我们首先从这里下载<a href="https://dl.google.com/android/android-sdk_r23.0.1-macosx.zip">常用管理工具</a>,
 然后我们再到镜像下载<a href="http://mirrors.neusoft.edu.cn/android/repository/android-23_r02.zip">API-Level-23</a>,
 然后下载<a href="http://mirrors.neusoft.edu.cn/android/repository/build-tools_r23.0.1-macosx.zip">编译工具</a>,
 最后下载<a href="http://mirrors.neusoft.edu.cn/android/repository/platform-tools_r23.0.1-macosx.zip">调试工具</a>.
-将android-sdk-macosx重命名为~/workspace/android-sdk,将android-6.0拷贝至~/workspace/android-sdk/platforms/,
+将android-sdk-macosx重命名为~/workspace/android-sdk,将android-6.0拷贝至~/workspace/android-sdk/platforms/下,
 将android-6.0 2移动到~/workspace/android-sdk/build-tools/下,将platform-tools拷贝至~/workspace/android-sdk/下.</p>
-<p>至于最基本需要下载的SDK已经下载完毕了.然后我们配置环境变量.</p>
+<p>至此最基本需要下载的SDK已经下载完毕了.然后我们配置环境变量.</p>
 <pre><code>sudo vim /etc/profile
 /*
 JAVA_HOME=/Library/Java/JavaVirtualMachines/jdk1.7.0_79.jdk/Contents/Home
@@ -55,7 +55,8 @@ source /etc/profile</code></pre>
 <p>如果IDE不能识别正确的JAVA_HOME,可以在IDE中强制设置一下就行了.</p>
 <p>然后同步项目, git clone git@github.com:Yaoguais/jegarn.git,打开IDE并添加jegarn目录下的android-chat-system项目.
 根据IDE右上角的提示&quot;同步gradle&quot;,这样可以下载依赖的库,然后进行build,这个项目目前是能顺利编译通过的.</p>
-<p>然后我们打开手机的开发者模式跟调试模式,并运行项目,不出意外的话,可以看到应用成功的安装到手机上,然后输入帐号密码,就能聊天了.</p>
+<p>然后我们打开手机的开发者模式跟调试模式,用USB连接线把手机连上电脑,并运行项目,不出意外的话,可以看到应用成功的安装到手机上,
+然后输入帐号密码,就能登录并聊天了.</p>
 <h3>语言基础</h3>
 <p>xxx</p>
 <h3>简单应用</h3>
