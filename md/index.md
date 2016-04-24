@@ -50,6 +50,7 @@
 3. [Android开发之准备工作](?s=md/android/start.md)
 4. [IOS开发之准备工作](?s=md/ios/start.md)
 5. [Golang开发之准备工作](?s=md/golang/start.md)
+6. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
 
 
 
