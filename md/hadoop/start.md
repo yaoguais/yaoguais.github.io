@@ -28,13 +28,13 @@
 
 
 
-### 基础组建
+### 基础组件
 
-在回答前面的问题之前,我们先梳理一下当前关于海量数据火热的名次.
+在回答前面的问题之前,我们先梳理一下当前关于海量数据火热的名词.
 
 [Hadoop](http://hadoop.apache.org/)官方介绍说,它是一个可靠的,可扩展的,分布式计算开源程序.
 
-它主要包括4个组建:
+它主要包括4个组件:
 
 - Hadoop Common: 用作支持其他模块的公共工具.
 - Hadoop Distributed File System (HDFS): 高吞吐量的分布式文件系统.
@@ -43,11 +43,11 @@
 
 跟hadoop相关的系统大概有以下这些:
 
-Ambari: 管理Hadoop生态圈的系统,[详细介绍](https://www.ibm.com/developerworks/cn/opensource/os-cn-bigdata-ambari/).
+Ambari: 管理Hadoop生态圈的系统,包括安装部署等,[详细介绍](https://www.ibm.com/developerworks/cn/opensource/os-cn-bigdata-ambari/).
 
-Avro: 数据序列化与反序列化的工具,[这里](http://langyu.iteye.com/blog/708568)有说明为什么要为hadoop重复开发这样的序列化工具.
+Avro: 数据序列化与反序列化的工具,[这里](http://langyu.iteye.com/blog/708568)有说明为什么要为hadoop重新开发这样的序列化工具.
 
-Cassandra: 去中心化的数据库,特点是BigTable(巨大的数据表).[简单介绍](http://yikebocai.com/2014/06/cassandra-principle/).
+Cassandra: 支持BigTable(巨大的数据表)的数据库,特点是去中心化.[简单介绍](http://yikebocai.com/2014/06/cassandra-principle/).
 
 Chuwa: 数据采集系统,可以自动采集数据并存入hadoop中,[系统介绍](https://www.ibm.com/developerworks/cn/opensource/os-cn-chukwa/).
 
@@ -77,7 +77,7 @@ ZooKeeper: 分布式应用的协调系统,[参见](https://www.ibm.com/developer
 * 文件系统: 大文件(HDFS, GFS, KFS), 小文件(TFS, Tencent FS, Haystack, BFS), 中小文件(FastDFS)
 * 数据库: 数据表型(Cassandra, HBase), 文档型(Mongodb, SequoiaDB)
 * 管理工具: Ambari, Cloudera
-* 协调工具: ZooKeeper, CONSUL
+* 协调工具: ZooKeeper, Consul
 * 序列化工具: Avro, Thrift
 * 任务分发: YARN
 * 处理采集: Chuwa
