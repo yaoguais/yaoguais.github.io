@@ -18,8 +18,18 @@
 <p>题外话,因为公司很多业务会用Golang来拆分重构,所以Golang以后是我加强的重心,更多的时间会花在Go上面.</p>
 <p>目录:</p>
 <ol>
-<li>学习资料</li>
-<li>开发环境</li>
+<li>学习资料
+<ul>
+<li>视频资料</li>
+<li>书籍资料</li>
+<li>牛人博客</li>
+</ul></li>
+<li>开发环境
+<ul>
+<li>基础环境配置</li>
+<li>IDE的选择</li>
+<li>快捷键使用</li>
+</ul></li>
 <li>语言基础
 <ul>
 <li>基本数据类型</li>
@@ -44,11 +54,13 @@
 <p>学习一门新的语言,我比较喜欢看别人的视频教程,一方面可以在比较放松的状态下听,另一方面可以看看别人对IDE的应用,
 不好地方就是学习时间会比看书长很多,然后视频资源也不好找.</p>
 <p>一般周末闲的时候,看看别人的视频放松放松.平时上下班就看看文档电子书之类的,也比较方面.</p>
+<h4>视频资料</h4>
 <p>这里推荐一个不需要任何语言基础的视频教程,<a href="http://www.imooc.com/view/218">征战Objective-C</a>,
 这个特别基础,作者完全是当你没有任何编程经验的.但是这个视频涉及OC的知识不够全面,仅够编程入门.</p>
 <p>然后推荐一个比较全面的视频教程,<a href="http://www.maiziedu.com/course/ios/495-6443/">初始Objective-C</a>,
 这个手机网页端有限制,手机客户端跟电脑端不是很清楚,电脑端暂时没有遇到.</p>
-<p>然后是博客跟电子书,这里是我找到的几个感觉还不错的.</p>
+<h4>书籍文档</h4>
+<p>然后是书籍,这里是我找到的几个感觉还不错的.</p>
 <p>如果你会其他语言,可以参照
 <a href="https://learnxinyminutes.com/docs/objective-c/">Y分钟学会IOS分钟</a>
 快速浏览一下OC的语法.</p>
@@ -58,11 +70,43 @@
 <p>个人喜欢笔记式的讲解,比如<a href="http://blog.csdn.net/CHENYUFENG1991/article/category/5655905/6">Objective-C学习笔记</a>,
 内容还是挺多的,涉及的知识点都比较全面.</p>
 <p><a href="http://www.cocoachina.com/">cocoschina</a>也是不错的平台,可以了解下最新的资讯.</p>
-<p>最后,为啥不学Swift?该学的时候,自然是要学的.</p>
+<h4>牛人博客</h4>
+<ul>
+<li><a href="http://blog.devtang.com/">唐巧的博客</a></li>
+<li><a href="https://onevcat.com/#blog">王巍的博客</a></li>
+</ul>
 <h3>开发环境</h3>
-<p>开发环境搭建的话,上面的资料基本都有涉及,这里就不细将了.</p>
-<p>我这里直接App Store安装Xcode,版本是7.2.1.</p>
+<p>开发苹果的东西,一定是要用MAC操作系统的,不管是虚拟机安装/双系统安装,还是直接使用苹果的电脑.</p>
+<h4>基础环境搭建</h4>
+<p>苹果开发环境搭建比较简单,因为苹果已经帮助你完成了,所以这一步是不用自己动手的.</p>
+<h4>IDE的选择</h4>
+<p>目前支持IOS开发的继承开发环境比较出名的有苹果自家的Xcode,还有就是JetBrains的AppCode.</p>
+<p>当前大都数开发者使用的仍然是Xcode,所有我这里也使用Xcode,但是目前其他系的IDE,我基本都是使用的JetBrains家的.</p>
+<p>我这里直接使用App Store安装Xcode,版本是7.2.1.</p>
+<h4>快捷键使用</h4>
 <p>然后主要记录下IDE快捷键, 可以从网上随便下载一个项目亲自试验下,如果发现问题好及时调整.</p>
+<p>Xcode的快捷键:</p>
+<ul>
+<li>足迹前进</li>
+<li>足迹后退</li>
+<li>选择当前行</li>
+<li>剪切/复制/粘贴</li>
+<li>单步调试</li>
+<li>跳转至函数实现</li>
+<li>当前文件查找</li>
+<li>当前项目查找</li>
+<li>当前文件替换</li>
+<li>当前项目替换</li>
+<li>当前文件所有类名与方法名过滤</li>
+<li>当前项目所有类名与方法名过滤</li>
+<li>跳转至父类文件</li>
+<li>注释当前行</li>
+<li>删除当前行</li>
+<li>区块注释</li>
+<li>下移当前行</li>
+<li>上移当前行</li>
+<li>格式化代码</li>
+</ul>
 <h3>语言基础</h3>
 <p>随着年龄的增长,记忆力下降的挺厉害的,真搞不懂究竟是什么原因,所以我都是采取个人整理一次来加强记忆,
 毕竟自己写,每个细节都需要注意的.</p>
@@ -138,7 +182,7 @@
 		//index-hidden-begin
 		$('.mdBlock>ol li').click(function(){
 			var index = $(".mdBlock>ol li").index($(this)[0]),
-					$title = $(this).parents(".mdBlock").find("h3").eq(index);
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
 			if($title.length>0){
 				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
 			}

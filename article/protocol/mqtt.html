@@ -308,7 +308,7 @@ Broker返回qos的可以是0 1 2,如果返回的是0x80,那么就代表订阅失
 		//index-hidden-begin
 		$('.mdBlock>ol li').click(function(){
 			var index = $(".mdBlock>ol li").index($(this)[0]),
-					$title = $(this).parents(".mdBlock").find("h3").eq(index);
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
 			if($title.length>0){
 				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
 			}

@@ -585,7 +585,7 @@ $29 = {value = {lval = 140737329058000, dval = 6.9533479375012804e-310,
 		//index-hidden-begin
 		$('.mdBlock>ol li').click(function(){
 			var index = $(".mdBlock>ol li").index($(this)[0]),
-					$title = $(this).parents(".mdBlock").find("h3").eq(index);
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
 			if($title.length>0){
 				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
 			}
