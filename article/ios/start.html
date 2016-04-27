@@ -29,6 +29,7 @@
 <li>基础环境配置</li>
 <li>IDE的选择</li>
 <li>快捷键使用</li>
+<li>依赖管理</li>
 </ul></li>
 <li>语言基础
 <ul>
@@ -86,30 +87,141 @@
 <h4>快捷键使用</h4>
 <p>然后主要记录下IDE快捷键, 可以从网上随便下载一个项目亲自试验下,如果发现问题好及时调整.</p>
 <p>Xcode的快捷键:</p>
+<p><a href="http://www.cnblogs.com/yjmyzz/archive/2011/01/25/1944325.html">来自Jimmy.Yang的整理</a>
+<a href="http://www.cnblogs.com/mystory/archive/2013/01/31/2888163.html">来自Story of My Life的整理</a></p>
+<p>快速跳转:</p>
 <ul>
-<li>足迹前进</li>
-<li>足迹后退</li>
-<li>选择当前行</li>
-<li>剪切/复制/粘贴</li>
-<li>单步调试</li>
-<li>跳转至函数实现</li>
-<li>当前文件查找</li>
-<li>当前项目查找</li>
-<li>当前文件替换</li>
-<li>当前项目替换</li>
-<li>当前文件所有类名与方法名过滤</li>
-<li>当前项目所有类名与方法名过滤</li>
-<li>跳转至父类文件</li>
-<li>注释当前行</li>
-<li>删除当前行</li>
-<li>区块注释</li>
-<li>下移当前行</li>
-<li>上移当前行</li>
-<li>格式化代码</li>
+<li>前进后退: control + command + → 或 ←</li>
+<li>跳转至申明与实现(类/方法/函数/协议等): command + 鼠标左键 (可连续点击)</li>
 </ul>
+<p>光标操作:</p>
+<ul>
+<li>将光标移至行首/行尾: command + → 或 ←</li>
+<li>将光标移至文件开始/结束: command + ↑ 或 ↓</li>
+<li>将光标移至上/下一个单词: option + → 或 ←</li>
+<li>将光标移至当前段落开始/结束: option + ↑ 或 ↓</li>
+</ul>
+<p>选中文本:</p>
+<ul>
+<li>选中当前单词: 双击单词</li>
+<li>选中当前行: 三击当前行</li>
+<li>选中任意文本: shift + ↑↓←→</li>
+</ul>
+<p>操作:</p>
+<ul>
+<li>剪切: command + x</li>
+<li>复制: command + c</li>
+<li>粘贴: command + v</li>
+<li>撤销: command + z</li>
+<li>重做: command + shift + z</li>
+<li>保存: command + s</li>
+</ul>
+<p>注释:</p>
+<ul>
+<li>单行注释/取消注释: command + / </li>
+<li>多行注释/取消注释: 选中多行, command + /</li>
+<li>多行注释/取消注释: 开头结尾分别添加/<em> </em>/</li>
+</ul>
+<p>当前行:</p>
+<ul>
+<li>下移当前行: option + command + [</li>
+<li>下移当前行: option + command + ]</li>
+<li>删除当前行之前内容: command + delete</li>
+<li>删除当前行之后内容: control + k</li>
+<li>删除当前行: 选中当前行,再按delete</li>
+</ul>
+<p>重命名:</p>
+<ul>
+<li>重命名变量: 点击该变量,出现下划虚线,然后command+control+E激活所有相同变量,然后进行修改.</li>
+<li>重命名(类/方法/变量等): 单词上control + 鼠标左键, 然后选择reactor &gt; rename, 进行重命名.</li>
+</ul>
+<p>查找:</p>
+<ul>
+<li>在文件中查找,command + F,输入关键字,command + G跳至下一个,command + shift + G跳至上一个,esc结束查找.</li>
+<li>在项目中查找, command + shift + F, 输入关键字.</li>
+</ul>
+<p>替换:</p>
+<ul>
+<li>在文件中替换, option + command + F</li>
+<li>在项目中替换, option + command + shift + F</li>
+</ul>
+<p>缩进:</p>
+<ul>
+<li>左缩进: command + [</li>
+<li>右缩进: command + ]</li>
+</ul>
+<p>格式化代码:</p>
+<ul>
+<li>调整缩进: control + i</li>
+</ul>
+<p>调试:</p>
+<ul>
+<li>添加/移除断点: command + \</li>
+<li>运行: command + R</li>
+<li>Step Over: F6</li>
+<li>Step Into: F7</li>
+<li>Step Out: F8</li>
+<li>Continue: control + command + Y</li>
+<li>结束调试: 通过Xcode的自定义快捷键设置为 control + shift + D</li>
+</ul>
+<h4>依赖管理</h4>
+<p>当前开发IOS一般使用CocoaPods进行依赖管理,
+我们可以从<a href="http://blog.devtang.com/2014/05/25/use-cocoapod-to-manage-ios-lib-dependency/">这里</a>找到基本的使用方式.</p>
+<p>我们通过gem安装cocoapods,gem是一个ruby的脚本,那么我先更新gem.</p>
+<pre><code>sudo gem update --system
+sudo gem install cocoapods</code></pre>
+<p>然后因为gem的下载源是被墙了的,所有我们换成一些国内的源.</p>
+<pre><code>gem sources --remove https://rubygems.org/
+gem sources -a https://ruby.taobao.org/
+gem sources -l</code></pre>
+<p>由于pod是通过git进行管理Specs项目来完成依赖的,所以我们先下载这个项目.</p>
+<pre><code>pod repo remove master
+pod repo add master https://gitcafe.com/akuandev/Specs.git
+pod repo update</code></pre>
+<p>这里选择源是很坑的,好多在我的电脑都是不能使用的,我这里选择的是coding.net,这里也列举一下其他的下载源.</p>
+<pre><code>https://gitcafe.com/akuandev/Specs.git
+http://git.oschina.net/akuandev/Specs.git
+https://git.coding.net/hging/Specs.git
+https://github.com/CocoaPods/Specs.git</code></pre>
+<p>然后我们构建pod并安装更新.</p>
+<pre><code>pod setup</code></pre>
+<p>然后我们通过Xcode新建一个测试项目,并在项目文件下创建pod的配置文件,并执行安装命令.</p>
+<pre><code>vim Podfile
+/*
+platform :ios
+pod 'JSONKit',       '~&gt; 1.4'
+pod 'Reachability',  '~&gt; 3.0.0'
+pod 'ASIHTTPRequest'
+pod 'RegexKitLite'
+*/
+pod install</code></pre>
+<p>成功执行install后,控制台会显示如下信息,这个过程可能要花一两分钟,稍作等待.</p>
+<pre><code>Updating local specs repositories
+
+CocoaPods 1.0.0.beta.8 is available.
+To update use: `gem install cocoapods --pre`
+[!] This is a test version we'd love you to try.
+
+For more information see http://blog.cocoapods.org
+and the CHANGELOG for this version http://git.io/BaH8pQ.
+
+Analyzing dependencies
+Downloading dependencies
+Installing ASIHTTPRequest (1.8.2)
+Installing JSONKit (1.4)
+Installing Reachability (3.0.0)
+Installing RegexKitLite (4.0)
+Generating Pods project
+Integrating client project
+
+[!] Please close any current Xcode sessions and use `minions.xcworkspace` for this project from now on.
+Sending stats
+Pod installation complete! There are 4 dependencies from the Podfile and 4 total
+pods installed.</code></pre>
+<p>它的意思是以后我们打开ios的工程,就使用&quot;minions.xcworkspace&quot;这个文件了,而不使用Xcode给我们创建的&quot;minions.xcodeproj&quot;文件.</p>
+<p>最后,如果有修改pod的配置文件,我们可以通过执行 pod update 来更新依赖.</p>
 <h3>语言基础</h3>
-<p>随着年龄的增长,记忆力下降的挺厉害的,真搞不懂究竟是什么原因,所以我都是采取个人整理一次来加强记忆,
-毕竟自己写,每个细节都需要注意的.</p>
+<p>xxx</p>
 <h3>简单应用</h3>
 <p>xxx</p>
 <h3>总结</h3>
