@@ -100,9 +100,12 @@
 * [底部四格导航实现](https://github.com/robbdimitrov/RDVTabBarController)
 * [Cocoa框架结构与类图](http://blog.csdn.net/totogo2010/article/details/8081253)
 * [LLDB在Xcode中的使用](http://southpeak.github.io/blog/2015/01/25/tool-lldb/)
+* [有关View的几个基础知识点-IOS开发](http://blog.csdn.net/iukey/article/details/7083165)
+* [深入探究frame和bounds的区别](http://www.cocoachina.com/ios/20140925/9755.html)
 * [@select原理与使用总结](http://blog.csdn.net/fengsh998/article/details/8612969)
 * [深入浅出iOS事件机制](http://zhoon.github.io/ios/2015/04/12/ios-event.html)
 * [IOS事件机制](http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/)
+* [IOS各应用组件学习](http://blog.csdn.net/column/details/xyzlmnios.html)
 
 
 
