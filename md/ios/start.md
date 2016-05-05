@@ -12,6 +12,7 @@
     - 视频资料
     - 书籍资料
     - 牛人博客
+    - 扩展知识
 2. 开发环境
     - 基础环境配置
     - IDE的选择
@@ -92,6 +93,21 @@
 
 
 
+#### 扩展知识
+
+* [MVVM架构简介](http://objccn.io/issue-13-1/)
+* [为iPhone6设计自适应布局](http://www.devtalking.com/articles/adaptive-layout-for-iphone6-1/)
+* [底部四格导航实现](https://github.com/robbdimitrov/RDVTabBarController)
+* [Cocoa框架结构与类图](http://blog.csdn.net/totogo2010/article/details/8081253)
+* [LLDB在Xcode中的使用](http://southpeak.github.io/blog/2015/01/25/tool-lldb/)
+* [@select原理与使用总结](http://blog.csdn.net/fengsh998/article/details/8612969)
+* [深入浅出iOS事件机制](http://zhoon.github.io/ios/2015/04/12/ios-event.html)
+* [IOS事件机制](http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/)
+
+
+
+
+
 ### 开发环境
 
 开发苹果的东西,一定是要用MAC操作系统的,不管是虚拟机安装/双系统安装,还是直接使用苹果的电脑.
@@ -126,8 +142,8 @@
 
 Xcode的快捷键:
 
-[来自Jimmy.Yang的整理](http://www.cnblogs.com/yjmyzz/archive/2011/01/25/1944325.html)
-[来自Story of My Life的整理](http://www.cnblogs.com/mystory/archive/2013/01/31/2888163.html)
+* [来自Jimmy.Yang的整理](http://www.cnblogs.com/yjmyzz/archive/2011/01/25/1944325.html)
+* [来自Story of My Life的整理](http://www.cnblogs.com/mystory/archive/2013/01/31/2888163.html)
 
 快速跳转:
 
