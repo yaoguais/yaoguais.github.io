@@ -38,6 +38,8 @@
 4. [linux 开发环境搭建](?s=md/linux/setup-dev.md)
 5. [linux ldap搭建](?s=md/linux/ldap.md)
 6. [linux phabricator代码审查平台](?s=md/linux/phabricator.md)
+7. [linux supervisor使用](?s=md/linux/supervisor.md)
+
 
 
 

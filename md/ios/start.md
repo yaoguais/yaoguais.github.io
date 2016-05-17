@@ -106,7 +106,7 @@
 * [深入浅出iOS事件机制](http://zhoon.github.io/ios/2015/04/12/ios-event.html)
 * [IOS事件机制](http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/)
 * [IOS各应用组件学习](http://blog.csdn.net/column/details/xyzlmnios.html)
-
+* [关于IOS状态栏(UIStatusBar)的若干问题](http://www.cnblogs.com/alby/p/4859537.html)
 
 
 
