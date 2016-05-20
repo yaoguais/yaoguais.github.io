@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>SaltStack安装使用</title>
+	<link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?">
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>SaltStack安装使用</h2>
+<p>SaltStack是一个服务器集群管理的解决方案,通过salt命令可以高效的操作上万台服务器.</p>
+<p>目录:</p>
+<ol>
+<li>简介</li>
+<li>安装</li>
+<li>配置
+<ul>
+<li>SLS文件语法</li>
+<li>SLS文件实例</li>
+</ul></li>
+</ol>
+<h3>简介</h3>
+<p>SaltStack的组件有很多,我们主要关心salt-master和salt-minion两个.</p>
+<p>salt-master通过将命令发送给salt-minion来实现操作salt-minions.</p>
+<p>我这是使用两台主机,操作系统都是CentOS6.5的.</p>
+<p>192.168.1.249同时作为master和minion,192.168.1.248作为minion.</p>
+<h3>安装</h3>
+<p>通过安装配置,我们需要实现在其中任意一台服务器上同时操作服务器集群.</p>
+<p>安装的过程,我们参见其<a href="http://docs.saltstack.com/">官方文档</a>.</p>
+<p>在249那台主机,添加yum源:</p>
+<pre><code>vim /etc/yum.repo.d/saltstack.repo</code></pre>
+<p>添加配置</p>
+<pre><code>[saltstack-repo]
+name=SaltStack repo for Red Hat Enterprise Linux $releasever
+baseurl=https://repo.saltstack.com/yum/redhat/$releasever/$basearch/latest
+enabled=1
+gpgcheck=1
+gpgkey=https://repo.saltstack.com/yum/redhat/$releasever/$basearch/latest/SALTSTACK-GPG-KEY.pub
+       https://repo.saltstack.com/yum/redhat/$releasever/$basearch/latest/base/RPM-GPG-KEY-CentOS-7</code></pre>
+<p>生成缓存</p>
+<pre><code>yum makecache</code></pre>
+<p>安装必须的软件包</p>
+<pre><code>yum install salt-master salt-minion salt-ssh salt-syndic salt-cloud</code></pre>
+<p>注: 如果key下载不下来,可以把gpgcheck修改为0.</p>
+<p>然后切换到248那台主机,添加yum源,安装salt-minion组件</p>
+<pre><code>yum install salt-minions</code></pre>
+<h3>配置</h3>
+<p>首先配置249主机,修改其master组件配置文件</p>
+<pre><code>vim /etc/salt/master</code></pre>
+<p>修改其中3个字段</p>
+<pre><code>interface: 192.168.1.249
+auto_accept: True
+hash_type: sha256</code></pre>
+<p>这里hash_type推荐使用sha256,如果使用配置文件默认的md5的话,会在日志文件/var/log/salt/master中生成一条警告.</p>
+<p>然后重启服务</p>
+<pre><code>service salt-master restart</code></pre>
+<p>然后配置249主机的minion组件,</p>
+<pre><code>vim  /etc/salt/minion</code></pre>
+<p>修改其中的3个字段</p>
+<pre><code>id: minion-dev
+master: 192.168.1.249
+hash_type: sha256</code></pre>
+<p>然后重启minion服务</p>
+<pre><code>service salt-minion restart</code></pre>
+<p>由于我们开启了master的自动接受,过一会儿就能看到master接收了minion-dev了.</p>
+<pre><code># salt-key -L
+Accepted Keys:
+minion-dev
+Denied Keys:
+Unaccepted Keys:
+Rejected Keys:</code></pre>
+<p>接着配置248主机</p>
+<pre><code>vim /etc/salt/minion</code></pre>
+<p>修改关键字段</p>
+<pre><code>id: minion-dev2
+master: 192.168.1.249
+hash_type: sha256</code></pre>
+<p>启动服务</p>
+<pre><code>service salt-minion restart</code></pre>
+<p>然后在249的主机上查看当前管理的minion,</p>
+<pre><code># salt-key -L
+Accepted Keys:
+minion-dev
+minion-dev2
+Denied Keys:
+Unaccepted Keys:
+Rejected Keys:</code></pre>
+<p>然后测试一下两台minion主机</p>
+<pre><code># salt "*" test.ping
+minion-dev2:
+    True
+minion-dev:
+    True</code></pre>
+<p>至此,master和minion的通讯基本配置完成了.</p>
+<p>然后我们来使用salt部署系统.</p>
+<p>首先找到/etc/salt/master中的file_roots字段,其中默认指定salt的state文件在/srv/salt目录下,我们先创建这个文件夹.</p>
+<pre><code>mkdir -p /srv/salt</code></pre>
+<p>然后我们需要书写xxx.sls配置文件,这种配置文件是使用yaml标记语言写的,先了解一下<a href="https://docs.saltstack.com/en/latest/topics/yaml/index.html">yaml</a>
+在slat中的使用.</p>
+<h3>SLS文件语法</h3>
+<p>这里有如下几个规则:</p>
+<ol>
+<li>
+<p>YAML使用一个固定的缩进来表示数据层之间的关系。salt要求每个级别的缺口正好有两个空格。不要使用制表符。</p>
+</li>
+<li>
+<p>key: value组成一个键值对,当然还有另外一种写法</p>
+<p>key:
+value</p>
+</li>
+</ol>
+<p>value换行后用两个空格缩进.</p>
+<p>但是一般使用换行都是为了表示复杂的value,例如</p>
+<pre><code>first_level_dict_key:
+  second_level_dict_key: value_in_second_level_dict</code></pre>
+<ol>
+<li>
+<p>相同缩进的破折号用来表示数组,破折号后面需要紧着一个空格,然后才是value,例如</p>
+<ul>
+<li>list_value_one</li>
+<li>list_value_two</li>
+<li>list_value_three</li>
+</ul>
+</li>
+</ol>
+<p>数组一个作为键值对的value出现,例如</p>
+<pre><code>my_dictionary:
+  - list_value_one
+  - list_value_two
+  - list_value_three</code></pre>
+<h3>SLS文件实例</h3>
+<p>我们主要参见<a href="https://docs.saltstack.com/en/latest/topics/tutorials/states_pt1.html">salt官方文档</a>,先构建简单的配置.</p>
+<p>在/srv/salt目录下,我们创建top.sls文件</p>
+<pre><code>base:
+  '*':
+    - webserver</code></pre>
+<p>然后也是slat目录,我们接着创建webserver.sls文件</p>
+<pre><code>httpd:                  # ID declaration
+  pkg:                  # state declaration
+    - installed         # function declaration</code></pre>
+<p>然后我们执行命令,让minion安装apache</p>
+<pre><code># salt '*' state.apply
+minion-dev2:
+----------
+          ID: httpd
+    Function: pkg.installed
+      Result: True
+     Comment: Package httpd is already installed
+     Started: 11:10:59.078186
+    Duration: 621.726 ms
+     Changes:
+
+Summary for minion-dev2
+------------
+Succeeded: 1
+Failed:    0
+------------
+Total states run:     1
+minion-dev:
+----------
+          ID: httpd
+    Function: pkg.installed
+      Result: True
+     Comment: Package httpd is already installed
+     Started: 19:11:13.506096
+    Duration: 672.966 ms
+     Changes:
+
+Summary for minion-dev
+------------
+Succeeded: 1
+Failed:    0
+------------
+Total states run:     1</code></pre>
+<p>注意:</p>
+<ul>
+<li>state.apply invoked without any SLS names will run state.highstate</li>
+<li>state.apply invoked with SLS names will run state.sls</li>
+</ul>
+<p>上面的我们是通过state.apply来执行的,我们还可以通过</p>
+<pre><code>salt "*" state.sls webserver</code></pre>
+<p>来执行特定的sls文件.多个文件去掉.sls后缀,用逗号分隔.</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+			return false;
+		});
+		//index-hidden-end
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

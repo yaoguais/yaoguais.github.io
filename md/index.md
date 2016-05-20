@@ -39,6 +39,7 @@
 5. [linux ldap搭建](?s=md/linux/ldap.md)
 6. [linux phabricator代码审查平台](?s=md/linux/phabricator.md)
 7. [linux supervisor使用](?s=md/linux/supervisor.md)
+8. [linux saltstack使用](?s=md/linux/saltstack.md)
 
 
 
