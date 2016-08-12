@@ -22,6 +22,7 @@
 <li>SLS文件语法</li>
 <li>SLS文件实例</li>
 </ul></li>
+<li>实践</li>
 </ol>
 <h3>简介</h3>
 <p>SaltStack的组件有很多,我们主要关心salt-master和salt-minion两个.</p>
@@ -184,6 +185,83 @@ Total states run:     1</code></pre>
 <p>上面的我们是通过state.apply来执行的,我们还可以通过</p>
 <pre><code>salt "*" state.sls webserver</code></pre>
 <p>来执行特定的sls文件.多个文件去掉.sls后缀,用逗号分隔.</p>
+<h3>实践</h3>
+<p>这次我们使用salt部署完整的服务器架构,具体包括一台LB,两台WEB服务器,
+WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.</p>
+<p>主机:</p>
+<pre><code>主机名: salt1 IP地址: 192.168.1.241 作用:LB和salt-master机器
+主机名: salt2 IP地址: 192.168.1.242 作用:WEB服务器和salt-minion机器1 salt名称: web-server1
+主机名: salt3 IP地址: 192.168.1.243 作用:WEB服务器和salt-minion机器2 salt名称: web-server2</code></pre>
+<p>网路配置:</p>
+<pre><code>三台机器网络配置只有IP地址不同，其它完全相同。
+首先配置网卡eth0,设置静态IP。
+然后配置网关/etc/sysconfig/network
+然后配置DNS服务器/etc/resolv.conf</code></pre>
+<p>配置salt-master机器的salt服务:</p>
+<pre><code>添加yum源: /etc/yum.repos.d/saltstack.repo
+yum install salt-master
+
+vim /etc/salt/master
+修改以下字段
+interface: 192.168.1.249
+hash_type: sha256
+
+启动服务
+service salt-master start</code></pre>
+<p>配置salt-minion机器1的salt服务:</p>
+<pre><code>添加yum源: /etc/yum.repos.d/saltstack.repo
+yum install salt-minion
+
+vim /etc/salt/minion
+修改以下字段
+id: web-server1
+master: 192.168.1.241
+hash_type: sha256
+
+启动服务
+service salt-minion start</code></pre>
+<p>我们使用同样的方式配置salt-minion机器2的salt服务。</p>
+<p>通过上面的操作，我们已经配置好了3台机器的salt服务，然后我们开始测试3台服务器的连接。</p>
+<pre><code>查看所有的minion机器:
+# salt-key -L
+Accepted Keys:
+Denied Keys:
+Unaccepted Keys:
+web-server1
+web-server2
+Rejected Keys:
+
+接受2台minion服务器:
+# salt-key -a web-server1
+# salt-key -a web-server2
+
+测试两台服务器的连接:
+# salt "web-server*" test.ping
+web-server1:
+    True
+web-server2:
+    True</code></pre>
+<p>然后我们配置2台minion服务器组件:</p>
+<ul>
+<li>基础组件 base.sls</li>
+<li>NGINX nginx.sls</li>
+<li>PHP7 php7.sls</li>
+<li>Redis redis.sls</li>
+<li>MySql mysql.sls</li>
+<li>MongoDB mongodb.sls</li>
+<li>Postgresql postgresql.sls</li>
+<li>NodeJs nodejs.sls</li>
+<li>Supervisor supervisor.sls</li>
+<li>PhpMyAdmin phpmyadmin.sls</li>
+<li>Golang golang.sls</li>
+<li>Sync sync.sls</li>
+</ul>
+<p>写完这些配置文件,我们依次安装这些组件.
+所有的配置文件可以到<a href="https://github.com/Yaoguais/cabin/tree/master/config/salt/salt1_file_system">这里找到</a>.</p>
+<pre><code># salt 'web-server*' state.sls install.base,install.nginx,install.php7,install.redis,
+install.mysql,install.mongodb,install.postgresql,install.nodejs,install.supervisor,install.phpmyadmin,
+install.golang,install.sync</code></pre>
+<p>运行完上面的这条命令,等待一段时间,所有的组件就安装完毕了.</p>
 		</div>
     </div>
     <div class="right-nav nav-box">

@@ -10,6 +10,9 @@
 4. setup db
 5. package box
 6. setup bat
+7. extension
+    - 详解vagrant网络配置
+    - 通过vagrant打造集群
 
 
 
@@ -171,3 +174,46 @@ Vagrant的box文件我存放到G:\VagrantWorkspace\box下。
 	cd G:\VagrantWorkspace\project\db
 	vagrant halt
 	*/
+
+
+
+
+
+### extension
+
+扩展篇我们讲解一些实际应用,比如你想试验怎么同时管理多台服务器的时候,首先你得有多台服务器,而通过vagrant是很容易完成这件事情的.
+
+
+#### 详解vagrant网络配置
+
+因为vagrant是管理虚拟机的,所以网络配置就是配置虚拟机的网络.而虚拟机里面的网络常用的有三种
+
+1. nat
+2. hostonly
+3. bridge
+
+详细讲解可以参见[实例讲解虚拟机3种网络模式(桥接、nat、Host-only)](http://www.cnblogs.com/ggjucheng/archive/2012/08/19/2646007.html)
+
+而vagrant中的配置即与这些模式相关联,vagrant关于网络主要也有三种配置:
+
+1. private_network
+2. public_network
+3. forwarded_port 端口转发
+
+比如我们在配置开发环境的时候,因为基本只需要一台开发机即可,所以选择private_network+forwarded_port完全可以满足需求.
+
+当我们在配置文件中什么也不写的时候,默认就是使用private_network+forwarded_port的, 例如:
+
+    Vagrant.configure(2) do |config|
+      config.vm.box = "dev"
+      # 关闭默认的文件夹共享
+      config.vm.synced_folder "../dev", "/vagrant", disabled: true
+      # 配置虚拟机为2核4G
+      config.vm.provider "virtualbox" do |vb|
+          vb.memory = "4096"
+          vb.cpus = 2
+      end
+    end
+
+上面的配置虽然没有写,但是也涉及了地址转发,vagrant帮你配置了ssh的端口转发.
+
