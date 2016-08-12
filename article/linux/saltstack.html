@@ -203,11 +203,19 @@ yum install salt-master
 
 vim /etc/salt/master
 修改以下字段
-interface: 192.168.1.249
+interface: 192.168.1.241
 hash_type: sha256
-
 启动服务
-service salt-master start</code></pre>
+service salt-master start
+
+yum install salt-minion
+vim /etc/salt/minion
+修改以下字段
+id: web-lb
+master: 192.168.1.241
+hash_type: sha256
+启动服务
+service salt-minion start</code></pre>
 <p>配置salt-minion机器1的salt服务:</p>
 <pre><code>添加yum源: /etc/yum.repos.d/saltstack.repo
 yum install salt-minion
@@ -217,7 +225,6 @@ vim /etc/salt/minion
 id: web-server1
 master: 192.168.1.241
 hash_type: sha256
-
 启动服务
 service salt-minion start</code></pre>
 <p>我们使用同样的方式配置salt-minion机器2的salt服务。</p>
@@ -255,12 +262,14 @@ web-server2:
 <li>PhpMyAdmin phpmyadmin.sls</li>
 <li>Golang golang.sls</li>
 <li>Sync sync.sls</li>
+<li>Lvs lvs.sls</li>
 </ul>
 <p>写完这些配置文件,我们依次安装这些组件.
 所有的配置文件可以到<a href="https://github.com/Yaoguais/cabin/tree/master/config/salt/salt1_file_system">这里找到</a>.</p>
 <pre><code># salt 'web-server*' state.sls install.base,install.nginx,install.php7,install.redis,
 install.mysql,install.mongodb,install.postgresql,install.nodejs,install.supervisor,install.phpmyadmin,
-install.golang,install.sync</code></pre>
+install.golang,install.sync
+# salt 'web-lb' state.sls install.lvs</code></pre>
 <p>运行完上面的这条命令,等待一段时间,所有的组件就安装完毕了.</p>
 		</div>
     </div>

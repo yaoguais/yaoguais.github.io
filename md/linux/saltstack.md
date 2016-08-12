@@ -283,16 +283,24 @@ WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.
 
 配置salt-master机器的salt服务:
 
-	添加yum源: /etc/yum.repos.d/saltstack.repo
-	yum install salt-master
+    添加yum源: /etc/yum.repos.d/saltstack.repo
+    yum install salt-master
 
-	vim /etc/salt/master
-	修改以下字段
-	interface: 192.168.1.249
-	hash_type: sha256
+    vim /etc/salt/master
+    修改以下字段
+    interface: 192.168.1.241
+    hash_type: sha256
+    启动服务
+    service salt-master start
 
-	启动服务
-	service salt-master start
+    yum install salt-minion
+    vim /etc/salt/minion
+    修改以下字段
+    id: web-lb
+    master: 192.168.1.241
+    hash_type: sha256
+    启动服务
+    service salt-minion start
 
 
 配置salt-minion机器1的salt服务:
@@ -305,7 +313,6 @@ WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.
 	id: web-server1
 	master: 192.168.1.241
 	hash_type: sha256
-
 	启动服务
 	service salt-minion start
 
@@ -351,6 +358,7 @@ WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.
 - PhpMyAdmin phpmyadmin.sls
 - Golang golang.sls
 - Sync sync.sls
+- Lvs lvs.sls
 
 写完这些配置文件,我们依次安装这些组件.
 所有的配置文件可以到[这里找到](https://github.com/Yaoguais/cabin/tree/master/config/salt/salt1_file_system).
@@ -358,6 +366,7 @@ WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.
     # salt 'web-server*' state.sls install.base,install.nginx,install.php7,install.redis,
     install.mysql,install.mongodb,install.postgresql,install.nodejs,install.supervisor,install.phpmyadmin,
     install.golang,install.sync
+    # salt 'web-lb' state.sls install.lvs
 
 运行完上面的这条命令,等待一段时间,所有的组件就安装完毕了.
 
