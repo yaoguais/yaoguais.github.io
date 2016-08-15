@@ -54,6 +54,7 @@
 4. [IOS开发之准备工作](?s=md/ios/start.md)
 5. [Golang开发之准备工作](?s=md/golang/start.md)
 6. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
+6. [RestFul API用SSL双向认证构建安全通讯信道](?s=md/restful/https-api.md)
 
 
 
