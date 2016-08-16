@@ -18,11 +18,11 @@
 
 目录:
 
-- 服务器生成证书
-- IOS使用AFNetworking实现SSL双向认证
-- 浏览器加载客户端证书实现访问
-- charles加载客户端证书实现调试
-- Android使用okhttp实现SSL双向认证
+1. 服务器生成证书
+2. IOS使用AFNetworking实现SSL双向认证
+3. 浏览器加载客户端证书实现访问
+4. charles加载客户端证书实现调试
+5. Android使用okhttp实现SSL双向认证
 
 
 ### 服务器生成证书
