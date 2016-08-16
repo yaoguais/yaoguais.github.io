@@ -453,4 +453,113 @@ IOS端我们使用AFNetworking实现SSL双向认证,服务器我们搭建在127.
 
 ### Android使用okhttp实现SSL双向认证
 
-待续...
+Android方面我们使用okhttp向服务器发起请求, 这里我们使用封装了okhttp的OkHttpUtils库, 因为它已经实现了SSL的双向认证.
+
+由于一直在Android虚拟机中修改hosts文件失败, 我就使用自己的服务器jegarn.com重新生成了签名.
+
+需要注意的是, 我们生成的是p12文件, 但是Android需要的是bks文件, 我这里写了一个pkcs12转bks的函数, 就统一了iOS和Android的证书.
+另外一点就是转换的时候有个alias参数, 填写错误的话会导致生成的文件不正确, 可以通过下面的代码打印出来, 修正即可.
+
+    Enumeration<String> aliases = pkcs12.aliases();
+    while(aliases.hasMoreElements()){
+        System.out.println("alias: " + aliases.nextElement());
+    }
+
+整个验证的过程我也直接写到了MainActivity.java文件中, 完整的源代码可以在这里找到
+[https-api](https://github.com/Yaoguais/android-on-the-way/tree/master/https-api).
+
+
+
+    package com.jegarn.https_api;
+
+    import android.support.v7.app.AppCompatActivity;
+    import android.os.Bundle;
+
+    import com.zhy.http.okhttp.OkHttpUtils;
+    import com.zhy.http.okhttp.callback.StringCallback;
+    import com.zhy.http.okhttp.https.HttpsUtils;
+
+    import java.io.ByteArrayInputStream;
+    import java.io.ByteArrayOutputStream;
+    import java.io.InputStream;
+    import java.security.Key;
+    import java.security.KeyStore;
+    import java.security.cert.Certificate;
+    import java.util.concurrent.TimeUnit;
+
+    import okhttp3.Call;
+    import okhttp3.OkHttpClient;
+
+    public class MainActivity extends AppCompatActivity {
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_main);
+            this.sslRequest();
+        }
+
+        protected void sslRequest() {
+
+            // wiki: http://blog.csdn.net/lmj623565791/article/details/48129405
+
+            InputStream certificates = getResources().openRawResource(R.raw.server);
+            InputStream pkcs12File = getResources().openRawResource(R.raw.client);
+            String password = "export111111";
+            InputStream bksFile = this.pkcs12ToBks(pkcs12File, password);
+            HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(new InputStream[]{certificates}, bksFile, password);
+
+            OkHttpClient okHttpClient = new OkHttpClient.Builder()
+                    .connectTimeout(10000L, TimeUnit.MILLISECONDS)
+                    .readTimeout(10000L, TimeUnit.MILLISECONDS)
+                    .sslSocketFactory(sslParams.sSLSocketFactory, sslParams.trustManager)
+                    .build();
+            OkHttpUtils.initClient(okHttpClient);
+
+            String url = "https://jegarn.com:7080/index.php";
+            OkHttpUtils
+                    .get()
+                    .url(url)
+                    .build()
+                    .execute(new StringCallback() {
+                        @Override
+                        public void onError(Call call, Exception e, int id) {
+                            e.printStackTrace();
+                        }
+
+                        @Override
+                        public void onResponse(String response, int id) {
+                            System.out.println(response);
+                        }
+                    });
+        }
+
+        protected InputStream pkcs12ToBks(InputStream pkcs12Stream, String pkcs12Password) {
+            final String alias = "54b79d883ef1d8f74d018b6bb7443863d54a2beb";
+            final char[] password = pkcs12Password.toCharArray();
+            try {
+                KeyStore pkcs12 = KeyStore.getInstance("PKCS12");
+                pkcs12.load(pkcs12Stream, password);
+                Certificate certificate = pkcs12.getCertificate(alias);
+                /*Enumeration<String> aliases = pkcs12.aliases();
+                while(aliases.hasMoreElements()){
+                    System.out.println("alias: " + aliases.nextElement());
+                }*/
+                final Key key = pkcs12.getKey(alias, password);
+                KeyStore bks = KeyStore.getInstance("BKS");
+                bks.load(null, password);
+                bks.setKeyEntry(alias, key, password, new Certificate[]{certificate});
+                ByteArrayOutputStream out = new ByteArrayOutputStream();
+                bks.store(out, password);
+                return new ByteArrayInputStream(out.toByteArray());
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            return null;
+        }
+    }
+
+运行项目,即可看到控制台输出"Hello World!".
+
+至此, 移动端iOS和Android的SSL双向认证都成功完成了.
