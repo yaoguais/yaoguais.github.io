@@ -1,4 +1,4 @@
-## RestFul API用SSL双向认证构建安全通讯信道
+## iOS和Android使用SSL双向认证构建安全通讯信道
 
 在移动开发中,服务端和客户端通讯一般都是使用restful接口,这里就会涉及到安全问题.
 比如: 在服务器端返回的数据中有一个字段是控制某个资源是否可见的(像微信的私密照片),而恶意的开发者通过Charles等工具可以直接修改掉这个字段,
@@ -458,7 +458,8 @@ Android方面我们使用okhttp向服务器发起请求, 这里我们使用封�
 由于一直在Android虚拟机中修改hosts文件失败, 我就使用自己的服务器jegarn.com重新生成了签名.
 
 需要注意的是, 我们生成的是p12文件, 但是Android需要的是bks文件, 我这里写了一个pkcs12转bks的函数, 就统一了iOS和Android的证书.
-另外一点就是转换的时候有个alias参数, 填写错误的话会导致生成的文件不正确, 可以通过下面的代码打印出来, 修正即可.
+另外一点就是转换的时候有个alias参数, 传入错误的话会导致生成的文件不正确, 可以通过下面的代码打印出来.
+实际实现的时候是取出pkcs12证书中的第一个alias作为bks证书的alias.
 
     Enumeration<String> aliases = pkcs12.aliases();
     while(aliases.hasMoreElements()){
@@ -485,6 +486,7 @@ Android方面我们使用okhttp向服务器发起请求, 这里我们使用封�
     import java.security.Key;
     import java.security.KeyStore;
     import java.security.cert.Certificate;
+    import java.util.Enumeration;
     import java.util.concurrent.TimeUnit;
 
     import okhttp3.Call;
@@ -535,16 +537,18 @@ Android方面我们使用okhttp向服务器发起请求, 这里我们使用封�
         }
 
         protected InputStream pkcs12ToBks(InputStream pkcs12Stream, String pkcs12Password) {
-            final String alias = "54b79d883ef1d8f74d018b6bb7443863d54a2beb";
             final char[] password = pkcs12Password.toCharArray();
             try {
                 KeyStore pkcs12 = KeyStore.getInstance("PKCS12");
                 pkcs12.load(pkcs12Stream, password);
+                Enumeration<String> aliases = pkcs12.aliases();
+                String alias;
+                if (aliases.hasMoreElements()) {
+                    alias = aliases.nextElement();
+                } else {
+                    throw new Exception("pkcs12 file not contain a alias");
+                }
                 Certificate certificate = pkcs12.getCertificate(alias);
-                /*Enumeration<String> aliases = pkcs12.aliases();
-                while(aliases.hasMoreElements()){
-                    System.out.println("alias: " + aliases.nextElement());
-                }*/
                 final Key key = pkcs12.getKey(alias, password);
                 KeyStore bks = KeyStore.getInstance("BKS");
                 bks.load(null, password);
@@ -559,6 +563,7 @@ Android方面我们使用okhttp向服务器发起请求, 这里我们使用封�
             return null;
         }
     }
+
 
 运行项目,即可看到控制台输出"Hello World!".
 

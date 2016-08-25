@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>iOS和Android使用MQTT协议实现消息推送和即时通讯</title>
+	<link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?">
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>iOS和Android使用MQTT协议实现消息推送和即时通讯</h2>
+<p>目录:</p>
+<ul>
+<li>安装配置mosca</li>
+<li>安装配置emqtt</li>
+<li>配置mosca和emqtt的ssl连接</li>
+</ul>
+<h3>安装配置mosca</h3>
+<p>因为mosca是nodejs写的应用,所以需要先安装nodejs,安装最新的nodejs只需要两步.</p>
+<pre><code># curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
+# yum -y install nodejs</code></pre>
+<p>然后创建mosca项目</p>
+<pre><code># mkdir mosca
+# cd mosca
+# npm install mosca --save
+# mkdir bin
+# cp node_modules/mosca/examples/Server_Wtih_All\ Interfaces-Settings.js bin/server.js
+# cp -R node_modules/mosca/test/secure ./</code></pre>
+<p>然后我们需要在本地启动redis服务,这里安装启动省略了.
+接着我们编辑bin/server.js.</p>
+<pre><code>var mosca = require('mosca');
+
+var pubsubSettings = {
+  type: 'redis',
+  db: 12,
+  port: 6379,
+  return_buffers: true,
+  host: "localhost"
+};
+
+var SECURE_KEY = __dirname + '/../secure/tls-key.pem';
+var SECURE_CERT = __dirname + '/../secure/tls-cert.pem';
+
+var moscaSetting = {
+    interfaces: [
+        { type: "mqtt", port: 1883 },
+        { type: "mqtts", port: 8883, credentials: { keyPath: SECURE_KEY, certPath: SECURE_CERT } }
+        { type: "http", port: 3000, bundle: true },
+        { type: "https", port: 3001, bundle: true, credentials: { keyPath: SECURE_KEY, certPath: SECURE_CERT } }
+    ],
+    stats: false,
+
+    logger: { name: 'MoscaServer', level: 'debug' },
+
+    persistence: { factory: mosca.persistence.Redis, url: 'localhost:6379', ttl: { subscriptions: 1000 * 60 * 10, packets: 1000 * 60 * 10 } },
+
+    backend: pubsubSettings,
+};
+
+var authenticate = function (client, username, password, callback) {
+    if (username == "test" &amp;&amp; password.toString() == "test")
+        callback(null, true);
+    else
+        callback(null, false);
+}
+
+var authorizePublish = function (client, topic, payload, callback) {
+    callback(null, true);
+}
+
+var authorizeSubscribe = function (client, topic, callback) {
+    callback(null, true);
+}
+
+var server = new mosca.Server(moscaSetting);
+
+server.on('ready', setup);
+
+function setup() {
+    server.authenticate = authenticate;
+    server.authorizePublish = authorizePublish;
+    server.authorizeSubscribe = authorizeSubscribe;
+
+    console.log('Mosca server is up and running.');
+}
+
+server.on("error", function (err) {
+    console.log(err);
+});
+
+server.on('clientConnected', function (client) {
+    console.log('Client Connected \t:= ', client.id);
+});
+
+server.on('published', function (packet, client) {
+    console.log("Published :=", packet);
+});
+
+server.on('subscribed', function (topic, client) {
+    console.log("Subscribed :=", client.packet);
+});
+
+server.on('unsubscribed', function (topic, client) {
+    console.log('unsubscribed := ', topic);
+});
+
+server.on('clientDisconnecting', function (client) {
+    console.log('clientDisconnecting := ', client.id);
+});
+
+server.on('clientDisconnected', function (client) {
+    console.log('Client Disconnected     := ', client.id);
+});</code></pre>
+<p>最后我们启动mosca服务器</p>
+<pre><code># node bin/server.js
+output:
+{"pid":693,"hostname":"devel","name":"MoscaServer","level":30,"time":1472108228321,"msg":"server started","mqtt":1883,"mqtts":8883,"v":1}
+Mosca server is up and running.</code></pre>
+<p>但是目前我们还不能向mosca发送数据,因为mosca是服务器,而我们还需要一个客户端.
+客户端的选择有很多,因为我们这里还要安装emqtt,所以我们就使用emqtt_benchmark带的客户端来测试.</p>
+<h3>安装配置emqtt</h3>
+<p>emqtt是erlang写的应用,首先我们还是先安装erlang环境.</p>
+<pre><code># rpm -i https://packages.erlang-solutions.com/erlang/esl-erlang/FLAVOUR_1_general/esl-erlang_19.0~centos~6_i386.rpm</code></pre>
+<p>然后安装emqtt
+注: 任何erlang的项目全路径里面带中文会导致项目编译不过,谁带谁SB.</p>
+<pre><code># git clone https://github.com/emqtt/emqttd.git
+# cd emqttd &amp;&amp; make &amp;&amp; make dist
+# cd rel/emqttd &amp;&amp; ./bin/emqttd console</code></pre>
+<p>然后安装emqtt_benchmark</p>
+<pre><code># git clone git@github.com:emqtt/emqtt_benchmark.git &amp;&amp; cd emqtt_benchmark &amp;&amp; make</code></pre>
+<p>然后先使用emqtt_benchmark的pub/sub工具测试emqtt.</p>
+<p>emqtt_benchmark:</p>
+<pre><code># ./emqtt_bench_sub -h 127.0.0.1 -p 1883 -c 2 -t bench_mark -q 1 -u test -P test -C
+# ./emqtt_bench_pub -h 127.0.0.1 -p 1883 -c 2 -u test -P test -t bench_mark -s 10 -q 1</code></pre>
+<p>然后我们再使用mosquitto测试pub/sub, 首先安装yum源.</p>
+<pre><code>[home_oojah_mqtt]
+name=mqtt (CentOS_CentOS-6)
+type=rpm-md
+baseurl=http://download.opensuse.org/repositories/home:/oojah:/mqtt/CentOS_CentOS-6/
+gpgcheck=1
+gpgkey=http://download.opensuse.org/repositories/home:/oojah:/mqtt/CentOS_CentOS-6//repodata/repomd.xml.key
+enabled=1</code></pre>
+<p>安装客户端工具:</p>
+<pre><code># yum -y install mosquitto-clients</code></pre>
+<p>发布订阅测试:</p>
+<pre><code># mosquitto_sub -R -h 127.0.0.1 -p 1883 -c -i client_id_test_10007 -t user/10007 -u mqtt -P my_password -d -q 1
+# mosquitto_pub -d -h 127.0.0.1 -p 1883 -i app_service -t user/10007 -m "test" -u mqtt -P my_password -q 1</code></pre>
+<p>测试完成,接下来我们再部署基于ssl的连接.</p>
+<h3>配置mosca和emqtt的ssl连接</h3>
+<p>我们使用脚本生成ssl的证书:</p>
+<pre><code>#/bin/bash
+
+pwd=`pwd`
+
+read -p "Enter your domain [jegarn.com]: " DOMAIN
+read -p "Enter your file prefix [server]: " NAME
+read -p "Enter your save directory [/tmp/ssl]: " DIR
+
+mkdir -p $DIR
+cd $DIR
+openssl genrsa -des3 -out $NAME.key 2048
+SUBJECT="/C=CN/ST=SiChuan/L=ChengDu/O=YaoGuai/OU=YaoGuai/CN=$DOMAIN"
+openssl req -new -subj $SUBJECT -key $NAME.key -out $NAME.csr
+# remove password
+mv $NAME.key $NAME.ori.key
+openssl rsa -in $NAME.ori.key -out $NAME.key
+openssl x509 -req -days 3650 -in $NAME.csr -signkey $NAME.key -out $NAME.crt
+cd $pwd</code></pre>
+<p>这里DOMAIN就填&quot;127.0.0.1&quot;,NAME填server,DIR填/tmp/ssl, 中间过程会要求我们输入不小于4位的密码,
+但是最终生成的server.key文件我们是把密码去掉了的,要不然像nginx这类服务器使用带密码的key,
+会在每次启动关闭时让你输入key的.</p>
+<p>我们修改mosca的server.js脚本, 将证书位置替换成我们刚才生成的证书.</p>
+<pre><code>var SECURE_KEY = '/tmp/ssl/server.key';
+var SECURE_CERT = '/tmp/ssl/server.crt';</code></pre>
+<p>我们也修改emqtt的配置文件&quot;emqttd/rel/emqttd/etc/emqttd.config&quot;,将证书路径替换.</p>
+<pre><code>{mqtts, 8883, [
+    %% Size of acceptor pool
+    {acceptors, 4},
+
+    %% Maximum number of concurrent clients
+    {max_clients, 512},
+
+    %% Socket Access Control
+    {access, [{allow, all}]},
+
+    %% SSL certificate and key files
+    {ssl, [{certfile, "/tmp/ssl/server.crt"},
+           {keyfile,  "/tmp/ssl/server.key"}]},
+
+    %% Socket Options
+    {sockopts, [
+        {backlog, 1024}
+        %{buffer, 4096},
+    ]}
+]},</code></pre>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+			return false;
+		});
+		//index-hidden-end
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

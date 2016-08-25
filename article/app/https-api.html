@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>RestFul API用SSL双向认证构建安全通讯信道</title>
+    <title>iOS和Android使用SSL双向认证构建安全通讯信道</title>
 	<link rel="stylesheet" type="text/css" href="/css/style.css" />
     <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
@@ -11,7 +11,7 @@
 <div class="main-body">
     <div class="left-content" id="markDownContent">
 		<div class="mdBlock">
-			<h2>RestFul API用SSL双向认证构建安全通讯信道</h2>
+			<h2>iOS和Android使用SSL双向认证构建安全通讯信道</h2>
 <p>在移动开发中,服务端和客户端通讯一般都是使用restful接口,这里就会涉及到安全问题.
 比如: 在服务器端返回的数据中有一个字段是控制某个资源是否可见的(像微信的私密照片),而恶意的开发者通过Charles等工具可以直接修改掉这个字段,
 就会导致用户本不该看到的资源被看到.</p>
@@ -408,7 +408,8 @@ echo 'Hello World!';</code></pre>
 <p>Android方面我们使用okhttp向服务器发起请求, 这里我们使用封装了okhttp的OkHttpUtils库, 因为它已经实现了SSL的双向认证.</p>
 <p>由于一直在Android虚拟机中修改hosts文件失败, 我就使用自己的服务器jegarn.com重新生成了签名.</p>
 <p>需要注意的是, 我们生成的是p12文件, 但是Android需要的是bks文件, 我这里写了一个pkcs12转bks的函数, 就统一了iOS和Android的证书.
-另外一点就是转换的时候有个alias参数, 填写错误的话会导致生成的文件不正确, 可以通过下面的代码打印出来, 修正即可.</p>
+另外一点就是转换的时候有个alias参数, 传入错误的话会导致生成的文件不正确, 可以通过下面的代码打印出来.
+实际实现的时候是取出pkcs12证书中的第一个alias作为bks证书的alias.</p>
 <pre><code>Enumeration&lt;String&gt; aliases = pkcs12.aliases();
 while(aliases.hasMoreElements()){
     System.out.println("alias: " + aliases.nextElement());
@@ -430,6 +431,7 @@ import java.io.InputStream;
 import java.security.Key;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
+import java.util.Enumeration;
 import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
@@ -480,16 +482,18 @@ public class MainActivity extends AppCompatActivity {
     }
 
     protected InputStream pkcs12ToBks(InputStream pkcs12Stream, String pkcs12Password) {
-        final String alias = "54b79d883ef1d8f74d018b6bb7443863d54a2beb";
         final char[] password = pkcs12Password.toCharArray();
         try {
             KeyStore pkcs12 = KeyStore.getInstance("PKCS12");
             pkcs12.load(pkcs12Stream, password);
+            Enumeration&lt;String&gt; aliases = pkcs12.aliases();
+            String alias;
+            if (aliases.hasMoreElements()) {
+                alias = aliases.nextElement();
+            } else {
+                throw new Exception("pkcs12 file not contain a alias");
+            }
             Certificate certificate = pkcs12.getCertificate(alias);
-            /*Enumeration&lt;String&gt; aliases = pkcs12.aliases();
-            while(aliases.hasMoreElements()){
-                System.out.println("alias: " + aliases.nextElement());
-            }*/
             final Key key = pkcs12.getKey(alias, password);
             KeyStore bks = KeyStore.getInstance("BKS");
             bks.load(null, password);

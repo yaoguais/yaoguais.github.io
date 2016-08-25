@@ -48,7 +48,7 @@ salt-master通过将命令发送给salt-minion来实现操作salt-minions.
     enabled=1
     gpgcheck=1
     gpgkey=https://repo.saltstack.com/yum/redhat/$releasever/$basearch/latest/SALTSTACK-GPG-KEY.pub
-           https://repo.saltstack.com/yum/redhat/$releasever/$basearch/latest/base/RPM-GPG-KEY-CentOS-7
+           https://repo.saltstack.com/yum/redhat/$releasever/$basearch/latest/base/RPM-GPG-KEY-CentOS-6
 
 生成缓存
 
@@ -284,7 +284,7 @@ WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.
 配置salt-master机器的salt服务:
 
     添加yum源: /etc/yum.repos.d/saltstack.repo
-    yum install salt-master
+    yum install salt-master python-progressbar
 
     vim /etc/salt/master
     修改以下字段
@@ -365,7 +365,7 @@ WEB服务器分别部署NGINX,PHP7,MYSQL,MONGODB,REDIS,SUPERVISOR等服务.
 
     # salt 'web-server*' state.sls install.base,install.nginx,install.php7,install.redis,
     install.mysql,install.mongodb,install.postgresql,install.nodejs,install.supervisor,install.phpmyadmin,
-    install.golang,install.sync
+    install.golang,install.rsync
     # salt 'web-lb' state.sls install.lvs
 
 运行完上面的这条命令,等待一段时间,所有的组件就安装完毕了.
