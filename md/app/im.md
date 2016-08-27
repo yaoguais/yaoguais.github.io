@@ -1,13 +1,22 @@
 ## iOS和Android使用MQTT协议实现消息推送和即时通讯
 
+大多数应用都会涉及到即时聊天的功能,在开源方案中有XMPP和MQTT.其中XMPP是基于XML的,并且不支持消息质量QOS,
+所以本身并没有消息重传的机制,从而会导致丢消息.而MQTT是基于二进制的,支持QOS,并且已成为物联网的协议标准,
+所以我们有理由抛弃XMPP而拥抱MQTT.
+
+应用内部,在使用MQTT等实现即时聊天功能的同时,我们还可以在应用内部实现消息推动的功能,从而减少了我们对第三方的依赖.
+而应用外部,我们仍然不可避免的要使用APNS/GCM/信鸽/极光等推送服务.
+
+内外结合, 从而构建完整的推送机制和聊天机制.
+
 
 目录:
 
-- 安装配置mosca
-- 安装配置emqtt
-- 配置mosca和emqtt的ssl连接
-- iOS集成mqtt
-- Android结成mqtt
+1. 安装配置mosca
+2. 安装配置emqtt
+3. 配置mosca和emqtt的ssl连接
+4. iOS集成mqtt
+5. Android结成mqtt
 
 
 
@@ -144,6 +153,7 @@ emqtt是erlang写的应用,首先我们还是先安装erlang环境.
     # rpm -i https://packages.erlang-solutions.com/erlang/esl-erlang/FLAVOUR_1_general/esl-erlang_19.0~centos~6_i386.rpm
 
 然后安装emqtt
+
 注: 任何erlang的项目全路径里面带中文会导致项目编译不过,谁带谁SB.
 
     # git clone https://github.com/emqtt/emqttd.git
@@ -270,7 +280,7 @@ emqtt_benchmark:
 
 iOS端我们使用[MQTTClient库](https://github.com/ckrey/MQTT-Client-Framework).
 
-这里我们简单实现了连接/订阅/发送消息/接收消息, [完成源代码](https://github.com/Yaoguais/ios-on-the-way/tree/master/mqtt).
+这里我们简单实现了连接/订阅/发送消息/接收消息, [完整源代码](https://github.com/Yaoguais/ios-on-the-way/tree/master/mqtt).
 
 如果使用非ssl, 初始化代码如下:
 

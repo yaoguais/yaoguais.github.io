@@ -12,14 +12,20 @@
     <div class="left-content" id="markDownContent">
 		<div class="mdBlock">
 			<h2>iOS和Android使用MQTT协议实现消息推送和即时通讯</h2>
+<p>大多数应用都会涉及到即时聊天的功能,在开源方案中有XMPP和MQTT.其中XMPP是基于XML的,并且不支持消息质量QOS,
+所以本身并没有消息重传的机制,从而会导致丢消息.而MQTT是基于二进制的,支持QOS,并且已成为物联网的协议标准,
+所以我们有理由抛弃XMPP而拥抱MQTT.</p>
+<p>应用内部,在使用MQTT等实现即时聊天功能的同时,我们还可以在应用内部实现消息推动的功能,从而减少了我们对第三方的依赖.
+而应用外部,我们仍然不可避免的要使用APNS/GCM/信鸽/极光等推送服务.</p>
+<p>内外结合, 从而构建完整的推送机制和聊天机制.</p>
 <p>目录:</p>
-<ul>
+<ol>
 <li>安装配置mosca</li>
 <li>安装配置emqtt</li>
 <li>配置mosca和emqtt的ssl连接</li>
 <li>iOS集成mqtt</li>
 <li>Android结成mqtt</li>
-</ul>
+</ol>
 <h3>安装配置mosca</h3>
 <p>因为mosca是nodejs写的应用,所以需要先安装nodejs,安装最新的nodejs只需要两步.</p>
 <pre><code># curl --silent --location https://rpm.nodesource.com/setup_4.x | bash -
@@ -126,8 +132,8 @@ Mosca server is up and running.</code></pre>
 <h3>安装配置emqtt</h3>
 <p>emqtt是erlang写的应用,首先我们还是先安装erlang环境.</p>
 <pre><code># rpm -i https://packages.erlang-solutions.com/erlang/esl-erlang/FLAVOUR_1_general/esl-erlang_19.0~centos~6_i386.rpm</code></pre>
-<p>然后安装emqtt
-注: 任何erlang的项目全路径里面带中文会导致项目编译不过,谁带谁SB.</p>
+<p>然后安装emqtt</p>
+<p>注: 任何erlang的项目全路径里面带中文会导致项目编译不过,谁带谁SB.</p>
 <pre><code># git clone https://github.com/emqtt/emqttd.git
 # cd emqttd &amp;&amp; make &amp;&amp; make dist
 # cd rel/emqttd &amp;&amp; ./bin/emqttd console</code></pre>
@@ -208,7 +214,7 @@ var moscaSetting = {
 <p>至此,mosca和emqtt的ssl都正确配置完成,接下来我们完成iOS和Android的SDK接入.</p>
 <h3>iOS集成mqtt</h3>
 <p>iOS端我们使用<a href="https://github.com/ckrey/MQTT-Client-Framework">MQTTClient库</a>.</p>
-<p>这里我们简单实现了连接/订阅/发送消息/接收消息, <a href="https://github.com/Yaoguais/ios-on-the-way/tree/master/mqtt">完成源代码</a>.</p>
+<p>这里我们简单实现了连接/订阅/发送消息/接收消息, <a href="https://github.com/Yaoguais/ios-on-the-way/tree/master/mqtt">完整源代码</a>.</p>
 <p>如果使用非ssl, 初始化代码如下:</p>
 <pre><code>_session = [[MQTTSession alloc] init];
 _session.cleanSessionFlag = YES;
