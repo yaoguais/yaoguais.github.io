@@ -6,6 +6,9 @@
 - 安装配置mosca
 - 安装配置emqtt
 - 配置mosca和emqtt的ssl连接
+- iOS集成mqtt
+- Android结成mqtt
+
 
 
 
@@ -188,39 +191,44 @@ emqtt_benchmark:
 
 ### 配置mosca和emqtt的ssl连接
 
+首先我们使用新版本的ssl生成脚本生成jegarn.com的ssl证书.
 
-我们使用脚本生成ssl的证书:
+[脚本下载地址](https://github.com/Yaoguais/cabin/blob/master/config/salt/salt1_file_system/srv/salt/dev/source/scripts/ssl.sh)
 
-    #/bin/bash
+然后修改mosca的server.js文件, 替换成下面的部分:
 
-    pwd=`pwd`
+    var SECURE_KEY = '/tmp/ssl/server/server.key';
+    var SECURE_CERT = '/tmp/ssl/server/server.crt';
+    var SECURE_CA_CERT = '/tmp/ssl/root/ca.crt';
 
-    read -p "Enter your domain [jegarn.com]: " DOMAIN
-    read -p "Enter your file prefix [server]: " NAME
-    read -p "Enter your save directory [/tmp/ssl]: " DIR
+    var moscaSetting = {
+        interfaces: [
+            { type: "mqtt", port: 1883 },
+            { type: "mqtts", port: 8883, credentials: { keyPath: SECURE_KEY, certPath: SECURE_CERT, caPaths: [SECURE_CA_CERT] } },
+            { type: "http", port: 3000, bundle: true },
+            { type: "https", port: 3001, bundle: true, credentials: { keyPath: SECURE_KEY, certPath: SECURE_CERT } }
+        ],
+        stats: false,
 
-    mkdir -p $DIR
-    cd $DIR
-    openssl genrsa -des3 -out $NAME.key 2048
-    SUBJECT="/C=CN/ST=SiChuan/L=ChengDu/O=YaoGuai/OU=YaoGuai/CN=$DOMAIN"
-    openssl req -new -subj $SUBJECT -key $NAME.key -out $NAME.csr
-    # remove password
-    mv $NAME.key $NAME.ori.key
-    openssl rsa -in $NAME.ori.key -out $NAME.key
-    openssl x509 -req -days 3650 -in $NAME.csr -signkey $NAME.key -out $NAME.crt
-    cd $pwd
+        logger: { name: 'MoscaServer', level: 'debug' },
+
+        persistence: { factory: mosca.persistence.Redis, url: 'localhost:6379', ttl: { subscriptions: 1000 * 60 * 10, packets: 1000 * 60 * 10 } },
+
+        backend: pubsubSettings,
+    };
 
 
-这里DOMAIN就填"127.0.0.1",NAME填server,DIR填/tmp/ssl, 中间过程会要求我们输入不小于4位的密码,
-但是最终生成的server.key文件我们是把密码去掉了的,要不然像nginx这类服务器使用带密码的key,
-会在每次启动关闭时让你输入key的.
+然后我们使用mosquitto的工具测试:
 
-我们修改mosca的server.js脚本, 将证书位置替换成我们刚才生成的证书.
+    # mosquitto_sub -R -h jegarn.com -p 8883 -c -i client_id_test_10008 -t user/10007 -u mqtt -P my_password -d -q 1 --cert client/client.crt --key client/client.key --cafile root/ca.crt
+    # mosquitto_pub -d -h jegarn.com -p 8883 -i app_service -t user/10007 -m "test" -u mqtt -P my_password -q 1  --cert client/client.crt --key client/client.key --cafile root/ca.crt
 
-    var SECURE_KEY = '/tmp/ssl/server.key';
-    var SECURE_CERT = '/tmp/ssl/server.crt';
+经测试订阅端可以正常收到消息,并且mosca也有正确的调试输出.
 
-我们也修改emqtt的配置文件"emqttd/rel/emqttd/etc/emqttd.config",将证书路径替换.
+
+然后我们接着测试emqtt的ssl连接:
+
+修改emqtt的配置文件"emqttd/rel/emqttd/etc/emqttd.config",将证书路径替换.
 
     {mqtts, 8883, [
         %% Size of acceptor pool
@@ -233,8 +241,9 @@ emqtt_benchmark:
         {access, [{allow, all}]},
 
         %% SSL certificate and key files
-        {ssl, [{certfile, "/tmp/ssl/server.crt"},
-               {keyfile,  "/tmp/ssl/server.key"}]},
+        {ssl, [{certfile, "/tmp/ssl/server/server.crt"},
+               {keyfile,  "/tmp/ssl/server/server.key"},
+               {cacertfile, "/tmp/ssl/root/ca.crt"}]},
 
         %% Socket Options
         {sockopts, [
@@ -243,3 +252,73 @@ emqtt_benchmark:
         ]}
     ]},
 
+
+同样我们使用mosquitto的工具测试:
+
+    # mosquitto_sub -R -h jegarn.com -p 8883 -c -i client_id_test_10008 -t user/10007 -u mqtt -P my_password -d -q 1 --cert client/client.crt --key client/client.key --cafile root/ca.crt
+    # mosquitto_pub -d -h jegarn.com -p 8883 -i app_service -t user/10007 -m "test" -u mqtt -P my_password -q 1  --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+经测试订阅端可以正常收到消息.
+
+至此,mosca和emqtt的ssl都正确配置完成,接下来我们完成iOS和Android的SDK接入.
+
+
+
+
+
+### iOS集成mqtt
+
+iOS端我们使用[MQTTClient库](https://github.com/ckrey/MQTT-Client-Framework).
+
+这里我们简单实现了连接/订阅/发送消息/接收消息, [完成源代码](https://github.com/Yaoguais/ios-on-the-way/tree/master/mqtt).
+
+如果使用非ssl, 初始化代码如下:
+
+    _session = [[MQTTSession alloc] init];
+    _session.cleanSessionFlag = YES;
+    _session.delegate = self;
+    _session.userName = @"test";
+    _session.password = @"test";
+
+    [_session connectToHost:@"jegarn.com" port:1883 usingSSL:NO connectHandler:^(NSError *error) {
+        NSLog(@"connect error %@", error);
+        // 简单测试订阅/发布
+        [self subscribeTest];
+        [self publishTest];
+    }];
+
+ssl连接代码如下:
+
+    MQTTSSLSecurityPolicy *securityPolicy = [MQTTSSLSecurityPolicy policyWithPinningMode:MQTTSSLPinningModeCertificate];
+    NSString *certificate = [[NSBundle bundleForClass:[self class]] pathForResource:@"server" ofType:@"cer"];
+    securityPolicy.pinnedCertificates = @[[NSData dataWithContentsOfFile:certificate]];
+    securityPolicy.allowInvalidCertificates = YES;
+    securityPolicy.validatesCertificateChain = NO;
+
+    NSString *p12File = [[NSBundle mainBundle] pathForResource:@"client" ofType:@"p12"];
+    NSString *p12Password = @"111111";
+    NSArray * certificates = [MQTTCFSocketTransport clientCertsFromP12:p12File passphrase:p12Password];
+
+    _session = [[MQTTSession alloc] init];
+    _session.cleanSessionFlag = YES;
+    _session.delegate = self;
+    _session.userName = @"test";
+    _session.password = @"test";
+    _session.securityPolicy = securityPolicy;
+    _session.certificates = certificates;
+
+    [_session connectToHost:@"jegarn.com" port:8883 usingSSL:YES connectHandler:^(NSError *error) {
+        NSLog(@"connect error %@", error);
+        // 简单测试订阅/发布
+        [self subscribeTest];
+        [self publishTest];
+    }];
+
+
+其中要注意的是在使用SSL的时候,我们一般将validatesCertificateChain设置为NO,因为它会花很长的时间去验证证书链.
+而allowInvalidCertificates设置为YES,会在验证系统证书的同时验证我们应用中添加的证书.
+
+
+### Android结成mqtt
+
+... 待续
