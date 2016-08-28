@@ -14,9 +14,13 @@
 
 1. 安装配置mosca
 2. 安装配置emqtt
-3. 配置mosca和emqtt的ssl连接
-4. iOS集成mqtt
-5. Android结成mqtt
+3. 配置mosca的ssl连接
+4. 配置emqtt的ssl连接
+5. iOS集成mqtt(含SSL)
+6. Android集成mqtt(含SSL)
+7. 配置mosca的集群支持
+8. 配置emqtt的集群支持
+9. 一些总结
 
 
 
@@ -146,6 +150,8 @@
 
 
 
+
+
 ### 安装配置emqtt
 
 emqtt是erlang写的应用,首先我们还是先安装erlang环境.
@@ -199,7 +205,9 @@ emqtt_benchmark:
 
 
 
-### 配置mosca和emqtt的ssl连接
+
+
+### 配置mosca的ssl连接
 
 首先我们使用新版本的ssl生成脚本生成jegarn.com的ssl证书.
 
@@ -235,6 +243,14 @@ emqtt_benchmark:
 
 经测试订阅端可以正常收到消息,并且mosca也有正确的调试输出.
 
+
+
+
+
+
+
+
+### 配置emqtt的ssl连接
 
 然后我们接着测试emqtt的ssl连接:
 
@@ -276,7 +292,9 @@ emqtt_benchmark:
 
 
 
-### iOS集成mqtt
+
+
+### iOS集成mqtt(含SSL)
 
 iOS端我们使用[MQTTClient库](https://github.com/ckrey/MQTT-Client-Framework).
 
@@ -329,6 +347,322 @@ ssl连接代码如下:
 而allowInvalidCertificates设置为YES,会在验证系统证书的同时验证我们应用中添加的证书.
 
 
-### Android结成mqtt
 
-... 待续
+
+
+
+
+### Android集成mqtt(含SSL)
+
+Android的MQTT客户端我们使用官方实现,[GitHub地址](https://github.com/eclipse/paho.mqtt.android),
+整个集成过程也很简单.
+
+首先配置包依赖:
+
+    repositories {
+        maven {
+            url "https://repo.eclipse.org/content/repositories/paho-releases/"
+        }
+    }
+
+
+    dependencies {
+        compile 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.1.0'
+        compile 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.0'
+    }
+
+
+然后修改AndroidManifest.xml, 添加网络权限及注入后台Service:
+
+    <?xml version="1.0" encoding="utf-8"?>
+    <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+        package="com.jegarn.mqtt">
+
+        <!-- Permissions the Application Requires -->
+        <uses-permission android:name="android.permission.WAKE_LOCK" />
+        <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+        <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+        <uses-permission android:name="android.permission.READ_PHONE_STATE" />
+        <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+        <uses-permission android:name="android.permission.INTERNET" />
+
+        <application
+            android:allowBackup="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name"
+            android:supportsRtl="true"
+            android:theme="@style/AppTheme">
+            <activity android:name=".MainActivity">
+                <intent-filter>
+                    <action android:name="android.intent.action.MAIN" />
+
+                    <category android:name="android.intent.category.LAUNCHER" />
+                </intent-filter>
+            </activity>
+            <service android:name="org.eclipse.paho.android.service.MqttService">
+            </service>
+        </application>
+
+    </manifest>
+
+
+最后我们参照官方提供的示例代码,实现简单的连接/订阅/发送消息/接收消息.
+
+[完整的源代码](https://github.com/Yaoguais/android-on-the-way/tree/master/Mqtt)
+
+
+SSL连接与非SSL连接的差别很少,一个是连接字符串,另一个是SocketFactory类型.
+
+    normal: "tcp://jegarn.com:1883"
+    ssl: ssl://jegarn.com:8883
+
+
+其中实现SSLSocketFactory我直接原样导入了com.zhy:okhttputils项目的HttpsUtils.java文件,
+上次的API的Https请求也是依赖这个库实现的,特别的方便和强大.
+
+    InputStream certificates = getResources().openRawResource(R.raw.server);
+    InputStream pkcs12File = getResources().openRawResource(R.raw.client);
+    String password = "111111";
+    InputStream bksFile = HttpsUtils.pkcs12ToBks(pkcs12File, password);
+    HttpsUtils.SSLParams sslParams = HttpsUtils.getSslSocketFactory(new InputStream[]{certificates}, bksFile, password);
+
+    MqttConnectOptions mqttConnectOptions = new MqttConnectOptions();
+    mqttConnectOptions.setSocketFactory(sslParams.sSLSocketFactory);
+
+
+简单几行就实现了对SSL的支持.
+
+至此iOS和Android对MQTT的集成(包含SSL连接)也算是完成了.
+
+
+
+
+
+
+
+### 配置mosca的集群支持
+
+我们复制bin/server.js到bin/server2.js, 修改其中的端口, 来实现一个两台服务器的集群.
+
+    # cd mosca
+    # cp bin/server.js bin/server2.js
+
+修改端口:
+
+    interfaces: [
+        { type: "mqtt", port: 1884 },
+        { type: "mqtts", port: 8884, credentials: { keyPath: SECURE_KEY, certPath: SECURE_CERT, caPaths: [SECURE_CA_CERT] } },
+        { type: "http", port: 3002, bundle: true },
+        { type: "https", port: 3003, bundle: true, credentials: { keyPath: SECURE_KEY, certPath: SECURE_CERT } }
+    ],
+
+
+由于我们使用的是redis的driver, 而mosca的发布订阅依赖于redis, 所以我们先了解redis的发布订阅.
+
+首先我们看redis的[官方文档](http://redis.io/commands/pubsub), 关于查询发布订阅信息的命令是PUBSUB,
+其又有三个子命令.
+
+    PUBSUB CHANNELS [pattern] // 查看当前有订阅者的topic
+    PUBSUB NUMSUB [channel-1 ... channel-N] // 查看指定的topic的订阅人数
+    PUBSUB NUMPAT // 返回带通配符的topic数量
+
+我们在未启动任何一个mqtt服务器的情况下,先查看redis当前的情况
+
+    127.0.0.1:6379> select 12
+    OK
+    127.0.0.1:6379[12]> keys *
+    (empty list or set)
+    127.0.0.1:6379[12]> pubsub channels *
+    (empty list or set)
+    127.0.0.1:6379[12]> pubsub numpat
+    (integer) 0
+    127.0.0.1:6379[12]>
+
+然后启动一个服务器:
+
+    # node bin/server2.js
+
+    127.0.0.1:6379[12]> pubsub channels *
+    1) "$SYS/moscaSync"
+    127.0.0.1:6379[12]> pubsub numpat
+    (integer) 1
+    127.0.0.1:6379[12]> pubsub numsub $SYS/moscaSync
+    1) "$SYS/moscaSync"
+    2) (integer) 1
+
+然后使用客户端命令订阅一个话题:
+
+    # mosquitto_sub -R -h jegarn.com -p 8884 -c -i client_id_test_10008 -t user/9527 -u mqtt -P my_password -d -q 1 --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+    127.0.0.1:6379[12]> pubsub channels *
+    1) "user/9527/"
+    2) "$SYS/moscaSync"
+    127.0.0.1:6379[12]> pubsub numpat
+    (integer) 1
+    127.0.0.1:6379[12]> pubsub numsub $SYS/moscaSync
+    1) "$SYS/moscaSync"
+    2) (integer) 1
+    127.0.0.1:6379[12]> pubsub numsub user/9527/
+    1) "user/9527/"
+    2) (integer) 1
+
+我们发现增加了一个话筒"user/9527/", 并且订阅人数是1.
+
+然后我们再启动一个服务器,并用新的clientId订阅"user/9527"这个topic:
+
+    # node bin/server.js
+
+    # mosquitto_sub -R -h jegarn.com -p 8883 -c -i client_id_test_10009 -t user/9527 -u mqtt -P my_password -d -q 1 --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+    127.0.0.1:6379[12]> pubsub channels *
+    1) "user/9527/"
+    2) "$SYS/moscaSync"
+    127.0.0.1:6379[12]> pubsub numpat
+    (integer) 2
+    127.0.0.1:6379[12]> pubsub numsub user/9527/
+    1) "user/9527/"
+    2) (integer) 2
+    127.0.0.1:6379[12]> pubsub numsub $SYS/moscaSync
+    1) "$SYS/moscaSync"
+    2) (integer) 2
+
+这里我们发现"user/9527/"的订阅人数是变成了2, 然后我们新开一个客户端, 随便选择一个服务器, 给这个话题发送一个消息.
+
+    # mosquitto_pub -d -h jegarn.com -p 8883 -i app_service -t user/9527 -m "test" -u mqtt -P my_password -q 1  --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+经测试, 订阅不同服务器的两个client都收到了消息.
+
+另外需要说明的一点是, 如果订阅了一个通配符, 如果一个新的topic被发送消息, 并且这个topic匹配通配符, 那么这个通配符的订阅者
+也会订阅上这个新产生的topic.
+
+通过上面的实验, 我们发现mosca在redis驱动上的实现是依赖于redis服务器的发布订阅的,
+所以所有连接的压力最终都会压在redis身上.
+
+redis通过把key哈希到不同的槽点, 每个节点负责一定范围的槽点, 从而使用分片实现集群.
+
+我们看Redis Cluster对发布订阅的支持
+
+    Publish/Subscribe
+
+    In a Redis Cluster clients can subscribe to every node, and can also publish to every other node.
+    The cluster will make sure that published messages are forwarded as needed.
+
+    The current implementation will simply broadcast each published message to all other nodes,
+    but at some point this will be optimized either using Bloom filters or other algorithms.
+
+本身Redis在集群间的同步带宽在一些公开的数据中占的50以上, 而发布订阅又是将消息广播给所有的节点,
+那么在集群中所有的带宽很可能就被集群间的消息通讯和同步吃满, 从而拥有很低的利用率,
+明显这个方案是不可取的.
+
+所以mosca在大量用户的情况下, 是不可使用的.
+
+
+
+
+
+
+
+
+### 配置emqtt的集群支持
+
+
+为了方便,我们的集群还是部署在同一台物理机上, 但使用两个不同的实例.
+
+首先我们复制emqtt的项目:
+
+    # ls emqttd/
+    CHANGES  deps  docs  ebin  include  LICENSE  Makefile  plugins  README.md  rebar  rebar.config  rel  src  test
+    # cp -a emqttd emqttd2
+
+通过启动一个实例前后对系统端口占用情况差别的分析,得出一下结论(摘自官方文档)
+
+    1883 	MQTT协议端口
+    8883 	MQTT(SSL)端口
+    8083 	MQTT(WebSocket), HTTP API端口
+    58785   穿透防火墙用的反弹型连接, 是一个可变端口
+    18083   emqttd消息服务器的Web管理控制台,Dashboard插件
+
+那么我们先关闭8083/18083端口, 然后将emqttd2的端口修改为1884/8884.
+最后修改vm.args节点的名称.
+
+    # vim emqttd/rel/emqttd/data/loaded_plugins
+    删除里面的内容, 以移除Web管理功能
+    # emqttd/rel/emqttd/etc/emqttd.conf
+    关闭不使用的端口
+    %% HTTP and WebSocket Listener
+    %%{http, 8083, [
+        %% Size of acceptor pool
+        %%{acceptors, 4},
+        %% Maximum number of concurrent clients
+        %%{max_clients, 64},
+        %% Socket Access Control
+        %%{access, [{allow, all}]},
+        %% Socket Options
+        %%{sockopts, [
+        %%    {backlog, 1024}
+            %{buffer, 4096},
+       %% ]}
+    %%]}
+
+    vm.args
+    emqttd: -name node1@jegarn.com
+    emqttd2: -name node2@jegarn.com
+
+
+然后将一个实例加入另一个实例:
+
+    [root@jegarn emqttd]# ./bin/emqttd_ctl cluster join node1@jegarn.com
+    Join the cluster successfully.
+    Cluster status: [{running_nodes,['node1@jegarn.com','node2@jegarn.com']}]
+    [root@jegarn emqttd]# ./bin/emqttd_ctl cluster status
+    Cluster status: [{running_nodes,['node1@jegarn.com','node2@jegarn.com']}]
+
+同样我们使用一个client进行订阅:
+
+    # mosquitto_sub -R -h jegarn.com -p 8883 -c -i client_id_test_10009 -t user/9527 -u mqtt -P my_password -d -q 1 --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+然后使用另一个client在另一个实例上订阅同一个topic:
+
+    # mosquitto_sub -R -h jegarn.com -p 8884 -c -i client_id_test_10008 -t user/9527 -u mqtt -P my_password -d -q 1 --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+最后我们使用新的client向这个topic发送一条消息:
+
+    # mosquitto_pub -d -h jegarn.com -p 8883 -i app_service -t user/9527 -m "test" -u mqtt -P my_password -q 1  --cert client/client.crt --key client/client.key --cafile root/ca.crt
+
+经测试, 两个client同时都收到消息.
+
+通过emqtt的官方说明, 其集群的实现是通过每个节点都保存一份主题树(Topic Trie)和路由表.
+具体可以参照[这里的官方说明](http://emqtt.com/docs/cluster.html#topic-trie-route-table).
+
+消息的转发是避免不了的, 那么集群节点间通讯的消耗主要集中在topic和node关系表的广播.
+
+这种选择性的消息广播, 也要优于Redis Cluster的向所有节点广播, 将来Redis可能也会实现相关的功能以减少带宽的消耗.
+
+最后假设拥有一千万的用户, 每个用户的收件箱的topic为"user/uid", 例如"user/10000",
+那么每个topic所在的字节平均为10个字节, 我们再假设每个topic只在一个节点被订阅, 那么节点名称平均10个字节.
+
+所以1个topic为20字节, 一千万用户为:
+
+    10 000 000 * 20 = 200M
+
+这个大小是可以接收的.
+
+如果往极端的情况想, 一个topic被10个节点上被订阅, 那么这个大小就为2G左右了.
+具体的情况还是需要以实际的测试为准.
+
+总之, emqtt在设计上是要由于mosca的.
+
+
+
+
+
+
+### 一些总结
+
+
+通过以前的那篇[MQTT协议](http://yaoguais.com/article/protocol/mqtt.html), 和翻看mosquitto源码,
+稍微深入的了解到了MQTT服务端和客户端的实现.
+
+通过今天的这篇文章, 加深了对MQTT的应用, 通过两次实践, 完全有能力自己搭建服务端并完成基于MQTT的IM应用的开发.
+
