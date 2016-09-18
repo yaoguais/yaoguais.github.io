@@ -45,10 +45,35 @@
 
 
 
-### App ###
+### iOS ###
 
-1. [iOS和Android使用SSL双向认证构建安全通讯信道](?s=md/app/https-api.md)
-2. [iOS和Android使用MQTT协议实现消息推送和即时通讯](?s=md/app/im.md)
+1. [IOS开发之准备工作](?s=md/ios/start.md)
+2. [NSURLSession之GET、POST、文件上传、文件下载](https://github.com/Yaoguais/ios-on-the-way/tree/master/network)
+3. [AFNetworking之GET、POST、文件上传、文件下载](https://github.com/Yaoguais/ios-on-the-way/tree/master/afnetworking)
+4. [iOS使用SSL双向认证构建安全通讯信道](?s=md/app/https-api.md)
+5. [Json Model之间的转换](https://github.com/Yaoguais/ios-on-the-way/tree/master/JsonModel)
+6. [NavigationController使用](https://github.com/Yaoguais/ios-on-the-way/tree/master/navigation)
+7. [HTTPS之SSL双向认证](https://github.com/Yaoguais/ios-on-the-way/tree/master/https-api)
+8. [UITableView实现手机通讯录](https://github.com/Yaoguais/ios-on-the-way/tree/master/tableview/tableview/Controllers/Contacts)
+9. [UITableView实现精简版微博Feed流](https://github.com/Yaoguais/ios-on-the-way/tree/master/tableview/tableview/Controllers/Weibo)
+10. [UITableView实现搜索过滤功能](https://github.com/Yaoguais/ios-on-the-way/tree/master/tableview/tableview/Controllers/Search)
+11. [上拉加载下拉更新](https://github.com/Yaoguais/ios-on-the-way/tree/master/refresh)
+12. [MQTTClient实现消息推动与即时聊天](https://github.com/Yaoguais/ios-on-the-way/tree/master/mqtt)
+13. [iOS使用MQTT协议实现消息推送和即时通讯](?s=md/app/im.md)
+14. [基于聊天框架jegarn实现的iOS即时通讯应用](https://github.com/Yaoguais/ios-on-the-way/tree/master/minions)
+
+
+
+
+
+### Android ###
+
+1. [Android开发之准备工作](?s=md/android/start.md)
+2. [Android使用SSL双向认证构建安全通讯信道](?s=md/app/https-api.md)
+3. [Android使用MQTT协议实现消息推送和即时通讯](?s=md/app/im.md)
+4. [基于eclipse paho框架的Android SDK实现消息推动与即时聊天](https://github.com/Yaoguais/ios-on-the-way/tree/master/Mqtt)
+5. [基于聊天框架jegarn实现的Android即时通讯应用](https://github.com/Yaoguais/ios-on-the-way/tree/master/android-chat-system)
+
 
 
 
@@ -58,10 +83,8 @@
 	
 1. [Mysql表优化](?s=md/mysql/index.md)
 2. [MQTT协议](?s=md/protocol/mqtt.md)
-3. [Android开发之准备工作](?s=md/android/start.md)
-4. [IOS开发之准备工作](?s=md/ios/start.md)
-5. [Golang开发之准备工作](?s=md/golang/start.md)
-6. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
+3. [Golang开发之准备工作](?s=md/golang/start.md)
+4. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
 
 
 
