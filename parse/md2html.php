@@ -31,7 +31,10 @@ $readMeContent = "#[Yaoguai's blog](https://yaoguais.github.io)#\n\n";
 foreach ($matches[1] as $i => $title) {
     if ($i > 0) {
         $link = $matches[2][$i];
-        $readMeContent .= "$i. [$title](https://yaoguais.github.io$link)\n";
+        if (substr($link, 0, 4) != 'http') {
+            $link .= 'https://yaoguais.github.io';
+        }
+        $readMeContent .= "$i. [$title]($link)\n";
     }
 }
 $readMeContent .= "\n#[click here to view](https://yaoguais.github.io)#\n";
