@@ -32,7 +32,7 @@ foreach ($matches[1] as $i => $title) {
     if ($i > 0) {
         $link = $matches[2][$i];
         if (substr($link, 0, 4) != 'http') {
-            $link .= 'https://yaoguais.github.io';
+            $link = 'https://yaoguais.github.io' . $link;
         }
         $readMeContent .= "$i. [$title]($link)\n";
     }
