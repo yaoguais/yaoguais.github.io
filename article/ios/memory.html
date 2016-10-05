@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>iOS内存管理的实现与总结</title>
+	<link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?">
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>iOS内存管理的实现与总结</h2>
+<p>因为Objective-C没有垃圾回收机制, 所以在iOS开发过程中, 一般是依靠自动引用计数(ARC)和手动引用计数(MRC)进行内存管理的.</p>
+<p>虽然知道个大概也能写出很多APP, 并且也能拥有较低的崩溃率. 但是要写出更美的代码, 这些基础的东西是必须要掌握的.</p>
+<p>下面的内容是基于《Objective-C高级编程 iOS与OS X多线程和内存管理》一书整理而来, 但是由于该书历史已久,
+或许某些内容对于现在的版本已经不再适用, 所以我也新开了一个项目对书中的某些点进行实际的检验.</p>
+<p>目录:</p>
+<ol>
+<li>自动引用计数基础实现规则
+<ul>
+<li>自动引用计数的痛点</li>
+<li>alloc/retain/release/dealloc的实现</li>
+<li>autorelease的实现</li>
+</ul></li>
+<li>对象所有权修饰符
+<ul>
+<li>__strong修饰符</li>
+<li>__weak修饰符</li>
+<li>__unsafe_retained修饰符</li>
+<li>__autoreleasing修饰符</li>
+</ul></li>
+</ol>
+<h3>自动引用计数基础实现规则</h3>
+<p>iOS自动引用计数可以归纳为下面这张表:</p>
+<table>
+<thead>
+<tr>
+<th>对象操作</th>
+<th>Objective-C的方法</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>生成并持有对象</td>
+<td>alloc/new/copy/multiCopy命令规则开头的方法</td>
+</tr>
+<tr>
+<td>持有对象</td>
+<td>retain方法</td>
+</tr>
+<tr>
+<td>释放对象</td>
+<td>release方法</td>
+</tr>
+<tr>
+<td>废弃对象</td>
+<td>dealloc方法</td>
+</tr>
+</tbody>
+</table>
+<p>以上这些方法都是作用于NSObject对象的, 其对象都会拥有一个叫retainCount的属性, 调用上述方法即是对retainCount值进行加减.
+其中我们并不手动调用dealloc方法, 而是在调用release时, release方法发现retainCount为0了, 便自动调用dealloc方法释放为其申请的内存.</p>
+<h4>自动引用计数的痛点</h4>
+<p>在iOS中, 自动引用计数的痛点大致有两个, 一个是无法解决循环引用的问题, 另一个是iOS中仍然存在较多的框架未使用ARC,
+所以会有一个两者之间转换的过程.</p>
+<p>在有垃圾回收机制的语言中, 循环引用能够使用多种方式来解决. 例如PHP中使用<a href="http://php.net/manual/zh/features.gc.collecting-cycles.php">标记-清除</a>
+的方式.</p>
+<h4>alloc/retain/release/dealloc的实现</h4>
+<p>因为苹果是个闭源系统, 所以没法直接通过源代码查看其实现方式. 但是有一个跟苹果等价的开源系统实现GNUStep, 因此我们先了解它是怎么实现的.</p>
+<h6>GNUStep的实现</h6>
+<pre><code>struct obj_layout{
+    NSUInteger retained;
+};</code></pre>
+<p>在64位的机器上NSUInteger占8个字节, 如果我们需要一个20子节的对象, 那么就得分配28字节,
+前8个字节作为retained, 第9个字节就是对象的内存地址.</p>
+<p>只要我们知道对象的地址, 那么也就能知道其引用计数了.</p>
+<h6>Apple的实现</h6>
+<p>我们可以使用lldb单步跟踪, 猜测出大致的实现.</p>
+<p>使用hash表来实现的, 其中健值为对象内存地址的散列值, 健对应的桶里面装的即是引用计数.</p>
+<h4>release与autorelease的区别</h4>
+<p>在上面我们讲解了release方法的作用, 在MRC阶段, 一个对象的过程一般如下:</p>
+<pre><code>{
+    NSObject * obj = [[NSObject alloc] init]; // retainCount = 1
+    [obj retain]; // retainCount = 2
+    [obj release]; // retainCount = 1
+}
+// 生命周期结束, 调用release, 发现retainCount=0, 再调用dealloc方法释放内存</code></pre>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+			return false;
+		});
+		//index-hidden-end
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>
