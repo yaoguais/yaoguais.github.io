@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>iOS中Blocks的实现与总结</title>
+	<link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?">
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>iOS中Blocks的实现与总结</h2>
+<p>iOS中的Block有点像C中的函数指针, JS/PHP等语言中的匿名函数或闭包, 我觉得使用Block的主要目的是减少代码的复杂度,
+将相关的代码放到一堆便于阅读与理解.</p>
+<p>这篇文章的中内容也由阅读《Objective-C高级编程 iOS与OS X多线程和内存管理》一书后整理而来.</p>
+<p>目录:</p>
+<ol>
+<li>基础使用规则</li>
+<li>截获自动变量</li>
+<li>Block的实现</li>
+<li>Block的类型</li>
+<li>Block循环引用</li>
+<li>总结</li>
+</ol>
+<h3>基础使用规则</h3>
+<p>基础的语法公式是</p>
+<pre><code>^ [返回值类型] [(参数列表)] {表达式}</code></pre>
+<p>例如:</p>
+<pre><code>^ void (void) { printf("Blocks\n"); }</code></pre>
+<p>省略返回值</p>
+<pre><code>^ (void) { printf("Blocks\n"); }</code></pre>
+<p>再省略参数列表</p>
+<pre><code>^ { printf("Blocks\n"); }</code></pre>
+<p>其中如果省略返回值, 那么表达式返回什么类型, 返回值就是什么类型, 如果表达式中没有return, 那么就是返回void.</p>
+<pre><code>^ (void) { return 1; }</code></pre>
+<p>就和</p>
+<pre><code>^ NSInteger (void) { return 1; }</code></pre>
+<p>等效.</p>
+<p>申明一个Block变量跟C语言中申明函数指针一致.</p>
+<p>如:</p>
+<pre><code>int (^ myBlock) (void) = ^ (void) { return 1; };</code></pre>
+<p>为了方便阅读, 我们一般会使用typedef定义一种block类型, 如:</p>
+<pre><code>typedef int (^ MyBlock) (void);
+MyBlock myBlock = ^ (void) { return 1; };</code></pre>
+<h3>截获自动变量</h3>
+<p>书中对Block的定义是&quot;带有自动变量值的匿名函数&quot;, 那么什么是带有自动变量值呢, 请看下面的代码:</p>
+<pre><code>{
+    int dmy = 256;
+    int val = 20;
+    const char * fmt = "val = %d\n";
+
+    void (^blk) (void) = ^{ printf(fmt, val); };
+    val = 2;
+    fmt = "changed val = %d\n";
+    blk();
+
+    // 输出 val = 20
+}</code></pre>
+<p>通过结果, 我们可以发现, block中的fmt/val在block被赋值的时候就定下来了.</p>
+<p>如果我们在block中改变外部变量的值, 会引发编译错误, 比如:</p>
+<pre><code>void (^blk) (void) = ^{ val = 1; };</code></pre>
+<p>要解决这个问题, 我们有两种方式, 一种提高变量的作用域, 比如将val申明为全局变量或静态全局变量,</p>
+<pre><code>int val = 20;
+// 或
+// static int val = 20;
+int main() {
+
+}</code></pre>
+<p>但是申明为静态变量是不行的, 如</p>
+<pre><code>int main() {
+    static int val = 20;
+}</code></pre>
+<p>这个与Block的实现有关.</p>
+<p>另一种就是使用__block关键字申明变量, 比如</p>
+<pre><code>__block int val = 20;
+void (^blk) (void) = ^{ val = 1; }; // 允许</code></pre>
+<h3>Block的实现</h3>
+<p>Block的实现比较繁杂, 但书中也讲的比较清晰, 我这里做一个简单的类比.</p>
+<p>大体上是根据block申明所处的环境, 构造一个类, 这个类包含一个方法, 方法体即是Block的表达式.</p>
+<p>然后在block前面申明的变量, 如果也在block中使用的话, 就会成为block包装的类属性.</p>
+<p>如果变量被__block修饰, 从而能够被修改, 并且影响到block外部的变量, 其区别在于类属性保存的是外部变量的地址.</p>
+<h3>Block的类型</h3>
+<p>Block根据其赋值的位置被分为</p>
+<ul>
+<li>_NSConcreteGlobalBlock</li>
+<li>_NSConcreteStackBlock</li>
+<li>_NSConcreteMallocBlock</li>
+</ul>
+<p>例如:</p>
+<pre><code>int (^ myBlock) (void) = ^ (void) { return 1; };
+int main()
+{</code></pre>
+<p>myBlock就会标识为NSConcreteGlobalBlock类型的Block.</p>
+<p>那么怎么标识一个Block究竟是哪一种类型呢, 可以参考下表:</p>
+<h6>NSConcreteGlobalBlock</h6>
+<ol>
+<li>在申明全局变量的位置的Block</li>
+<li>Block表达式中不使用截获变量的Block</li>
+</ol>
+<h6>NSConcreteStackBlock</h6>
+<ol>
+<li>在函数或方法中的Block</li>
+</ol>
+<h6>NSConcreteMallocBlock</h6>
+<ol>
+<li>函数返回值返回的Block</li>
+<li>调用Block的Copy方法生成的Block(NSConcreteGlobalBlock除外)</li>
+</ol>
+<p>当我们需要将一个Block从栈上复制到堆上, 以增加其生命周期的时候, 调用Block的copy方法即可, 比如:</p>
+<pre><code>void func(){
+    typedef int (^ MyBlock) (void);
+    MyBlock myBlock = ^ (void) { return 1; }; // 栈上
+    MyBlock heapBlock = [myBlock copy]; // 堆上, 并交给ARC管理
+}</code></pre>
+<p>什么时候会导致栈上的Block被复制到堆上呢, 总结下来有下面5点:</p>
+<ol>
+<li>调用Block的copy方法时</li>
+<li>Block作为函数返回值的时候</li>
+<li>将Block赋值给附有__strong修饰符id类型的实例或Block类型的实例时</li>
+<li>作为含有usingBlock的Cocoa框架方法的参数时</li>
+<li>作为GCD的API方法参数时</li>
+</ol>
+<p>其他的情况, 如果也需要将一个Block复制到堆上, 就要手动调用其copy方法了.</p>
+<p>需要注意的是, 当Block会复制到堆上时, 其截获的自动变量也会全部被复制到堆上.</p>
+<h3>Block循环引用</h3>
+<p>当类实例持有Block并且Block也持有类实例时, 就会造成循环引用, 例如下面的代码</p>
+<pre><code>typedef void (^ MyBlock) (void);
+self.myBlock = ^{ NSLog(@"circle ref %@", self); };</code></pre>
+<p>要解决循环引用, 我们可以使用__weak修饰符, 例如:</p>
+<pre><code>typedef void (^ MyBlock) (void);
+id __weak tmp = self;
+self.myBlock = ^{ NSLog(@"no circle ref %@", tmp); };</code></pre>
+<p>同样, 截获类的任何一个属性, 也会造成循环引用</p>
+<pre><code>typedef void (^ MyBlock) (void);
+self.myBlock = ^{ NSLog(@"circle ref %@", _myName); };</code></pre>
+<p>使用Block也能避免循环引用, 但是必须执行Block, 并且将截获变量置为nil, 否则也会有造成内存泄漏.</p>
+<pre><code>typedef void (^ MyBlock) (void);
+__block id tmp = self;
+self.myBlock = ^{
+    NSLog(@"no circle ref %@", tmp);
+    tmp = nil;
+};</code></pre>
+<p>上面我们都是在ARC模式下的循环引用的解决方式.</p>
+<p>但是当处于MRC模式下时, 一旦Block被复制到堆上, 我们就需要调用release方法来释放其内存, 例如</p>
+<pre><code>void (^blk_on_head)(void) = [blk_on_stack copy]; // 复制到堆上
+[blk_on_head release]; // 释放内存</code></pre>
+<p>堆上的Block我们就可以使用retain/release等函数控制其引用计数了.
+这时, 我们就把Block当成一个MRC的普通变量处理即可.
+而栈上的Block会在调用栈结束的时候被释放, 所以调用其retain/release是没有意义的.</p>
+<p>因为Blocks是C语言的扩展, 所以我们也可以使用Block_retain/Block_release这两个C函数代替
+retain/release方法.</p>
+<h3>总结</h3>
+<p>Blocks在iOS开发中的使用频率相当的高, 正确的使用Block也是一门基础能力.</p>
+<p>我们先学习了Block的基础使用方式, 然后又从语法实现上明白了Block的实现细节,
+最后总结了使用Blocks容易造成的循环引用的解决办法.</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+			return false;
+		});
+		//index-hidden-end
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>
