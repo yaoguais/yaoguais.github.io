@@ -88,31 +88,3 @@
 2. [MQTT协议](?s=md/protocol/mqtt.md)
 3. [Golang开发之准备工作](?s=md/golang/start.md)
 4. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
-
-
-
-
-
-### Algorithm ###
-
-1. [insert sort](?s=md/algorithm/insert.md)
-2. [bubble sort](?s=md/algorithm/bubble.md)
-3. [quick sort](?s=md/algorithm/quick.md)
-4. [select sort](?s=md/algorithm/select.md)
-5. [merge sort](?s=md/algorithm/merge.md)
-6. [heap sort](?s=md/algorithm/heap.md)
-
-
-
-
-
-### Data Structure ###
-
-1. [min heap operation](?s=md/data_structure/heap.md)
-2. [binary search](?s=md/data_structure/binary_search.md)
-3. [avl](?s=md/data_structure/avl.md)
-4. [hash table](?s=md/data_structure/hash.md)
-
-
-
-

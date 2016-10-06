@@ -50,15 +50,5 @@
 48. [MQTT协议](https://yaoguais.github.io/article/protocol/mqtt.html)
 49. [Golang开发之准备工作](https://yaoguais.github.io/article/golang/start.html)
 50. [海量数据处理之Hadoop配置使用](https://yaoguais.github.io/article/hadoop/start.html)
-51. [insert sort](https://yaoguais.github.io/article/algorithm/insert.html)
-52. [bubble sort](https://yaoguais.github.io/article/algorithm/bubble.html)
-53. [quick sort](https://yaoguais.github.io/article/algorithm/quick.html)
-54. [select sort](https://yaoguais.github.io/article/algorithm/select.html)
-55. [merge sort](https://yaoguais.github.io/article/algorithm/merge.html)
-56. [heap sort](https://yaoguais.github.io/article/algorithm/heap.html)
-57. [min heap operation](https://yaoguais.github.io/article/data_structure/heap.html)
-58. [binary search](https://yaoguais.github.io/article/data_structure/binary_search.html)
-59. [avl](https://yaoguais.github.io/article/data_structure/avl.html)
-60. [hash table](https://yaoguais.github.io/article/data_structure/hash.html)
 
 #[click here to view](https://yaoguais.github.io)#
