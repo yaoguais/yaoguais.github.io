@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>IOS开发之准备工作</title>
+    <title>iOS路上的点点滴滴</title>
 	<link rel="stylesheet" type="text/css" href="/css/style.css" />
     <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
     <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
@@ -11,11 +11,19 @@
 <div class="main-body">
     <div class="left-content" id="markDownContent">
 		<div class="mdBlock">
-			<h2>IOS开发之准备工作</h2>
-<p>为什么这下要学习IOS开发了呢,一方面是因为自己要做什么好玩的东西,就不用求人了;另一方面是因为我开发的聊天框架
-<a href="https://jegarn.com/">Jegarn</a>当前已经支持Android/PHP/JS等客户端了,不支持IOS总觉得不完美.
-所以会花一点时间整理IOS相关的东西,以达到拿到一个项目,能快速梳理结构并能二次开发的程度.</p>
-<p>题外话,因为公司很多业务会用Golang来拆分重构,所以Golang以后是我加强的重心,更多的时间会花在Go上面.</p>
+			<h2>iOS路上的点点滴滴</h2>
+<p>-- 为什么要学习iOS开发, first commit on 17 May.</p>
+<p>为什么这下要学习iOS开发了呢, 一方面是因为自己要做什么好玩的东西, 就不用求人了; 另一方面是因为我开发的聊天框架
+<a href="https://jegarn.com/">Jegarn</a>当前已经支持Android/PHP/JS等客户端了, 不支持iOS总觉得不完美.
+所以会花一点时间整理iOS相关的东西, 以达到拿到一个项目, 能快速梳理结构并能二次开发的程度.</p>
+<p>-- 合格iOS程序员需要掌握那些技能, commit on 07 Oct.</p>
+<p>作为一个不务正业的后端程序员, 已经在客户端的路上越走越远了. 无论哪门语言, 在当今的状况下,
+几乎可能完成其他任何一门语言的所有功能, 只有你想不到的, 没有大神做不到的. 可能而知, 深刻的掌握
+一门语言需要花费多少的时间和精力, 而一个人的精力毕竟有限.</p>
+<p>我在iOS开发这方面的要求就像开始之初说的那样,
+达到&quot;拿到一个项目, 能快速梳理结构并能二次开发&quot;的程度就够了.</p>
+<p>但是自己要做出美好的东西, 光达到这种程度肯定是不够的, 所以整理了&quot;合格iOS程序员需要掌握那些技能&quot;这部分的内容,
+以备在空闲的时候持续充电.</p>
 <p>目录:</p>
 <ol>
 <li>学习资料
@@ -32,30 +40,15 @@
 <li>快捷键使用</li>
 <li>依赖管理</li>
 </ul></li>
-<li>语言基础
-<ul>
-<li>基本数据类型</li>
-<li>变量与常量申明与初始化</li>
-<li>常见的复杂数据类型</li>
-<li>控制流语句</li>
-<li>函数申明与实现</li>
-<li>类Interface的属性与方法</li>
-<li>类别Category</li>
-<li>协议Protocol</li>
-<li>代码块Block</li>
-<li>委托</li>
-<li>内存管理</li>
-<li>字符串处理</li>
-<li>文件处理</li>
-<li>网络处理</li>
-</ul></li>
+<li>语言基础</li>
 <li>简单应用</li>
+<li>合格iOS程序员需要掌握那些技能</li>
 <li>总结</li>
 </ol>
 <h3>学习资料</h3>
 <p>学习一门新的语言,我比较喜欢看别人的视频教程,一方面可以在比较放松的状态下听,另一方面可以看看别人对IDE的应用,
 不好地方就是学习时间会比看书长很多,然后视频资源也不好找.</p>
-<p>一般周末闲的时候,看看别人的视频放松放松.平时上下班就看看文档电子书之类的,也比较方面.</p>
+<p>一般周末闲的时候,看看别人的视频放松放松.平时上下班就看看文档电子书之类的,也比较方便.</p>
 <h4>视频资料</h4>
 <p>这里推荐一个不需要任何语言基础的视频教程,<a href="http://www.imooc.com/view/218">征战Objective-C</a>,
 这个特别基础,作者完全是当你没有任何编程经验的.但是这个视频涉及OC的知识不够全面,仅够编程入门.</p>
@@ -64,7 +57,7 @@
 <h4>书籍文档</h4>
 <p>然后是书籍,这里是我找到的几个感觉还不错的.</p>
 <p>如果你会其他语言,可以参照
-<a href="https://learnxinyminutes.com/docs/objective-c/">Y分钟学会IOS分钟</a>
+<a href="https://learnxinyminutes.com/docs/objective-c/">Y分钟学会iOS</a>
 快速浏览一下OC的语法.</p>
 <p>但是OC的语法跟其他语言不太一样,可以查看这本翻译书籍
 <a href="http://objc-zen-book.books.yourtion.com/index.html">禅与Objective-C编程艺术</a>,
@@ -77,6 +70,8 @@
 <li><a href="http://blog.devtang.com/">唐巧的博客</a></li>
 <li><a href="https://onevcat.com/#blog">王巍的博客</a></li>
 </ul>
+<p>唐巧的播客到现在也基本刷完了, 而且感觉随着他年龄的增长和工作的原因, 内容也以整理和人生感悟为主了, 以前的文章偏技术较多些.
+多接触这样的人, 也更利于多方位发展些, 思考才是进步最高效的工具嘛.</p>
 <h4>扩展知识</h4>
 <ul>
 <li><a href="http://objccn.io/issue-13-1/">MVVM架构简介</a></li>
@@ -84,22 +79,24 @@
 <li><a href="https://github.com/robbdimitrov/RDVTabBarController">底部四格导航实现</a></li>
 <li><a href="http://blog.csdn.net/totogo2010/article/details/8081253">Cocoa框架结构与类图</a></li>
 <li><a href="http://southpeak.github.io/blog/2015/01/25/tool-lldb/">LLDB在Xcode中的使用</a></li>
-<li><a href="http://blog.csdn.net/iukey/article/details/7083165">有关View的几个基础知识点-IOS开发</a></li>
+<li><a href="http://blog.csdn.net/iukey/article/details/7083165">有关View的几个基础知识点-iOS开发</a></li>
 <li><a href="http://www.cocoachina.com/ios/20140925/9755.html">深入探究frame和bounds的区别</a></li>
 <li><a href="http://blog.csdn.net/fengsh998/article/details/8612969">@select原理与使用总结</a></li>
 <li><a href="http://zhoon.github.io/ios/2015/04/12/ios-event.html">深入浅出iOS事件机制</a></li>
-<li><a href="http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/">IOS事件机制</a></li>
-<li><a href="http://blog.csdn.net/column/details/xyzlmnios.html">IOS各应用组件学习</a></li>
-<li><a href="http://www.cnblogs.com/alby/p/4859537.html">关于IOS状态栏(UIStatusBar)的若干问题</a></li>
+<li><a href="http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/">iOS事件机制</a></li>
+<li><a href="http://blog.csdn.net/column/details/xyzlmnios.html">iOS各应用组件学习</a></li>
+<li><a href="http://www.cnblogs.com/alby/p/4859537.html">关于iOS状态栏(UIStatusBar)的若干问题</a></li>
 </ul>
 <h3>开发环境</h3>
 <p>开发苹果的东西,一定是要用MAC操作系统的,不管是虚拟机安装/双系统安装,还是直接使用苹果的电脑.</p>
 <h4>基础环境搭建</h4>
 <p>苹果开发环境搭建比较简单,因为苹果已经帮助你完成了,所以这一步是不用自己动手的.</p>
 <h4>IDE的选择</h4>
-<p>目前支持IOS开发的继承开发环境比较出名的有苹果自家的Xcode,还有就是JetBrains的AppCode.</p>
+<p>目前支持iOS开发的继承开发环境比较出名的有苹果自家的Xcode,还有就是JetBrains的AppCode.</p>
 <p>当前大都数开发者使用的仍然是Xcode,所有我这里也使用Xcode,但是目前其他系的IDE,我基本都是使用的JetBrains家的.</p>
 <p>我这里直接使用App Store安装Xcode,版本是7.2.1.</p>
+<p>update:</p>
+<p>Xcode实在太难用了, 我都已经换成AppCode了.</p>
 <h4>快捷键使用</h4>
 <p>然后主要记录下IDE快捷键, 可以从网上随便下载一个项目亲自试验下,如果发现问题好及时调整.</p>
 <p>Xcode的快捷键:</p>
@@ -183,7 +180,7 @@
 <li>结束调试: 通过Xcode的自定义快捷键设置为 control + shift + D</li>
 </ul>
 <h4>依赖管理</h4>
-<p>当前开发IOS一般使用CocoaPods进行依赖管理,
+<p>当前开发iOS一般使用CocoaPods进行依赖管理,
 我们可以从<a href="http://blog.devtang.com/2014/05/25/use-cocoapod-to-manage-ios-lib-dependency/">这里</a>找到基本的使用方式.</p>
 <p>我们通过gem安装cocoapods,gem是一个ruby的脚本,那么我先更新gem.</p>
 <pre><code>sudo gem update --system
@@ -239,11 +236,106 @@ pods installed.</code></pre>
 <p>它的意思是以后我们打开ios的工程,就使用&quot;minions.xcworkspace&quot;这个文件了,而不使用Xcode给我们创建的&quot;minions.xcodeproj&quot;文件.</p>
 <p>最后,如果有修改pod的配置文件,我们可以通过执行 pod update 来更新依赖.</p>
 <h3>语言基础</h3>
-<p>xxx</p>
+<p>语言可以从&quot;Y分钟学会X语言&quot;的Objective-C篇快速的了解OC的语法.</p>
+<p>然后买一本书细细看下.</p>
 <h3>简单应用</h3>
-<p>xxx</p>
+<p>在开头中说的一样, 我会完成&quot;Jegarn&quot;iOS端SDK的开发, 经过这近5个月断断续续的学习, 终于在10月2号的时候完成了.</p>
+<p>其项目地址为<a href="https://github.com/Yaoguais/ios-on-the-way/tree/master/minions">聊天框架Jegarn iOS端SDK</a>.</p>
+<h3>合格iOS程序员需要掌握那些技能</h3>
+<p>在这之前我也一直在看别人写的文章, 别人的播客, 平时也在跟进, 看看别人都在思考着什么.</p>
+<p>在iOS这方面, 唐巧的播客中的文章, 基本都看过了.</p>
+<p>然后Google了一下, 一个合格的iOS程序员需要掌握那些技能, 总结如下:</p>
+<table>
+<thead>
+<tr>
+<th>阶段</th>
+<th>技能点</th>
+<th>涵盖内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>基础</td>
+<td>C语言</td>
+<td>语言基础 数据结构 算法 文件 内存管理等</td>
+</tr>
+<tr>
+<td>基础</td>
+<td>Objective-C语言</td>
+<td>语言基础 面向对象等</td>
+</tr>
+<tr>
+<td>基础</td>
+<td>iOS基础</td>
+<td>UIKit MVC 代理模式等</td>
+</tr>
+<tr>
+<td>进阶</td>
+<td>iOS进阶</td>
+<td>内存管理 Block 多线程 KVC/KVO等</td>
+</tr>
+<tr>
+<td>进阶</td>
+<td>iOS进阶</td>
+<td>绘图 数据存取 网络 媒体 系统服务等</td>
+</tr>
+<tr>
+<td>进阶</td>
+<td>游戏开发</td>
+<td>C++ cocos2d-x OpenGL等</td>
+</tr>
+</tbody>
+</table>
+<p>上面的点都比较大, 下面给出一张细一点的表:</p>
+<table>
+<thead>
+<tr>
+<th>分类</th>
+<th>涵盖内容</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>绘图</td>
+<td>2D绘图 CALayer图层 Core Animation</td>
+</tr>
+<tr>
+<td>数据存取</td>
+<td>Plist Preference NSKeyedArchiver SQLite3 Core Data</td>
+</tr>
+<tr>
+<td>多线程</td>
+<td>pthreads NSThread NSOperationQueue GCD</td>
+</tr>
+<tr>
+<td>网络</td>
+<td>NSURLConnection CFNetwork AFNetworking</td>
+</tr>
+<tr>
+<td>多媒体</td>
+<td>音频 视频 相机 相册 流媒体</td>
+</tr>
+<tr>
+<td>系统服务</td>
+<td>iCloud 推送 内购 Game Center 广告 蓝牙 电话 短信 通讯录 邮件 位置</td>
+</tr>
+<tr>
+<td>常见技术</td>
+<td>地图 支付 二维码 即时通讯</td>
+</tr>
+<tr>
+<td>产品</td>
+<td>Sketch App发布</td>
+</tr>
+</tbody>
+</table>
+<p>这些内容看起来挺多的, 其实大多没有什么难度, 更多的是经验上的积淀.</p>
+<p>最后, 我们也可以通过一些面试题来检验自己是否掌握了这些知识点. 下面是我找到的一些整理:</p>
+<ul>
+<li><a href="https://github.com/ChenYilong/iOSInterviewQuestions">招聘一个靠谱的 iOS</a></li>
+</ul>
 <h3>总结</h3>
-<p>xxx</p>
+<p>总结就是keep learning, keep moving.</p>
 		</div>
     </div>
     <div class="right-nav nav-box">

@@ -25,7 +25,7 @@
 <p>目录:</p>
 <ol>
 <li>服务器生成证书</li>
-<li>IOS使用AFNetworking实现SSL双向认证</li>
+<li>iOS使用AFNetworking实现SSL双向认证</li>
 <li>浏览器加载客户端证书实现访问</li>
 <li>charles加载客户端证书实现调试</li>
 <li>Android使用okhttp实现SSL双向认证</li>
@@ -208,8 +208,8 @@ ssl_session_timeout 5m;
 ssl_protocols SSLv3 TLSv1 TLSv1.1 TLSv1.2;
 ssl_ciphers "HIGH:!aNULL:!MD5 or HIGH:!aNULL:!MD5:!3DES";
 ssl_prefer_server_ciphers on;</code></pre>
-<h3>IOS使用AFNetworking实现SSL双向认证</h3>
-<p>IOS端我们使用AFNetworking实现SSL双向认证,服务器我们搭建在127.0.0.1,在7080端口开通ssl验证.
+<h3>iOS使用AFNetworking实现SSL双向认证</h3>
+<p>iOS端我们使用AFNetworking实现SSL双向认证,服务器我们搭建在127.0.0.1,在7080端口开通ssl验证.
 但是实际使用服务器时一般会使用域名来指向具体的IP, 这里我们通过修改/etc/hosts来实现将yaoguai.com指向127.0.0.1,
 因为我们的证书使用的是yaoguai.com这个Common Name来签名的,所以如果我们的服务器不是yaoguai.com,那么客户端会造成验证不通过.</p>
 <p>而整个ssl的实现我就简单放到AppDelegate.m文件中了.

@@ -1,10 +1,29 @@
-## IOS开发之准备工作
+## iOS路上的点点滴滴
 
-为什么这下要学习IOS开发了呢,一方面是因为自己要做什么好玩的东西,就不用求人了;另一方面是因为我开发的聊天框架
-[Jegarn](https://jegarn.com/)当前已经支持Android/PHP/JS等客户端了,不支持IOS总觉得不完美.
-所以会花一点时间整理IOS相关的东西,以达到拿到一个项目,能快速梳理结构并能二次开发的程度.
+-- 为什么要学习iOS开发, first commit on 17 May.
 
-题外话,因为公司很多业务会用Golang来拆分重构,所以Golang以后是我加强的重心,更多的时间会花在Go上面.
+为什么这下要学习iOS开发了呢, 一方面是因为自己要做什么好玩的东西, 就不用求人了; 另一方面是因为我开发的聊天框架
+[Jegarn](https://jegarn.com/)当前已经支持Android/PHP/JS等客户端了, 不支持iOS总觉得不完美.
+所以会花一点时间整理iOS相关的东西, 以达到拿到一个项目, 能快速梳理结构并能二次开发的程度.
+
+
+
+
+-- 合格iOS程序员需要掌握那些技能, commit on 07 Oct.
+
+作为一个不务正业的后端程序员, 已经在客户端的路上越走越远了. 无论哪门语言, 在当今的状况下,
+几乎可能完成其他任何一门语言的所有功能, 只有你想不到的, 没有大神做不到的. 可能而知, 深刻的掌握
+一门语言需要花费多少的时间和精力, 而一个人的精力毕竟有限.
+
+我在iOS开发这方面的要求就像开始之初说的那样,
+达到"拿到一个项目, 能快速梳理结构并能二次开发"的程度就够了.
+
+但是自己要做出美好的东西, 光达到这种程度肯定是不够的, 所以整理了"合格iOS程序员需要掌握那些技能"这部分的内容,
+以备在空闲的时候持续充电.
+
+
+
+
 
 目录:
 
@@ -19,22 +38,9 @@
     - 快捷键使用
     - 依赖管理
 3. 语言基础
-    - 基本数据类型
-    - 变量与常量申明与初始化
-    - 常见的复杂数据类型
-    - 控制流语句
-    - 函数申明与实现
-    - 类Interface的属性与方法
-    - 类别Category
-    - 协议Protocol
-    - 代码块Block
-    - 委托
-    - 内存管理
-    - 字符串处理
-    - 文件处理
-    - 网络处理
 4. 简单应用
-5. 总结
+5. 合格iOS程序员需要掌握那些技能
+6. 总结
 
 
 
@@ -45,7 +51,7 @@
 学习一门新的语言,我比较喜欢看别人的视频教程,一方面可以在比较放松的状态下听,另一方面可以看看别人对IDE的应用,
 不好地方就是学习时间会比看书长很多,然后视频资源也不好找.
 
-一般周末闲的时候,看看别人的视频放松放松.平时上下班就看看文档电子书之类的,也比较方面.
+一般周末闲的时候,看看别人的视频放松放松.平时上下班就看看文档电子书之类的,也比较方便.
 
 
 
@@ -68,7 +74,7 @@
 然后是书籍,这里是我找到的几个感觉还不错的.
 
 如果你会其他语言,可以参照
-[Y分钟学会IOS分钟](https://learnxinyminutes.com/docs/objective-c/)
+[Y分钟学会iOS](https://learnxinyminutes.com/docs/objective-c/)
 快速浏览一下OC的语法.
 
 但是OC的语法跟其他语言不太一样,可以查看这本翻译书籍
@@ -89,6 +95,8 @@
 * [唐巧的博客](http://blog.devtang.com/)
 * [王巍的博客](https://onevcat.com/#blog)
 
+唐巧的播客到现在也基本刷完了, 而且感觉随着他年龄的增长和工作的原因, 内容也以整理和人生感悟为主了, 以前的文章偏技术较多些.
+多接触这样的人, 也更利于多方位发展些, 思考才是进步最高效的工具嘛.
 
 
 
@@ -100,13 +108,13 @@
 * [底部四格导航实现](https://github.com/robbdimitrov/RDVTabBarController)
 * [Cocoa框架结构与类图](http://blog.csdn.net/totogo2010/article/details/8081253)
 * [LLDB在Xcode中的使用](http://southpeak.github.io/blog/2015/01/25/tool-lldb/)
-* [有关View的几个基础知识点-IOS开发](http://blog.csdn.net/iukey/article/details/7083165)
+* [有关View的几个基础知识点-iOS开发](http://blog.csdn.net/iukey/article/details/7083165)
 * [深入探究frame和bounds的区别](http://www.cocoachina.com/ios/20140925/9755.html)
 * [@select原理与使用总结](http://blog.csdn.net/fengsh998/article/details/8612969)
 * [深入浅出iOS事件机制](http://zhoon.github.io/ios/2015/04/12/ios-event.html)
-* [IOS事件机制](http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/)
-* [IOS各应用组件学习](http://blog.csdn.net/column/details/xyzlmnios.html)
-* [关于IOS状态栏(UIStatusBar)的若干问题](http://www.cnblogs.com/alby/p/4859537.html)
+* [iOS事件机制](http://ryantang.me/blog/2013/12/07/ios-event-dispatch-1/)
+* [iOS各应用组件学习](http://blog.csdn.net/column/details/xyzlmnios.html)
+* [关于iOS状态栏(UIStatusBar)的若干问题](http://www.cnblogs.com/alby/p/4859537.html)
 
 
 
@@ -129,12 +137,15 @@
 
 #### IDE的选择
 
-目前支持IOS开发的继承开发环境比较出名的有苹果自家的Xcode,还有就是JetBrains的AppCode.
+目前支持iOS开发的继承开发环境比较出名的有苹果自家的Xcode,还有就是JetBrains的AppCode.
 
 当前大都数开发者使用的仍然是Xcode,所有我这里也使用Xcode,但是目前其他系的IDE,我基本都是使用的JetBrains家的.
 
 我这里直接使用App Store安装Xcode,版本是7.2.1.
 
+update:
+
+Xcode实在太难用了, 我都已经换成AppCode了.
 
 
 
@@ -229,7 +240,7 @@ Xcode的快捷键:
 
 #### 依赖管理
 
-当前开发IOS一般使用CocoaPods进行依赖管理,
+当前开发iOS一般使用CocoaPods进行依赖管理,
 我们可以从[这里](http://blog.devtang.com/2014/05/25/use-cocoapod-to-manage-ios-lib-dependency/)找到基本的使用方式.
 
 我们通过gem安装cocoapods,gem是一个ruby的脚本,那么我先更新gem.
@@ -307,26 +318,59 @@ Xcode的快捷键:
 
 ### 语言基础
 
-xxx
+语言可以从"Y分钟学会X语言"的Objective-C篇快速的了解OC的语法.
 
-
-
+然后买一本书细细看下.
 
 
 
 
 ### 简单应用
 
-xxx
+在开头中说的一样, 我会完成"Jegarn"iOS端SDK的开发, 经过这近5个月断断续续的学习, 终于在10月2号的时候完成了.
+
+其项目地址为[聊天框架Jegarn iOS端SDK](https://github.com/Yaoguais/ios-on-the-way/tree/master/minions).
 
 
 
+
+### 合格iOS程序员需要掌握那些技能
+
+在这之前我也一直在看别人写的文章, 别人的播客, 平时也在跟进, 看看别人都在思考着什么.
+
+在iOS这方面, 唐巧的播客中的文章, 基本都看过了.
+
+然后Google了一下, 一个合格的iOS程序员需要掌握那些技能, 总结如下:
+
+| 阶段                        | 技能点                | 涵盖内容                   |
+| ---                        | ---                   | ---                      |
+| 基础                        | C语言                 | 语言基础 数据结构 算法 文件 内存管理等 |
+| 基础                        | Objective-C语言       | 语言基础 面向对象等 |
+| 基础                        | iOS基础               | UIKit MVC 代理模式等 |
+| 进阶                        | iOS进阶               | 内存管理 Block 多线程 KVC/KVO等 |
+| 进阶                        | iOS进阶               | 绘图 数据存取 网络 媒体 系统服务等 |
+| 进阶                        | 游戏开发              | C++ cocos2d-x OpenGL等 |
+
+上面的点都比较大, 下面给出一张细一点的表:
+
+| 分类                        | 涵盖内容                                  |
+| ---                        | ---                                      |
+| 绘图                        | 2D绘图 CALayer图层 Core Animation         |
+| 数据存取                    | Plist Preference NSKeyedArchiver SQLite3 Core Data |
+| 多线程                      | pthreads NSThread NSOperationQueue GCD |
+| 网络                        | NSURLConnection CFNetwork AFNetworking |
+| 多媒体                      | 音频 视频 相机 相册 流媒体                |
+| 系统服务                    | iCloud 推送 内购 Game Center 广告 蓝牙 电话 短信 通讯录 邮件 位置 |
+| 常见技术                    | 地图 支付 二维码 即时通讯 |
+| 产品                        | Sketch App发布 |
+
+这些内容看起来挺多的, 其实大多没有什么难度, 更多的是经验上的积淀.
+
+最后, 我们也可以通过一些面试题来检验自己是否掌握了这些知识点. 下面是我找到的一些整理:
+
+- [招聘一个靠谱的 iOS](https://github.com/ChenYilong/iOSInterviewQuestions)
 
 
 ### 总结
 
-xxx
-
-
-
-
+总结就是keep learning, keep moving.

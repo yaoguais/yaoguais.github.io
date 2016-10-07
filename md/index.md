@@ -47,7 +47,7 @@
 
 ### iOS ###
 
-1. [IOS开发之准备工作](?s=md/ios/start.md)
+1. [iOS路上的点点滴滴](?s=md/ios/start.md)
 2. [NSURLSession之GET、POST、文件上传、文件下载](https://github.com/Yaoguais/ios-on-the-way/tree/master/network)
 3. [AFNetworking之GET、POST、文件上传、文件下载](https://github.com/Yaoguais/ios-on-the-way/tree/master/afnetworking)
 4. [iOS使用SSL双向认证构建安全通讯信道](?s=md/app/https-api.md)

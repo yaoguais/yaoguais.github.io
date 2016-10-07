@@ -24,7 +24,7 @@
 22. [linux phabricator代码审查平台](https://yaoguais.github.io/article/linux/phabricator.html)
 23. [linux supervisor使用](https://yaoguais.github.io/article/linux/supervisor.html)
 24. [linux saltstack使用](https://yaoguais.github.io/article/linux/saltstack.html)
-25. [IOS开发之准备工作](https://yaoguais.github.io/article/ios/start.html)
+25. [iOS路上的点点滴滴](https://yaoguais.github.io/article/ios/start.html)
 26. [NSURLSession之GET、POST、文件上传、文件下载](https://github.com/Yaoguais/ios-on-the-way/tree/master/network)
 27. [AFNetworking之GET、POST、文件上传、文件下载](https://github.com/Yaoguais/ios-on-the-way/tree/master/afnetworking)
 28. [iOS使用SSL双向认证构建安全通讯信道](https://yaoguais.github.io/article/app/https-api.html)

@@ -19,7 +19,7 @@
 目录:
 
 1. 服务器生成证书
-2. IOS使用AFNetworking实现SSL双向认证
+2. iOS使用AFNetworking实现SSL双向认证
 3. 浏览器加载客户端证书实现访问
 4. charles加载客户端证书实现调试
 5. Android使用okhttp实现SSL双向认证
@@ -219,9 +219,9 @@ nginx多使用bks格式的证书,而像java系的(像tomcat,openfire等)多使�
 
 
 
-### IOS使用AFNetworking实现SSL双向认证
+### iOS使用AFNetworking实现SSL双向认证
 
-IOS端我们使用AFNetworking实现SSL双向认证,服务器我们搭建在127.0.0.1,在7080端口开通ssl验证.
+iOS端我们使用AFNetworking实现SSL双向认证,服务器我们搭建在127.0.0.1,在7080端口开通ssl验证.
 但是实际使用服务器时一般会使用域名来指向具体的IP, 这里我们通过修改/etc/hosts来实现将yaoguai.com指向127.0.0.1,
 因为我们的证书使用的是yaoguai.com这个Common Name来签名的,所以如果我们的服务器不是yaoguai.com,那么客户端会造成验证不通过.
 
