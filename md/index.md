@@ -12,7 +12,7 @@
 8. [把扩展从php5升级到php7](?s=md/php/extension-php5to7.md)
 9. [php private修饰符的一些细节](?s=md/php/php-private.md)
 10. [PHP消息队列的一些实现](?s=md/php/mq.md)
-11. [Swoole源码调试准备工作](?s=md/swoole/base.md)
+11. [Swoole源码分析准备工作](?s=md/swoole/base.md)
 11. [Swoole源码分析之数据接收与发送](?s=md/swoole/send.md)
 13. [聊天系统Jegarn的常见问题](?s=md/jegarn/faq_zh-cn.md)
 
@@ -22,9 +22,19 @@
 
 ### Xhprof ###
 
-1. [简介与环境搭建](?s=md/xhprof/intro.md)
-2. [输入输出接口](?s=md/xhprof/interface.md)
-3. [扩展实现的基本原理](?s=md/xhprof/theory.md)
+1. [xhprof源码分析之简介与环境搭建](?s=md/xhprof/intro.md)
+2. [xhprof源码分析之输入输出接口](?s=md/xhprof/interface.md)
+3. [xhprof源码分析之扩展实现的基本原理](?s=md/xhprof/theory.md)
+
+
+
+
+
+### JeMalloc ###
+
+1. [jemalloc源码分析之分析工具](?s=md/jemalloc/start.md)
+2. [jemalloc源码分析之基础数据结构](?s=md/jemalloc/structures.md)
+3. [jemalloc源码分析之实现细节](?s=md/jemalloc/implement.md)
 
 
 

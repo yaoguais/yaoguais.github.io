@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>jemalloc源码分析之分析工具</title>
+	<link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?">
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>jemalloc源码分析之分析工具</h2>
+<p>出于对计算机怎么管理内存的好奇, 然后开始了jemalloc的分析.
+这几篇文章主要从如何使用分析工具, jemalloc中的数据结构, jemalloc实现细节三方面进行分析.</p>
+<p>目录:</p>
+<ol>
+<li>简介</li>
+<li>实现原理</li>
+<li>开始调试</li>
+<li>总结</li>
+</ol>
+<h3>简介</h3>
+<p>jemalloc同malloc一样, 是一种内存管理的实现.</p>
+<p>如果使用gcc编译软件, 默认使用的是glic实现的ptmalloc算法. 而同样的算法有google的C++实现tcmalloc算法,
+而今天我们分析的是facebook使用C语言实现的jemalloc算法.</p>
+<p>tcmalloc同jemalloc一样都是对多线程多核友好的分配算法, 被各种语言借鉴来实现自身的内存管理.</p>
+<h3>实现原理</h3>
+<p>如果使用C语言进行内存分配, 我们会调用malloc函数, 而jemalloc就是通过malloc的hook机制实现的.</p>
+<p><a href="http://stackoverflow.com/questions/262439/create-a-wrapper-function-for-malloc-and-free-in-c">如何实现自定义的malloc函数</a>
+这篇文章有介绍如何覆盖或重写默认的malloc函数.</p>
+<p><a href="http://www.gnu.org/savannah-checkouts/gnu/libc/manual/html_node/Hooks-for-Malloc.html">GNU基于hook机制实现自定义的的malloc函数</a>,
+具体就是通过覆盖__malloc_hook函数指针来实现的.</p>
+<p>在jemalloc中我们能找到类似的代码:</p>
+<p>jemalloc.c:1830</p>
+<pre><code>/*
+ * Begin non-standard override functions.
+ */
+
+#ifdef JEMALLOC_OVERRIDE_MEMALIGN
+JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
+void JEMALLOC_NOTHROW *
+JEMALLOC_ATTR(malloc)
+je_memalign(size_t alignment, size_t size)
+{
+    void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+    if (unlikely(imemalign(&amp;ret, alignment, size, 1) != 0))
+        ret = NULL;
+    return (ret);
+}
+#endif
+
+#ifdef JEMALLOC_OVERRIDE_VALLOC
+JEMALLOC_EXPORT JEMALLOC_ALLOCATOR JEMALLOC_RESTRICT_RETURN
+void JEMALLOC_NOTHROW *
+JEMALLOC_ATTR(malloc)
+je_valloc(size_t size)
+{
+    void *ret JEMALLOC_CC_SILENCE_INIT(NULL);
+    if (unlikely(imemalign(&amp;ret, PAGE, size, 1) != 0))
+        ret = NULL;
+    return (ret);
+}
+#endif
+
+/*
+ * is_malloc(je_malloc) is some macro magic to detect if jemalloc_defs.h has
+ * #define je_malloc malloc
+ */
+#define malloc_is_malloc 1
+#define is_malloc_(a) malloc_is_ ## a
+#define is_malloc(a) is_malloc_(a)
+
+#if ((is_malloc(je_malloc) == 1) &amp;&amp; defined(JEMALLOC_GLIBC_MALLOC_HOOK))
+/*
+ * glibc provides the RTLD_DEEPBIND flag for dlopen which can make it possible
+ * to inconsistently reference libc's malloc(3)-compatible functions
+ * (https://bugzilla.mozilla.org/show_bug.cgi?id=493541).
+ *
+ * These definitions interpose hooks in glibc.  The functions are actually
+ * passed an extra argument for the caller return address, which will be
+ * ignored.
+ */
+JEMALLOC_EXPORT void (*__free_hook)(void *ptr) = je_free;
+JEMALLOC_EXPORT void *(*__malloc_hook)(size_t size) = je_malloc;
+JEMALLOC_EXPORT void *(*__realloc_hook)(void *ptr, size_t size) = je_realloc;
+# ifdef JEMALLOC_GLIBC_MEMALIGN_HOOK
+JEMALLOC_EXPORT void *(*__memalign_hook)(size_t alignment, size_t size) =
+    je_memalign;
+# endif
+#endif
+
+/*
+ * End non-standard override functions.
+ */</code></pre>
+<p>如果我们在自己的函数调用malloc就会被je_malloc拦截. 例如下面的例子:</p>
+<pre><code>int main(){
+    void * ptr = malloc(10);
+    free(ptr);
+    return 0;
+}</code></pre>
+<p>整个过程是</p>
+<pre><code>-&gt; main
+-&gt; malloc -&gt; je_malloc(mmap等系统调用分配内存) -&gt; malloc结束
+-&gt; free -&gt; jeje_free(munmap等系统调用释放内存) -&gt; free结束
+-&gt; main结束</code></pre>
+<p>上面是当我们程序调用malloc函数时执行的过程, 实际上在jemalloc载入的时候, 就已经进行了一些初始化操作.</p>
+<p>具体是在jemalloc_constructor函数.</p>
+<p>jemalloc.c:2576</p>
+<pre><code>#ifndef JEMALLOC_JET
+JEMALLOC_ATTR(constructor)
+static void
+jemalloc_constructor(void)
+{
+
+    malloc_init();
+}
+#endif
+
+jemalloc_macros.h.in:67
+#  define JEMALLOC_ATTR(s) __attribute__((s))</code></pre>
+<p>通过这篇文章
+<a href="http://stackoverflow.com/questions/1681145/how-to-initialize-a-shared-library-on-linux">如何在共享库载入时进行初始化操作</a>
+知道这是gcc的一个特性.</p>
+<p>后面我们将结合&quot;call graph&quot;调用图分别分析这两个过程.</p>
+<h3>开始调试</h3>
+<p>这节主要介绍下载编译jemalloc, 编写测试代码, 使用callgrind生成调用图, 使用gdb调试jemalloc.</p>
+<p>jemalloc当前托管在github上</p>
+<pre><code>git clone git@github.com:jemalloc/jemalloc.git
+./autogen.sh
+./configure --enable-debug
+make dist
+make
+make install</code></pre>
+<p>然后使用ide添加jemalloc项目, 主要作用是方便查看源代码, 在gdb中查看源代码实在不太方便, 而且gdb-tui虽然提供了可视化界面,
+但是偶尔会出现花屏的情况.</p>
+<p>这中间可能因为doc文档找不到的原因安装失败, 根据<a href="https://github.com/jemalloc/jemalloc/issues/231">issue231</a>,
+将最后两步换成</p>
+<pre><code>make &amp;&amp; make install_bin install_include install_lib</code></pre>
+<p>即可.</p>
+<p>然后编写我们的调试代码:</p>
+<p>a.c文件:</p>
+<pre><code>#include &lt;stdio.h&gt;
+#include &lt;stdlib.h&gt;
+#include &lt;malloc.h&gt;
+
+int func_long_name_a();
+int func_long_name_b();
+int func_long_name_c();
+
+int func_long_name_a(){
+    printf("func_long_name_a called\n");
+    func_long_name_b();
+    return 0;
+}
+
+int func_long_name_b(){
+    printf("func_long_name_b called\n");
+    func_long_name_c();
+    return 0;
+}
+
+int func_long_name_c(){
+    printf("func_long_name_c called\n");
+    int sizeArr[] = {1, 4095, 4096, 8192, 8193, 4*1024*1024, 10*1024*1024};
+    int i;
+    for(i = 0; i &lt; 7; ++i){
+        void * p = malloc(sizeArr[i]);
+        free(p);
+    }
+
+    return 0;
+}
+
+int main(int argc, char ** argv)
+{
+    printf("main called\n");
+    func_long_name_a();
+    func_long_name_c();
+    printf("main exit\n");
+    return 0;
+}</code></pre>
+<p>然后编写一个脚本来实现编译及调用图的生成</p>
+<p>gen.sh文件</p>
+<pre><code>#!/bin/bash
+
+JEMALLOC_PATH=/usr/local
+gcc -g -ljemalloc -o a -I${JEMALLOC_PATH}/include -L${JEMALLOC_PATH}/lib a.c
+valgrind --tool=callgrind ./a
+gprof2dot -f callgrind -n 0 callgrind.out.* | dot -Tsvg -o a.svg
+date=`date '+%Y%m%d%H%i%s'`
+mv a.svg "$(date '+%Y-%m-%d_%H:%M:%S').svg"
+#rm -f callgrind.out.* .DS_Store a a.out
+rm -f callgrind.out.* .DS_Store a.out
+echo
+ls -al .</code></pre>
+<p>中间需要安装一些特别的软件, 比如valgrind, gprof2dot, dot等, 这些都可以在网上找到相应的安装方法.</p>
+<p>最后生成我们的<a href="./images/2016-10-20\_02\_00\_52.svg">2016-10-20_02_00_52.svg</a>调用图文件.</p>
+<p>在gen.sh中我们并没有删除可执行文件&quot;a&quot;, 下面我就使用gdb来调试该文件.</p>
+<pre><code># gdb a
+# b jemalloc_constructor
+# b src/jemalloc.c:1443
+# b src/jemalloc.c:1811
+# r</code></pre>
+<p>其中jemalloc_constructor是jemalloc共享库载入时的入口.</p>
+<p>src/jemalloc.c:1443是je_malloc函数实现的地方.</p>
+<p>src/jemalloc.c:1811是je_free函数实现的地方.</p>
+<p>可根据自己的jemalloc版本找到两个函数的行数做出调整.</p>
+<p>执行r后, gdb就停在了jemalloc_constructor函数处.</p>
+<p>关于gdb的使用, 也很多, 这里也有<a href="http://mingxinglai.com/cn/2013/07/gdbtui/">关于gdb可视化界面gdb-tui的使用</a>.</p>
+<p>其中在tui模式和传统模式切换的快捷键是ctrl+x接ctrl+a.</p>
+<h3>总结</h3>
+<p>这篇文章主要介绍了如何调试jemalloc, 是分析jemalloc的准备工作, 也是分析其他开源c程序的普遍方法.</p>
+<p>首先使用valgrind+dot打印函数调用图, 找到函数执行的入口.
+然后分析基础的数据结构与其附属的操作, 快速明白各种变量发生了怎么的变化.
+最后顺着调用图, 分析各个函数的实现, 以及各种结构体之前的关系.
+至此, 所有的源代码几乎查看完毕, 一个软件也分析完毕.</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+			return false;
+		});
+		//index-hidden-end
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>
