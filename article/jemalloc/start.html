@@ -196,7 +196,7 @@ rm -f callgrind.out.* .DS_Store a.out
 echo
 ls -al .</code></pre>
 <p>中间需要安装一些特别的软件, 比如valgrind, gprof2dot, dot等, 这些都可以在网上找到相应的安装方法.</p>
-<p>最后生成我们的<a href="./images/2016-10-20\_02\_00\_52.svg">2016-10-20_02_00_52.svg</a>调用图文件.</p>
+<p>最后生成我们的<a href="/images/jemalloc_call_graph.svg">jemalloc_call_graph.svg</a>调用图文件.</p>
 <p>在gen.sh中我们并没有删除可执行文件&quot;a&quot;, 下面我就使用gdb来调试该文件.</p>
 <pre><code># gdb a
 # b jemalloc_constructor
@@ -212,9 +212,9 @@ ls -al .</code></pre>
 <p>其中在tui模式和传统模式切换的快捷键是ctrl+x接ctrl+a.</p>
 <h3>总结</h3>
 <p>这篇文章主要介绍了如何调试jemalloc, 是分析jemalloc的准备工作, 也是分析其他开源c程序的普遍方法.</p>
-<p>首先使用valgrind+dot打印函数调用图, 找到函数执行的入口.
-然后分析基础的数据结构与其附属的操作, 快速明白各种变量发生了怎么的变化.
-最后顺着调用图, 分析各个函数的实现, 以及各种结构体之前的关系.
+<p>首先使用valgrind+dot打印函数调用图, 找到函数执行的流程.
+然后分析基础的数据结构与其附属的操作, 快速明白各种变量会有怎样的转换.
+最后顺着调用图, 分析各个函数的实现, 以及各种结构体之间的关系.
 至此, 所有的源代码几乎查看完毕, 一个软件也分析完毕.</p>
 		</div>
     </div>
