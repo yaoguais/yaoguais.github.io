@@ -237,7 +237,7 @@ gen.sh文件
 
 中间需要安装一些特别的软件, 比如valgrind, gprof2dot, dot等, 这些都可以在网上找到相应的安装方法.
 
-最后生成我们的[jemalloc_call_graph](/images/jemalloc_call_graph)调用图文件.
+最后生成我们的[jemalloc_call_graph.svg](/images/jemalloc_call_graph.svg)调用图文件.
 
 
 
