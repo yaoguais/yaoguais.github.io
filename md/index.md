@@ -30,16 +30,6 @@
 
 
 
-### JeMalloc ###
-
-1. [jemalloc源码分析之分析工具](?s=md/jemalloc/start.md)
-2. [jemalloc源码分析之基础数据结构](?s=md/jemalloc/structures.md)
-3. [jemalloc源码分析之实现细节](?s=md/jemalloc/implement.md)
-
-
-
-
-
 ### Linux ###
 
 1. [shell 简介与使用](?s=md/linux/shell.md)
@@ -50,6 +40,7 @@
 6. [linux phabricator代码审查平台](?s=md/linux/phabricator.md)
 7. [linux supervisor使用](?s=md/linux/supervisor.md)
 8. [linux saltstack使用](?s=md/linux/saltstack.md)
+9. [jemalloc源码分析之分析工具](?s=md/jemalloc/start.md)
 
 
 
