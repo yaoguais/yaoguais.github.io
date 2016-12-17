@@ -1,7 +1,7 @@
 # 如何在Windows上搭建开发环境
 
 前言：好久没用Windows了，依然一样的好用..
-这篇是记录如何在Windows上搭建Golang的开发环境，其中还用到Git、Vscode。
+这篇是记录如何在Windows上搭建Golang的开发环境，其中还用到Git、Github、Vscode。
 
 目录:
 
@@ -88,6 +88,41 @@ C:\workspace\src>go env
 ```
 
 看到正确的输出，就证明我们的Golang环境配置好了。
+
+写个bat脚本，直接粘贴并命名为init.bat，然后右键以管理员运行即可。
+
+可以看到执行了go run编译并运行了写好的脚本，输出Hello。
+
+还可以看到go env的配置。
+
+```
+c:
+mkdir workspace
+cd workspace
+mkdir gopath
+mkdir src
+mkdir repos
+cd repos
+mkdir src
+cd ..
+
+: wmic ENVIRONMENT where "name='path' and username='<system>'" set VariableValue="%path%;e:\tools"
+wmic ENVIRONMENT create name="GOPATH",username="<system>",VariableValue="c:\workspace\gopath;c:\workspace\repos"
+
+cd src
+del main.go
+echo package main >> main.go
+echo import "fmt" >> main.go
+echo func main() { >> main.go
+echo fmt.Println("Hello") >> main.go
+echo } >> main.go
+go run main.go
+
+go env
+
+pause
+```
+
 
 ## 配置git和github
 
@@ -207,4 +242,11 @@ Administrator@060 MINGW64 /c/workspace
 
 ## 配置vpn
 
-待续...
+VPN配置问了我们的架构师，比较简单，之前他给公司使用Windows的同事配置过，但是我这应该是防火墙的问题，老是使用不了。
+
+不要问我为什么关不了防火墙...
+
+网吧的喇叭显示在屏幕上方也是醉了，发现结束进程树后几秒后会被其他进程唤醒，我先找到喇叭.exe位置，
+然后结束进程树，最后删除exe，整个世界都清静了好少。
+
+最后就是因为网络的问题，我添加这点内容提交了好几次...
