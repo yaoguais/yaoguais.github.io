@@ -60,7 +60,7 @@ Swoole自然也要遵循上面的流程.
 
 MINIT阶段
 
-    /* {{{ PHP_MINIT_FUNCTION
+    /* { { { PHP_MINIT_FUNCTION
      */
     PHP_MINIT_FUNCTION(swoole)
     {

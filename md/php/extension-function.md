@@ -139,7 +139,7 @@ zend_internal_arg_info的定义如下
 
 	mysqli_api.c
 
-	/* {{{ proto void mysqli_debug(string debug) U
+	/* { { { proto void mysqli_debug(string debug) U
 	*/
 	PHP_FUNCTION(mysqli_debug)
 	{
@@ -155,7 +155,7 @@ zend_internal_arg_info的定义如下
 	}
 	/* }}} */
 
-	/* {{{ proto bool mysqli_autocommit(object link, bool mode)
+	/* { { { proto bool mysqli_autocommit(object link, bool mode)
 	   Turn auto commit on or of */
 	PHP_FUNCTION(mysqli_autocommit)
 	{
@@ -189,7 +189,7 @@ zend_internal_arg_info的定义如下
 
 在zend_parse_va_args进行预处理
 
-	static int zend_parse_va_args(int num_args, const char *type_spec, va_list *va, int flags) /* {{{ */
+	static int zend_parse_va_args(int num_args, const char *type_spec, va_list *va, int flags) /* { { { */
 	{
 	
 		for (spec_walk = type_spec; *spec_walk; spec_walk++) {

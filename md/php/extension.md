@@ -71,7 +71,7 @@
 	
 编辑echo.c,找到PHP_FUNCTION(my_echo)，修改为下面的代码
 
-	/* {{{ proto void my_echo(string str)
+	/* { { { proto void my_echo(string str)
 	    */
 	PHP_FUNCTION(my_echo)
 	{

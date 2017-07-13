@@ -262,7 +262,7 @@ ini_entries是一个zend_ini_entry_def结构体
 
 zend_register_ini_entries实现如下
 
-	ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int module_number) /* {{{ */
+	ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int module_number) /* { { { */
 	{
 		zend_ini_entry *p;
 		zval *default_value;
