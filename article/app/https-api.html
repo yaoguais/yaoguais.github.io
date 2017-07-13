@@ -403,7 +403,7 @@ echo 'Hello World!';</code></pre>
 然后点击&quot;Proxy&quot; &gt; &quot;SSL Proxying Settings..&quot;, 在&quot;SSL Proxying&quot;页点击Add, 添加一项&quot;yaoguai.com:7080&quot;.</p>
 <p>然后在&quot;Client Certificates&quot;页点击Add, 添加一项&quot;yaoguai.com:7080&quot;,并添加client.p12文件.</p>
 <p>当电脑或者代理到charles的手机访问yaoguai.com时, 会提示你输入client.p12的导出密码.</p>
-<p>这时我们打开charles, 并运行&quot;https-api&quot;项目, 就可以在charles中截获&quot;get <a href="https://yaoguai.com:7080/index.php">https://yaoguai.com:7080/index.php</a>&quot;请求了.</p>
+<p>这时我们打开charles, 并运行&quot;https-api&quot;项目, 就可以在charles中截获&quot;get <a href="https://yaoguai.com:7080/index.php"请求了">https://yaoguai.com:7080/index.php"请求了</a>.</p>
 <h3>Android使用okhttp实现SSL双向认证</h3>
 <p>Android方面我们使用okhttp向服务器发起请求, 这里我们使用封装了okhttp的OkHttpUtils库, 因为它已经实现了SSL的双向认证.</p>
 <p>由于一直在Android虚拟机中修改hosts文件失败, 我就使用自己的服务器jegarn.com重新生成了签名.</p>
