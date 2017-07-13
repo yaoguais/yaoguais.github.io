@@ -6,10 +6,10 @@
 目录:
 
 1. 对基础术语的理解
-2. 理解迭代器iterator的执行顺序
+2. 理解iterator的执行顺序
 3. generator遍历的流程
-4. 迭代器的退出方式
-5. 迭代器的返回值
+4. 生成器的退出方式
+5. 生成器的返回值
 6. send方法的执行流程
 7. generator的异常处理
 8. 使用协程实现http服务器
@@ -49,10 +49,10 @@ Generator implements Iterator {
 Generator::current — 返回当前产生的值
 Generator::key — 返回当前产生的键
 Generator::next — 生成器继续执行
-Generator::rewind — 重置迭代器
+Generator::rewind — 重置生成器
 Generator::send — 向生成器中传入一个值
 Generator::throw — 向生成器中抛入一个异常
-Generator::valid — 检查迭代器是否被关闭
+Generator::valid — 检查生成器是否被关闭
 Generator::__wakeup — 序列化回调
 ```
 
@@ -68,7 +68,7 @@ interface Iterator extends Traversable {
 }
 ```
 
-### 理解迭代器iterator的执行顺序
+### 理解iterator的执行顺序
 
 下面写了一个简单的类实现Iterator接口.
 
@@ -131,7 +131,7 @@ valid
 
 ### generator遍历的流程
 
-下面写了一个简单的迭代器测试代码.
+下面写了一个简单的生成器测试代码.
 
 ```
 <?php
@@ -166,21 +166,21 @@ current2
 int(1)
 ```
 
-可以看出,调用current函数, 迭代器会在第一个yield处停住, 并返回yield的右值.
+可以看出,调用current函数, 生成器会在第一个yield处停住, 并返回yield的右值.
 接着回到main函数, 调用var_dump将返回值int(0)打印出来.
 
-接着调用next函数, 迭代器继续运行到下一个yield处停住, 因为next只移动指针不返回值,
+接着调用next函数, 生成器继续运行到下一个yield处停住, 因为next只移动指针不返回值,
 所以当前yield并未执行.
 
-接着调用current函数, 迭代器返回int(1).
+接着调用current函数, 生成器返回int(1).
 
 如果不调用next函数, 则两次current函数的输出都将是int(0), 且不会输出"after"关键字.
 
 
-### 迭代器的退出方式
+### 生成器的退出方式
 
-迭代器在执行过程中, 如果没有遇到yield关键字, 而直接遇到return或者函数结束,
-那么此时迭代器就会退出遍历, 即valid返回返回了false.
+生成器在执行过程中, 如果没有遇到yield关键字, 而直接遇到return或者函数结束,
+那么此时生成器就会退出遍历, 即valid返回返回了false.
 
 下面看一段代码:
 
@@ -212,11 +212,11 @@ after
 done
 ```
 
-### 迭代器的返回值
+### 生成器的返回值
 
-因为迭代器在书写的时候, 是一个函数, 函数当然也有返回值.
+因为生成器在书写的时候, 是一个函数, 函数当然也有返回值.
 
-而这个返回值可以通过迭代器的getReturn方法获得.
+而这个返回值可以通过生成器的getReturn方法获得.
 
 看下面一段代码:
 
@@ -256,9 +256,9 @@ done
 string(8) "returned"
 ```
 
-可以看出, 在迭代器执行完毕后, 我们可以通过getReturn获取其返回值.
+可以看出, 在生成器执行完毕后, 我们可以通过getReturn获取其返回值.
 
-如果迭代器还没有执行完毕, 调用getReturn会抛出异常.
+如果生成器还没有执行完毕, 调用getReturn会抛出异常.
 
 ### send方法的执行流程
 
@@ -299,8 +299,8 @@ int(5)
 current3: 5
 ```
 
-从上面的流程, 调用current函数, 进入迭代器, 停在yield语句并返回1给main函数,
-然后调用send函数, 迭代器继续执行, 直到遇到下一个yield,
+从上面的流程, 调用current函数, 进入生成器, 停在yield语句并返回1给main函数,
+然后调用send函数, 生成器继续执行, 直到遇到下一个yield,
 然后send返回当前yield的值int(3).
 
 而我们从send的[wiki](http://sg2.php.net/manual/en/generator.send.php)
@@ -333,8 +333,8 @@ Exception: Test
 Bar
 ```
 
-可以看出, 调用current函数后, 迭代器停在yield处, 而main调用throw函数,
-则迭代器中当前yield处会抛出指定的异常.
+可以看出, 调用current函数后, 生成器停在yield处, 而main调用throw函数,
+则生成器中当前yield处会抛出指定的异常.
 
 
 ### 使用协程实现http服务器

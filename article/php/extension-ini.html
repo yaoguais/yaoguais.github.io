@@ -243,7 +243,7 @@ REGISTER_INI_ENTRIES();</code></pre>
 #define ZEND_INI_BEGIN()        static const zend_ini_entry_def ini_entries[] = {
 #define ZEND_INI_END()      { NULL, NULL, NULL, NULL, NULL, NULL, NULL, 0, 0, 0} };</code></pre>
 <p>zend_register_ini_entries实现如下</p>
-<pre><code>ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int module_number) /* {{{ */
+<pre><code>ZEND_API int zend_register_ini_entries(const zend_ini_entry_def *ini_entry, int module_number) /* { { { */
 {
     zend_ini_entry *p;
     zval *default_value;

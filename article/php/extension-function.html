@@ -129,7 +129,7 @@ typedef struct _zend_internal_arg_info {
 <h3>函数的定义</h3>
 <pre><code>mysqli_api.c
 
-/* {{{ proto void mysqli_debug(string debug) U
+/* { { { proto void mysqli_debug(string debug) U
 */
 PHP_FUNCTION(mysqli_debug)
 {
@@ -145,7 +145,7 @@ PHP_FUNCTION(mysqli_debug)
 }
 /* }}} */
 
-/* {{{ proto bool mysqli_autocommit(object link, bool mode)
+/* { { { proto bool mysqli_autocommit(object link, bool mode)
    Turn auto commit on or of */
 PHP_FUNCTION(mysqli_autocommit)
 {
@@ -174,7 +174,7 @@ this_ptr  this指针
 type_spec 参数的格式化字符串
 ...       接受参数的变量地址</code></pre>
 <p>在zend_parse_va_args进行预处理</p>
-<pre><code>static int zend_parse_va_args(int num_args, const char *type_spec, va_list *va, int flags) /* {{{ */
+<pre><code>static int zend_parse_va_args(int num_args, const char *type_spec, va_list *va, int flags) /* { { { */
 {
 
     for (spec_walk = type_spec; *spec_walk; spec_walk++) {

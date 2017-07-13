@@ -17,10 +17,10 @@
 <p>目录:</p>
 <ol>
 <li>对基础术语的理解</li>
-<li>理解迭代器iterator的执行顺序</li>
+<li>理解iterator的执行顺序</li>
 <li>generator遍历的流程</li>
-<li>迭代器的退出方式</li>
-<li>迭代器的返回值</li>
+<li>生成器的退出方式</li>
+<li>生成器的返回值</li>
 <li>send方法的执行流程</li>
 <li>generator的异常处理</li>
 <li>使用协程实现http服务器</li>
@@ -54,10 +54,10 @@
 Generator::current — 返回当前产生的值
 Generator::key — 返回当前产生的键
 Generator::next — 生成器继续执行
-Generator::rewind — 重置迭代器
+Generator::rewind — 重置生成器
 Generator::send — 向生成器中传入一个值
 Generator::throw — 向生成器中抛入一个异常
-Generator::valid — 检查迭代器是否被关闭
+Generator::valid — 检查生成器是否被关闭
 Generator::__wakeup — 序列化回调</code></pre>
 <p>从上面可以看出, Generator类实现了Iterator接口, 因此可以使用foreach进行遍历.</p>
 <pre><code>interface Iterator extends Traversable {
@@ -67,7 +67,7 @@ Generator::__wakeup — 序列化回调</code></pre>
     public function valid();
     public function rewind();
 }</code></pre>
-<h3>理解迭代器iterator的执行顺序</h3>
+<h3>理解iterator的执行顺序</h3>
 <p>下面写了一个简单的类实现Iterator接口.</p>
 <pre><code>&lt;?php
 
@@ -118,7 +118,7 @@ valid</code></pre>
 <p>紧接着执行echo语句输出当前键值, 最后执行next将指针移向下一个地方.</p>
 <p>而Generator既然实现Iterator接口, 自然也有同样的流程.</p>
 <h3>generator遍历的流程</h3>
-<p>下面写了一个简单的迭代器测试代码.</p>
+<p>下面写了一个简单的生成器测试代码.</p>
 <pre><code>&lt;?php
 function printer()
 {
@@ -149,15 +149,15 @@ before
 NULL
 current2
 int(1)</code></pre>
-<p>可以看出,调用current函数, 迭代器会在第一个yield处停住, 并返回yield的右值.
+<p>可以看出,调用current函数, 生成器会在第一个yield处停住, 并返回yield的右值.
 接着回到main函数, 调用var_dump将返回值int(0)打印出来.</p>
-<p>接着调用next函数, 迭代器继续运行到下一个yield处停住, 因为next只移动指针不返回值,
+<p>接着调用next函数, 生成器继续运行到下一个yield处停住, 因为next只移动指针不返回值,
 所以当前yield并未执行.</p>
-<p>接着调用current函数, 迭代器返回int(1).</p>
+<p>接着调用current函数, 生成器返回int(1).</p>
 <p>如果不调用next函数, 则两次current函数的输出都将是int(0), 且不会输出&quot;after&quot;关键字.</p>
-<h3>迭代器的退出方式</h3>
-<p>迭代器在执行过程中, 如果没有遇到yield关键字, 而直接遇到return或者函数结束,
-那么此时迭代器就会退出遍历, 即valid返回返回了false.</p>
+<h3>生成器的退出方式</h3>
+<p>生成器在执行过程中, 如果没有遇到yield关键字, 而直接遇到return或者函数结束,
+那么此时生成器就会退出遍历, 即valid返回返回了false.</p>
 <p>下面看一段代码:</p>
 <pre><code>&lt;?php
 
@@ -184,9 +184,9 @@ before
 2 =&gt; 1
 after
 done</code></pre>
-<h3>迭代器的返回值</h3>
-<p>因为迭代器在书写的时候, 是一个函数, 函数当然也有返回值.</p>
-<p>而这个返回值可以通过迭代器的getReturn方法获得.</p>
+<h3>生成器的返回值</h3>
+<p>因为生成器在书写的时候, 是一个函数, 函数当然也有返回值.</p>
+<p>而这个返回值可以通过生成器的getReturn方法获得.</p>
 <p>看下面一段代码:</p>
 <pre><code>&lt;?php
 
@@ -221,8 +221,8 @@ before
 after
 done
 string(8) "returned"</code></pre>
-<p>可以看出, 在迭代器执行完毕后, 我们可以通过getReturn获取其返回值.</p>
-<p>如果迭代器还没有执行完毕, 调用getReturn会抛出异常.</p>
+<p>可以看出, 在生成器执行完毕后, 我们可以通过getReturn获取其返回值.</p>
+<p>如果生成器还没有执行完毕, 调用getReturn会抛出异常.</p>
 <h3>send方法的执行流程</h3>
 <p>下面先看一段代码:</p>
 <pre><code>&lt;?php
@@ -257,8 +257,8 @@ after
 before
 int(5)
 current3: 5</code></pre>
-<p>从上面的流程, 调用current函数, 进入迭代器, 停在yield语句并返回1给main函数,
-然后调用send函数, 迭代器继续执行, 直到遇到下一个yield,
+<p>从上面的流程, 调用current函数, 进入生成器, 停在yield语句并返回1给main函数,
+然后调用send函数, 生成器继续执行, 直到遇到下一个yield,
 然后send返回当前yield的值int(3).</p>
 <p>而我们从send的<a href="http://sg2.php.net/manual/en/generator.send.php">wiki</a>
 得知, send的返回值是&quot;Returns the yielded value.&quot;, 与上面的结果相吻合.</p>
@@ -285,8 +285,8 @@ Foo
 int(1)
 Exception: Test
 Bar</code></pre>
-<p>可以看出, 调用current函数后, 迭代器停在yield处, 而main调用throw函数,
-则迭代器中当前yield处会抛出指定的异常.</p>
+<p>可以看出, 调用current函数后, 生成器停在yield处, 而main调用throw函数,
+则生成器中当前yield处会抛出指定的异常.</p>
 <h3>使用协程实现http服务器</h3>
 <p>参考鸟哥翻译的文章, 修改了部分代码, 实现用PHP协程写http服务器.</p>
 <p>主要思路是使用IO多路复用, 当socket当有事件发生时, 才进行对应的操作,</p>
