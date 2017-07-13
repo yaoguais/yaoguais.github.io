@@ -894,14 +894,14 @@ sw_inline void coro_yield()
 }
 ```
 
-然后接着时间循环, 这时httpclient发送给9503的数据可以写到缓冲区了, swoole调用swClient\_onWrite()
+然后接着事件循环, 这时httpclient发送给9503的数据可以写到缓冲区了, swoole调用swClient\_onWrite()
 将数据发送给9503, 这时9503的控制台显示
 
 ```
 [Thu Jul 13 21:28:00 2017] 127.0.0.1:51866 [200]: /
 ```
 
-然后接着时间循环, 9503这次http请求返回http响应给我们了,
+然后接着事件循环, 9503这次http请求返回http响应给我们了,
 因此触发swoole的可读时间, 因此swoole调用swClient\_onStreamRead读取数据.
 
 

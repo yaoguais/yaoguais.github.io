@@ -789,10 +789,10 @@ sw_inline void coro_yield()
 #endif
     longjmp(*swReactorCheckPoint, 1);
 }</code></pre>
-<p>然后接着时间循环, 这时httpclient发送给9503的数据可以写到缓冲区了, swoole调用swClient_onWrite()
+<p>然后接着事件循环, 这时httpclient发送给9503的数据可以写到缓冲区了, swoole调用swClient_onWrite()
 将数据发送给9503, 这时9503的控制台显示</p>
 <pre><code>[Thu Jul 13 21:28:00 2017] 127.0.0.1:51866 [200]: /</code></pre>
-<p>然后接着时间循环, 9503这次http请求返回http响应给我们了,
+<p>然后接着事件循环, 9503这次http请求返回http响应给我们了,
 因此触发swoole的可读时间, 因此swoole调用swClient_onStreamRead读取数据.</p>
 <p>swClient_onStreamRead函数实现如下:</p>
 <pre><code>https://github.com/swoole/swoole-src/blob/51e28bcf976a484b77c29c795b4d9a889bb98b17/src/network/Client.c:782
