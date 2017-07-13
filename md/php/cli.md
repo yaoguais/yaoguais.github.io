@@ -76,7 +76,7 @@
 
 	:419
 
-	static int php_cli_startup(sapi_module_struct *sapi_module) /* {{{ */
+	static int php_cli_startup(sapi_module_struct *sapi_module) /* { { { */
 	{
 		if (php_module_startup(sapi_module, NULL, 0)==FAILURE) {/*调用php_module_startup函数*/
 			return FAILURE;
@@ -152,7 +152,7 @@
 
 	PHP-SRC/Zend/zend_API.c:1857
 
-	ZEND_API zend_module_entry* zend_register_internal_module(zend_module_entry *module) /* {{{ */
+	ZEND_API zend_module_entry* zend_register_internal_module(zend_module_entry *module) /* { { { */
 	{
 		module->module_number = zend_next_free_module();
 		module->type = MODULE_PERSISTENT;
@@ -161,7 +161,7 @@
 	
 	:1797
 
-	ZEND_API zend_module_entry* zend_register_module_ex(zend_module_entry *module) /* {{{ */
+	ZEND_API zend_module_entry* zend_register_module_ex(zend_module_entry *module) /* { { { */
 	{
 		size_t name_len;
 		zend_string *lcname;
@@ -273,7 +273,7 @@
 	
 	PHP-SRC/Zend/zend_API.c:1781
 
-	ZEND_API int zend_startup_modules(void) /* {{{ */
+	ZEND_API int zend_startup_modules(void) /* { { { */
 	{
 		zend_hash_sort_ex(&module_registry, zend_sort_modules, NULL, 0);
 		/*这里调用zend_hash_apply,会回调传入的函数参数zend_startup_module_zval*/
@@ -283,7 +283,7 @@
 
 	：1669
 
-	static int zend_startup_module_zval(zval *zv) /* {{{ */
+	static int zend_startup_module_zval(zval *zv) /* { { { */
 	{
 		zend_module_entry *module = Z_PTR_P(zv);
 		/*这里继续调用zend_startup_module_ex*/
@@ -292,7 +292,7 @@
 
 	:1661
 
-	ZEND_API int zend_startup_module_ex(zend_module_entry *module) /* {{{ */
+	ZEND_API int zend_startup_module_ex(zend_module_entry *module) /* { { { */
 	{
 		size_t name_len;
 		zend_string *lcname;
@@ -339,7 +339,7 @@
 
 	PHP-SRC/sapi/cli/php_cli.php:647
 
-	static int do_cli(int argc, char **argv) /* {{{ */
+	static int do_cli(int argc, char **argv) /* { { { */
 	{
 		int c;
 		zend_file_handle file_handle;
@@ -367,7 +367,7 @@
 
 	PHP-SRC/Zend/zend_API.c:2320
 
-	ZEND_API void zend_activate_modules(void) /* {{{ */
+	ZEND_API void zend_activate_modules(void) /* { { { */
 	{
 		zend_module_entry **p = module_request_startup_handlers;
 	
@@ -414,7 +414,7 @@
 
 	PHP-SRC/Zend/zend.c:1251
 
-	ZEND_API int zend_execute_scripts(int type, zval *retval, int file_count, ...) /* {{{ */
+	ZEND_API int zend_execute_scripts(int type, zval *retval, int file_count, ...) /* { { { */
 	{
 		va_list files;
 		int i;
@@ -497,7 +497,7 @@
 
 	PHP-SRC/Zend/zenc_API.c:2351
 
-	ZEND_API void zend_deactivate_modules(void) /* {{{ */
+	ZEND_API void zend_deactivate_modules(void) /* { { { */
 	{
 		EG(current_execute_data) = NULL; /* we're no longer executing anything */
 	
@@ -556,7 +556,7 @@
 	
 	PHP-SRC/Zend/zend.c:736
 
-	void zend_shutdown(void) /* {{{ */
+	void zend_shutdown(void) /* { { { */
 	{
 	#ifdef ZEND_SIGNALS
 		zend_signal_shutdown();
@@ -567,7 +567,7 @@
 
 	PHP-SRC/Zend/zend_API.c:1789
 
-	ZEND_API void zend_destroy_modules(void) /* {{{ */
+	ZEND_API void zend_destroy_modules(void) /* { { { */
 	{
 		free(class_cleanup_handlers);
 		free(module_request_startup_handlers);
@@ -631,7 +631,7 @@
 
 	PHP-SRC/Zend/zend.c:559
 
-	int zend_startup(zend_utility_functions *utility_functions, char **extensions) /* {{{ */
+	int zend_startup(zend_utility_functions *utility_functions, char **extensions) /* { { { */
 	{
 		//...
 		zend_hash_init_ex(GLOBAL_FUNCTION_TABLE, 1024, NULL, ZEND_FUNCTION_DTOR, 1, 0);
@@ -643,7 +643,7 @@
 	
 	:533
 
-	static void module_destructor_zval(zval *zv) /* {{{ */
+	static void module_destructor_zval(zval *zv) /* { { { */
 	{
 		zend_module_entry *module = (zend_module_entry*)Z_PTR_P(zv);
 		//调用模块的析构函数
@@ -653,7 +653,7 @@
 	
 	PHP-SRC/Zend/zend_API.c:2276
 
-	void module_destructor(zend_module_entry *module) /* {{{ */
+	void module_destructor(zend_module_entry *module) /* { { { */
 	{
 	
 		if (module->type == MODULE_TEMPORARY) {
