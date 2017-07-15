@@ -14,7 +14,7 @@
 12. [Swoole源码分析之数据接收与发送](https://yaoguais.github.io/article/swoole/send.html)
 13. [聊天系统Jegarn的常见问题](https://yaoguais.github.io/article/jegarn/faq_zh-cn.html)
 14. [php协程与swoole协程](https://yaoguais.github.io/article/php/coroutine.html)
-15. [PHP的PDO-commit函数在tidb上返回值错误的分析](https://yaoguais.github.io/article/php/tidb-pod-commit.html)
+15. [PHP的PDO-commit函数在tidb上返回值错误的分析](https://yaoguais.github.io/article/php/tidb-pdo-commit.html)
 16. [xhprof源码分析之简介与环境搭建](https://yaoguais.github.io/article/xhprof/intro.html)
 17. [xhprof源码分析之输入输出接口](https://yaoguais.github.io/article/xhprof/interface.html)
 18. [xhprof源码分析之扩展实现的基本原理](https://yaoguais.github.io/article/xhprof/theory.html)
