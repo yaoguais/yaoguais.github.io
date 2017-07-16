@@ -6,7 +6,18 @@
 
 commit()函数返回成功且没有抛出异常.
 
+经过两天的努力, 终于发现了问题所在, 虽然...
 
+
+
+目录:
+
+1. 测试脚本
+2. 正确执行结果协议分析
+3. 错误执行结果协议分析
+4. 通过mysqlnd调试信息修复bug
+5. 再次通过xhprof修复bug
+6. 再再次通过mysqlnd调试信息修复bug
 
 
 ### 测试脚本
@@ -283,7 +294,7 @@ frame.len == 78
 ```
 
 
-### 修复bug
+### 通过mysqlnd调试信息修复bug
 
 通过gdb单步调试, 基本理清php与mysql的交互流程,
 
@@ -713,1660 +724,9 @@ mysqlnd.log_mask = 0
 
 其日志输出为:
 ```
-   0:>mysqlnd_init
-   1:| >mysqlnd_driver::get_connection
-   2:| | info : persistent=0
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=0
-   2:| | <mysqlnd_conn_data::set_state
-   2:| | >mysqlnd_conn_data::get_reference
-   3:| | | info : conn=0 new_refcount=1
-   2:| | <mysqlnd_conn_data::get_reference
-   2:| | >mysqlnd_conn_data::init
-   3:| | | >mysqlnd_net_init
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_object_factory::get_io_channel
-   5:| | | | | info : persistent=0
-   5:| | | | | >mysqlnd_net::init
-   6:| | | | | | >mysqlnd_net::set_client_option
-   7:| | | | | | | info : option=202
-   7:| | | | | | | info : MYSQLND_OPT_NET_CMD_BUFFER_SIZE
-   7:| | | | | | | info : new_length=4096
-   7:| | | | | | | >_mysqlnd_pemalloc
-   7:| | | | | | | <_mysqlnd_pemalloc
-   6:| | | | | | <mysqlnd_net::set_client_option
-   6:| | | | | | >mysqlnd_net::set_client_option
-   7:| | | | | | | info : option=203
-   7:| | | | | | | info : MYSQLND_OPT_NET_READ_BUFFER_SIZE
-   7:| | | | | | | info : new_length=32768
-   6:| | | | | | <mysqlnd_net::set_client_option
-   6:| | | | | | >mysqlnd_net::set_client_option
-   7:| | | | | | | info : option=11
-   6:| | | | | | <mysqlnd_net::set_client_option
-   5:| | | | | <mysqlnd_net::init
-   4:| | | | <mysqlnd_object_factory::get_io_channel
-   3:| | | <mysqlnd_net_init
-   3:| | | >mysqlnd_protocol_init
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_object_factory::get_protocol_decoder
-   5:| | | | | info : persistent=0
-   4:| | | | <mysqlnd_object_factory::get_protocol_decoder
-   3:| | | <mysqlnd_protocol_init
-   2:| | <mysqlnd_conn_data::init
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   1:| <mysqlnd_driver::get_connection
-   1:| >mysqlnd_conn_data::negotiate_client_api_capabilities
-   1:| <mysqlnd_conn_data::negotiate_client_api_capabilities
-   0:<mysqlnd_init
-   0:>mysqlnd_conn_data::set_client_option
-   1:| info : conn=0 option=0
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_net::set_client_option
-   2:| | info : option=0
-   2:| | info : MYSQL_OPT_CONNECT_TIMEOUT
-   1:| <mysqlnd_net::set_client_option
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   0:<mysqlnd_conn_data::set_client_option
-   0:>mysqlnd_conn_data::set_client_option
-   1:| info : conn=0 option=8
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   0:<mysqlnd_conn_data::set_client_option
-   0:>mysqlnd_connect
-   1:| info : host=10.80.90.30 user=root db=test port=4000 flags=196608
-   1:| >mysqlnd_conn::connect
-   2:| | >mysqlnd_conn_data::local_tx_start
-   2:| | <mysqlnd_conn_data::local_tx_start
-   2:| | >mysqlnd_conn_data::set_client_option_2d
-   3:| | | info : conn=0 option=25
-   3:| | | >mysqlnd_conn_data::local_tx_start
-   3:| | | <mysqlnd_conn_data::local_tx_start
-   3:| | | info : Initializing connect_attr hash
-   3:| | | >_mysqlnd_pemalloc
-   3:| | | <_mysqlnd_pemalloc
-   3:| | | info : Adding [_client_name][mysqlnd]
-   3:| | | >mysqlnd_conn_data::local_tx_end
-   3:| | | <mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::set_client_option_2d
-   2:| | >mysqlnd_conn_data::connect
-   3:| | | info : conn=0x7fc2a4082508
-   3:| | | >mysqlnd_conn_data::local_tx_start
-   3:| | | <mysqlnd_conn_data::local_tx_start
-   3:| | | >mysqlnd_conn_data::get_state
-   3:| | | <mysqlnd_conn_data::get_state
-   3:| | | info : host=10.80.90.30 user=root db=test port=4000 flags=196608 persistent=0 state=0
-   3:| | | >mysqlnd_conn_data::get_state
-   3:| | | <mysqlnd_conn_data::get_state
-   3:| | | >mysqlnd_conn_data::set_client_option
-   4:| | | | info : conn=0 option=210
-   4:| | | | >mysqlnd_conn_data::local_tx_start
-   4:| | | | <mysqlnd_conn_data::local_tx_start
-   4:| | | | >mysqlnd_conn_data::local_tx_end
-   4:| | | | <mysqlnd_conn_data::local_tx_end
-   3:| | | <mysqlnd_conn_data::set_client_option
-   3:| | | info : transport=tcp://10.80.90.30:4000 conn->scheme=(null)
-   3:| | | >_mysqlnd_pestrndup
-   3:| | | <_mysqlnd_pestrndup
-   3:| | | >mysqlnd_conn_data::get_updated_connect_flags
-   3:| | | <mysqlnd_conn_data::get_updated_connect_flags
-   3:| | | >mysqlnd_conn_data::connect_handshake
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_greet_packet
-   4:| | | | <mysqlnd_protocol::get_greet_packet
-   4:| | | | >mysqlnd_net::connect_ex
-   5:| | | | | >mysqlnd_net::close_stream
-   6:| | | | | | >mysqlnd_net::get_stream
-   7:| | | | | | | info : 0
-   6:| | | | | | <mysqlnd_net::get_stream
-   5:| | | | | <mysqlnd_net::close_stream
-   5:| | | | | >mysqlnd_net::get_open_stream
-   5:| | | | | <mysqlnd_net::get_open_stream
-   5:| | | | | >mysqlnd_net::open_tcp_or_unix
-   6:| | | | | | info : calling php_stream_xport_create
-   5:| | | | | <mysqlnd_net::open_tcp_or_unix
-   5:| | | | | >mysqlnd_net::set_stream
-   5:| | | | | <mysqlnd_net::set_stream
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::post_connect_set_opt
-   6:| | | | | | info : setting 31536000 as PHP_STREAM_OPTION_READ_TIMEOUT
-   6:| | | | | | >mysqlnd_set_sock_no_delay
-   6:| | | | | | <mysqlnd_set_sock_no_delay
-   6:| | | | | | >mysqlnd_set_sock_keepalive
-   6:| | | | | | <mysqlnd_set_sock_keepalive
-   5:| | | | | <mysqlnd_net::post_connect_set_opt
-   4:| | | | <mysqlnd_net::connect_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | info : stream=0x7fc2a4066a00
-   4:| | | | >php_mysqlnd_greet_read
-   5:| | | | | info : buf=0x7ffca191b280 size=2048
-   5:| | | | | >mysqlnd_read_header
-   6:| | | | | | info : compressed=0
-   6:| | | | | | >mysqlnd_net::receive_ex
-   6:| | | | | | <mysqlnd_net::receive_ex
-   6:| | | | | | >mysqlnd_net::get_stream
-   7:| | | | | | | info : 0x7fc2a4066a00
-   6:| | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | >mysqlnd_net::network_read_ex
-   7:| | | | | | | info : count=4
-   6:| | | | | | <mysqlnd_net::network_read_ex
-   6:| | | | | | info : HEADER: prot_packet_no=0 size= 60
-   5:| | | | | <mysqlnd_read_header
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=60
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : proto=10 server=5.7.1-TiDB-1.0 thread_id=285743
-   5:| | | | | info : server_capabilities=41615 charset_no=83 server_status=2 auth_protocol=n/a scramble_length=20
-   4:| | | | <php_mysqlnd_greet_read
-   4:| | | | >_mysqlnd_pestrdup
-   4:| | | | <_mysqlnd_pestrdup
-   4:| | | | >mysqlnd_connect_run_authentication
-   5:| | | | | >mysqlnd_switch_to_ssl_if_needed
-   6:| | | | | | info : client_capability_flags=762509
-   6:| | | | | | info : CLIENT_LONG_PASSWORD=	1
-   6:| | | | | | info : CLIENT_FOUND_ROWS=		0
-   6:| | | | | | info : CLIENT_LONG_FLAG=		1
-   6:| | | | | | info : CLIENT_NO_SCHEMA=		0
-   6:| | | | | | info : CLIENT_COMPRESS=		0
-   6:| | | | | | info : CLIENT_ODBC=			0
-   6:| | | | | | info : CLIENT_LOCAL_FILES=	1
-   6:| | | | | | info : CLIENT_IGNORE_SPACE=	0
-   6:| | | | | | info : CLIENT_PROTOCOL_41=	1
-   6:| | | | | | info : CLIENT_INTERACTIVE=	0
-   6:| | | | | | info : CLIENT_SSL=			0
-   6:| | | | | | info : CLIENT_IGNORE_SIGPIPE=	0
-   6:| | | | | | info : CLIENT_TRANSACTIONS=	1
-   6:| | | | | | info : CLIENT_RESERVED=		0
-   6:| | | | | | info : CLIENT_SECURE_CONNECTION=1
-   6:| | | | | | info : CLIENT_MULTI_STATEMENTS=1
-   6:| | | | | | info : CLIENT_MULTI_RESULTS=	1
-   6:| | | | | | info : CLIENT_PS_MULTI_RESULTS=0
-   6:| | | | | | info : CLIENT_CONNECT_ATTRS=	1
-   6:| | | | | | info : CLIENT_PLUGIN_AUTH_LENENC_CLIENT_DATA=	0
-   6:| | | | | | info : CLIENT_CAN_HANDLE_EXPIRED_PASSWORDS=	0
-   6:| | | | | | info : CLIENT_SESSION_TRACK=		0
-   6:| | | | | | info : CLIENT_SSL_DONT_VERIFY_SERVER_CERT=	0
-   6:| | | | | | info : CLIENT_SSL_VERIFY_SERVER_CERT=	0
-   6:| | | | | | info : CLIENT_REMEMBER_OPTIONS=		0
-   6:| | | | | | >_mysqlnd_pecalloc
-   6:| | | | | | <_mysqlnd_pecalloc
-   6:| | | | | | >mysqlnd_protocol::get_auth_packet
-   6:| | | | | | <mysqlnd_protocol::get_auth_packet
-   6:| | | | | | info : PACKET_FREE(0x7fc2a405e1e8)
-   6:| | | | | | >_mysqlnd_pefree
-   6:| | | | | | <_mysqlnd_pefree
-   5:| | | | | <mysqlnd_switch_to_ssl_if_needed
-   5:| | | | | >mysqlnd_run_authentication
-   6:| | | | | | >_mysqlnd_emalloc
-   6:| | | | | | <_mysqlnd_emalloc
-   6:| | | | | | >_mysqlnd_pestrdup
-   6:| | | | | | <_mysqlnd_pestrdup
-   6:| | | | | | >mysqlnd_conn_data::fetch_auth_plugin_by_name
-   7:| | | | | | | info : looking for auth_plugin_mysql_native_password auth plugin
-   6:| | | | | | <mysqlnd_conn_data::fetch_auth_plugin_by_name
-   6:| | | | | | info : plugin found
-   6:| | | | | | >_mysqlnd_pemalloc
-   6:| | | | | | <_mysqlnd_pemalloc
-   6:| | | | | | info : salt(20)=[vi|j,[U~+mAr	Ta]
-   6:| | | | | | >mysqlnd_native_auth_get_auth_data
-   6:| | | | | | <mysqlnd_native_auth_get_auth_data
-   6:| | | | | | >mysqlnd_auth_handshake
-   7:| | | | | | | >_mysqlnd_pecalloc
-   7:| | | | | | | <_mysqlnd_pecalloc
-   7:| | | | | | | >mysqlnd_protocol::get_auth_response_packet
-   7:| | | | | | | <mysqlnd_protocol::get_auth_response_packet
-   7:| | | | | | | >_mysqlnd_pecalloc
-   7:| | | | | | | <_mysqlnd_pecalloc
-   7:| | | | | | | >mysqlnd_protocol::get_auth_packet
-   7:| | | | | | | <mysqlnd_protocol::get_auth_packet
-   7:| | | | | | | >php_mysqlnd_auth_write
-   8:| | | | | | | | >mysqlnd_net::send_ex
-   9:| | | | | | | | | info : count=65 compression=0
-   9:| | | | | | | | | info : to_be_sent=65
-   9:| | | | | | | | | info : packets_sent=1
-   9:| | | | | | | | | info : compressed_envelope_packet_no=0
-   9:| | | | | | | | | info : packet_no=1
-   9:| | | | | | | | | info : no compression
-   9:| | | | | | | | | >mysqlnd_net::network_write_ex
-  10:| | | | | | | | | | info : sending 69 bytes
-  10:| | | | | | | | | | >mysqlnd_net::get_stream
-  11:| | | | | | | | | | | info : 0x7fc2a4066a00
-  10:| | | | | | | | | | <mysqlnd_net::get_stream
-   9:| | | | | | | | | <mysqlnd_net::network_write_ex
-   9:| | | | | | | | | info : packet_size=0 packet_no=2
-   8:| | | | | | | | <mysqlnd_net::send_ex
-   7:| | | | | | | <php_mysqlnd_auth_write
-   7:| | | | | | | >php_mysqlnd_auth_response_read
-   8:| | | | | | | | info : buf=0x7fc2a406f008 size=4095
-   8:| | | | | | | | >mysqlnd_read_header
-   9:| | | | | | | | | info : compressed=0
-   9:| | | | | | | | | >mysqlnd_net::receive_ex
-   9:| | | | | | | | | <mysqlnd_net::receive_ex
-   9:| | | | | | | | | >mysqlnd_net::get_stream
-  10:| | | | | | | | | | info : 0x7fc2a4066a00
-   9:| | | | | | | | | <mysqlnd_net::get_stream
-   9:| | | | | | | | | >mysqlnd_net::network_read_ex
-  10:| | | | | | | | | | info : count=4
-   9:| | | | | | | | | <mysqlnd_net::network_read_ex
-   9:| | | | | | | | | info : HEADER: prot_packet_no=2 size=  7
-   8:| | | | | | | | <mysqlnd_read_header
-   8:| | | | | | | | >mysqlnd_net::receive_ex
-   8:| | | | | | | | <mysqlnd_net::receive_ex
-   8:| | | | | | | | >mysqlnd_net::get_stream
-   9:| | | | | | | | | info : 0x7fc2a4066a00
-   8:| | | | | | | | <mysqlnd_net::get_stream
-   8:| | | | | | | | >mysqlnd_net::network_read_ex
-   9:| | | | | | | | | info : count=7
-   8:| | | | | | | | <mysqlnd_net::network_read_ex
-   8:| | | | | | | | info : OK packet: aff_rows=0 last_ins_id=0 server_status=2 warnings=0
-   7:| | | | | | | <php_mysqlnd_auth_response_read
-   7:| | | | | | | info : PACKET_FREE(0)
-   7:| | | | | | | info : PACKET_FREE(0x7fc2a405e1e8)
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   7:| | | | | | | info : PACKET_FREE(0x7fc2a4071308)
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   6:| | | | | | <mysqlnd_auth_handshake
-   6:| | | | | | info : switch_to_auth_protocol=n/a
-   6:| | | | | | >_mysqlnd_efree
-   6:| | | | | | <_mysqlnd_efree
-   6:| | | | | | info : conn->error_info->error_no = 0
-   6:| | | | | | info : saving requested_protocol=mysql_native_password
-   6:| | | | | | >mysqlnd_conn_data::set_client_option
-   7:| | | | | | | info : conn=285743 option=211
-   7:| | | | | | | >mysqlnd_conn_data::local_tx_start
-   7:| | | | | | | <mysqlnd_conn_data::local_tx_start
-   7:| | | | | | | >_mysqlnd_pestrdup
-   7:| | | | | | | <_mysqlnd_pestrdup
-   7:| | | | | | | info : auth_protocol=mysql_native_password
-   7:| | | | | | | >mysqlnd_conn_data::local_tx_end
-   7:| | | | | | | <mysqlnd_conn_data::local_tx_end
-   6:| | | | | | <mysqlnd_conn_data::set_client_option
-   6:| | | | | | >_mysqlnd_efree
-   6:| | | | | | <_mysqlnd_efree
-   5:| | | | | <mysqlnd_run_authentication
-   4:| | | | <mysqlnd_connect_run_authentication
-   4:| | | | info : PACKET_FREE(0x7fc2a4071008)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::connect_handshake
-   3:| | | >mysqlnd_conn_data::set_state
-   4:| | | | info : New state=1
-   3:| | | <mysqlnd_conn_data::set_state
-   3:| | | >_mysqlnd_pestrndup
-   3:| | | <_mysqlnd_pestrndup
-   3:| | | >_mysqlnd_pestrndup
-   3:| | | <_mysqlnd_pestrndup
-   3:| | | >_mysqlnd_pestrndup
-   3:| | | <_mysqlnd_pestrndup
-   3:| | | >_mysqlnd_pestrndup
-   3:| | | <_mysqlnd_pestrndup
-   3:| | | >_mysqlnd_pestrdup
-   3:| | | <_mysqlnd_pestrdup
-   3:| | | >mysqlnd_conn_data::execute_init_commands
-   3:| | | <mysqlnd_conn_data::execute_init_commands
-   3:| | | info : connection_id=285743
-   3:| | | >mysqlnd_conn_data::local_tx_end
-   3:| | | <mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::connect
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn::connect
-   0:<mysqlnd_connect
-   0:>mysqlnd_conn_data::query
-   1:| info : conn=0x7fc2a4082508 conn=285743 query=START TRANSACTION
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_conn_data::send_query
-   2:| | info : conn=285743 query=START TRANSACTION
-   2:| | info : conn->server_status=2
-   2:| | >mysqlnd_conn_data::local_tx_start
-   2:| | <mysqlnd_conn_data::local_tx_start
-   2:| | >mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : command=QUERY silent=0
-   4:| | | | info : conn->server_status=2
-   4:| | | | info : sending 18 bytes
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_command_packet
-   4:| | | | <mysqlnd_protocol::get_command_packet
-   4:| | | | >php_mysqlnd_cmd_write
-   5:| | | | | >mysqlnd_net::send_ex
-   6:| | | | | | info : count=18 compression=0
-   6:| | | | | | info : to_be_sent=18
-   6:| | | | | | info : packets_sent=1
-   6:| | | | | | info : compressed_envelope_packet_no=0
-   6:| | | | | | info : packet_no=0
-   6:| | | | | | info : no compression
-   6:| | | | | | >mysqlnd_net::network_write_ex
-   7:| | | | | | | info : sending 22 bytes
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::network_write_ex
-   6:| | | | | | info : packet_size=0 packet_no=1
-   5:| | | | | <mysqlnd_net::send_ex
-   4:| | | | <php_mysqlnd_cmd_write
-   4:| | | | info : PACKET_FREE(0x7fc2a405f5a8)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : PASS
-   2:| | <mysqlnd_conn_data::simple_command
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=2
-   2:| | <mysqlnd_conn_data::set_state
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   2:| | info : conn->server_status=2
-   1:| <mysqlnd_conn_data::send_query
-   1:| >mysqlnd_conn_data::get_state
-   1:| <mysqlnd_conn_data::get_state
-   1:| >mysqlnd_conn_data::reap_query
-   2:| | info : conn=285743
-   2:| | info : conn->server_status=2
-   2:| | >mysqlnd_conn_data::local_tx_start
-   2:| | <mysqlnd_conn_data::local_tx_start
-   2:| | >mysqlnd_query_read_result_set_header
-   3:| | | info : stmt=0
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >mysqlnd_protocol::get_rset_header_packet
-   3:| | | <mysqlnd_protocol::get_rset_header_packet
-   3:| | | >php_mysqlnd_rset_header_read
-   4:| | | | info : buf=0x7fc2a406f008 size=4096
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=1 size=  7
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=7
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | info : UPSERT
-   4:| | | | info : affected_rows=0 last_insert_id=0 server_status=3 warning_count=0
-   3:| | | <php_mysqlnd_rset_header_read
-   3:| | | info : UPSERT
-   3:| | | >mysqlnd_conn_data::set_state
-   4:| | | | info : New state=1
-   3:| | | <mysqlnd_conn_data::set_state
-   3:| | | info : PACKET_FREE(0x7fc2a4071008)
-   3:| | | >php_mysqlnd_rset_header_free_mem
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <php_mysqlnd_rset_header_free_mem
-   3:| | | info : PASS
-   2:| | <mysqlnd_query_read_result_set_header
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   2:| | info : conn->server_status=3
-   1:| <mysqlnd_conn_data::reap_query
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   0:<mysqlnd_conn_data::query
-   0:>mysqlnd_conn_data::more_results
-   0:<mysqlnd_conn_data::more_results
-   0:>mysqlnd_conn_data::query
-   1:| info : conn=0x7fc2a4082508 conn=285743 query=update test set stock = stock - 10 where id = 1
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_conn_data::send_query
-   2:| | info : conn=285743 query=update test set stock = stock - 10 where id = 1
-   2:| | info : conn->server_status=3
-   2:| | >mysqlnd_conn_data::local_tx_start
-   2:| | <mysqlnd_conn_data::local_tx_start
-   2:| | >mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : command=QUERY silent=0
-   4:| | | | info : conn->server_status=3
-   4:| | | | info : sending 48 bytes
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_command_packet
-   4:| | | | <mysqlnd_protocol::get_command_packet
-   4:| | | | >php_mysqlnd_cmd_write
-   5:| | | | | >mysqlnd_net::send_ex
-   6:| | | | | | info : count=48 compression=0
-   6:| | | | | | info : to_be_sent=48
-   6:| | | | | | info : packets_sent=1
-   6:| | | | | | info : compressed_envelope_packet_no=0
-   6:| | | | | | info : packet_no=0
-   6:| | | | | | info : no compression
-   6:| | | | | | >mysqlnd_net::network_write_ex
-   7:| | | | | | | info : sending 52 bytes
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::network_write_ex
-   6:| | | | | | info : packet_size=0 packet_no=1
-   5:| | | | | <mysqlnd_net::send_ex
-   4:| | | | <php_mysqlnd_cmd_write
-   4:| | | | info : PACKET_FREE(0x7fc2a405f608)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : PASS
-   2:| | <mysqlnd_conn_data::simple_command
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=2
-   2:| | <mysqlnd_conn_data::set_state
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   2:| | info : conn->server_status=3
-   1:| <mysqlnd_conn_data::send_query
-   1:| >mysqlnd_conn_data::get_state
-   1:| <mysqlnd_conn_data::get_state
-   1:| >mysqlnd_conn_data::reap_query
-   2:| | info : conn=285743
-   2:| | info : conn->server_status=3
-   2:| | >mysqlnd_conn_data::local_tx_start
-   2:| | <mysqlnd_conn_data::local_tx_start
-   2:| | >mysqlnd_query_read_result_set_header
-   3:| | | info : stmt=0
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >mysqlnd_protocol::get_rset_header_packet
-   3:| | | <mysqlnd_protocol::get_rset_header_packet
-   3:| | | >php_mysqlnd_rset_header_read
-   4:| | | | info : buf=0x7fc2a406f008 size=4096
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=1 size= 59
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=59
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | >php_mysqlnd_read_error_from_line
-   4:| | | | <php_mysqlnd_read_error_from_line
-   4:| | | | info : conn->server_status=3
-   3:| | | <php_mysqlnd_rset_header_read
-   3:| | | >_mysqlnd_pestrdup
-   3:| | | <_mysqlnd_pestrdup
-   3:| | | info : adding error [BIGINT UNSIGNED value is out of range in '(0, 10)'] to the list
-   3:| | | error: error=BIGINT UNSIGNED value is out of range in '(0, 10)'
-   3:| | | >mysqlnd_conn_data::set_state
-   4:| | | | info : New state=1
-   3:| | | <mysqlnd_conn_data::set_state
-   3:| | | info : PACKET_FREE(0x7fc2a4071008)
-   3:| | | >php_mysqlnd_rset_header_free_mem
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <php_mysqlnd_rset_header_free_mem
-   3:| | | info : FAIL
-   2:| | <mysqlnd_query_read_result_set_header
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   2:| | info : conn->server_status=3
-   1:| <mysqlnd_conn_data::reap_query
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   0:<mysqlnd_conn_data::query
-   0:>mysqlnd_conn_data::tx_commit_or_rollback
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_escape_string_for_tx_name_in_comment
-   1:| <mysqlnd_escape_string_for_tx_name_in_comment
-   1:| >mysqlnd_conn_data::query
-   2:| | info : conn=0x7fc2a4082508 conn=285743 query=ROLLBACK
-   2:| | >mysqlnd_conn_data::local_tx_start
-   2:| | <mysqlnd_conn_data::local_tx_start
-   2:| | >mysqlnd_conn_data::send_query
-   3:| | | info : conn=285743 query=ROLLBACK
-   3:| | | info : conn->server_status=3
-   3:| | | >mysqlnd_conn_data::local_tx_start
-   3:| | | <mysqlnd_conn_data::local_tx_start
-   3:| | | >mysqlnd_conn_data::simple_command
-   4:| | | | >mysqlnd_conn_data::simple_command_send_request
-   5:| | | | | info : command=QUERY silent=0
-   5:| | | | | info : conn->server_status=3
-   5:| | | | | info : sending 10 bytes
-   5:| | | | | >mysqlnd_conn_data::get_state
-   5:| | | | | <mysqlnd_conn_data::get_state
-   5:| | | | | >mysqlnd_error_list_pdtor
-   6:| | | | | | >_mysqlnd_pefree
-   6:| | | | | | <_mysqlnd_pefree
-   5:| | | | | <mysqlnd_error_list_pdtor
-   5:| | | | | >_mysqlnd_pecalloc
-   5:| | | | | <_mysqlnd_pecalloc
-   5:| | | | | >mysqlnd_protocol::get_command_packet
-   5:| | | | | <mysqlnd_protocol::get_command_packet
-   5:| | | | | >php_mysqlnd_cmd_write
-   6:| | | | | | >mysqlnd_net::send_ex
-   7:| | | | | | | info : count=10 compression=0
-   7:| | | | | | | info : to_be_sent=10
-   7:| | | | | | | info : packets_sent=1
-   7:| | | | | | | info : compressed_envelope_packet_no=0
-   7:| | | | | | | info : packet_no=0
-   7:| | | | | | | info : no compression
-   7:| | | | | | | >mysqlnd_net::network_write_ex
-   8:| | | | | | | | info : sending 14 bytes
-   8:| | | | | | | | >mysqlnd_net::get_stream
-   9:| | | | | | | | | info : 0x7fc2a4066a00
-   8:| | | | | | | | <mysqlnd_net::get_stream
-   7:| | | | | | | <mysqlnd_net::network_write_ex
-   7:| | | | | | | info : packet_size=0 packet_no=1
-   6:| | | | | | <mysqlnd_net::send_ex
-   5:| | | | | <php_mysqlnd_cmd_write
-   5:| | | | | info : PACKET_FREE(0x7fc2a405f6c8)
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : PASS
-   3:| | | <mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::set_state
-   4:| | | | info : New state=2
-   3:| | | <mysqlnd_conn_data::set_state
-   3:| | | >mysqlnd_conn_data::local_tx_end
-   3:| | | <mysqlnd_conn_data::local_tx_end
-   3:| | | info : conn->server_status=3
-   2:| | <mysqlnd_conn_data::send_query
-   2:| | >mysqlnd_conn_data::get_state
-   2:| | <mysqlnd_conn_data::get_state
-   2:| | >mysqlnd_conn_data::reap_query
-   3:| | | info : conn=285743
-   3:| | | info : conn->server_status=3
-   3:| | | >mysqlnd_conn_data::local_tx_start
-   3:| | | <mysqlnd_conn_data::local_tx_start
-   3:| | | >mysqlnd_query_read_result_set_header
-   4:| | | | info : stmt=0
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_rset_header_packet
-   4:| | | | <mysqlnd_protocol::get_rset_header_packet
-   4:| | | | >php_mysqlnd_rset_header_read
-   5:| | | | | info : buf=0x7fc2a406f008 size=4096
-   5:| | | | | >mysqlnd_read_header
-   6:| | | | | | info : compressed=0
-   6:| | | | | | >mysqlnd_net::receive_ex
-   6:| | | | | | <mysqlnd_net::receive_ex
-   6:| | | | | | >mysqlnd_net::get_stream
-   7:| | | | | | | info : 0x7fc2a4066a00
-   6:| | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | >mysqlnd_net::network_read_ex
-   7:| | | | | | | info : count=4
-   6:| | | | | | <mysqlnd_net::network_read_ex
-   6:| | | | | | info : HEADER: prot_packet_no=1 size=  7
-   5:| | | | | <mysqlnd_read_header
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=7
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : UPSERT
-   5:| | | | | info : affected_rows=0 last_insert_id=0 server_status=2 warning_count=0
-   4:| | | | <php_mysqlnd_rset_header_read
-   4:| | | | info : UPSERT
-   4:| | | | >mysqlnd_conn_data::set_state
-   5:| | | | | info : New state=1
-   4:| | | | <mysqlnd_conn_data::set_state
-   4:| | | | info : PACKET_FREE(0x7fc2a4071008)
-   4:| | | | >php_mysqlnd_rset_header_free_mem
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <php_mysqlnd_rset_header_free_mem
-   4:| | | | info : PASS
-   3:| | | <mysqlnd_query_read_result_set_header
-   3:| | | >mysqlnd_conn_data::local_tx_end
-   3:| | | <mysqlnd_conn_data::local_tx_end
-   3:| | | info : conn->server_status=2
-   2:| | <mysqlnd_conn_data::reap_query
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::query
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   0:<mysqlnd_conn_data::tx_commit_or_rollback
-   0:>mysqlnd_conn::close
-   1:| info : conn=285743
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_conn_data::get_state
-   1:| <mysqlnd_conn_data::get_state
-   1:| >mysqlnd_net::get_stream
-   2:| | info : 0x7fc2a4066a00
-   1:| <mysqlnd_net::get_stream
-   1:| >mysqlnd_send_close
-   2:| | info : conn=285743 net->data->stream->abstract=0x7fc2a4059a00
-   2:| | >mysqlnd_conn_data::get_state
-   2:| | <mysqlnd_conn_data::get_state
-   2:| | >mysqlnd_conn_data::get_state
-   2:| | <mysqlnd_conn_data::get_state
-   2:| | info : state=1
-   2:| | info : Connection clean, sending COM_QUIT
-   2:| | >mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : command=QUIT silent=1
-   4:| | | | info : conn->server_status=2
-   4:| | | | info : sending 1 bytes
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_command_packet
-   4:| | | | <mysqlnd_protocol::get_command_packet
-   4:| | | | >php_mysqlnd_cmd_write
-   5:| | | | | >mysqlnd_net::send_ex
-   6:| | | | | | info : count=1 compression=0
-   6:| | | | | | info : to_be_sent=1
-   6:| | | | | | info : packets_sent=1
-   6:| | | | | | info : compressed_envelope_packet_no=0
-   6:| | | | | | info : packet_no=0
-   6:| | | | | | info : no compression
-   6:| | | | | | >mysqlnd_net::network_write_ex
-   7:| | | | | | | info : sending 5 bytes
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::network_write_ex
-   6:| | | | | | info : packet_size=0 packet_no=1
-   5:| | | | | <mysqlnd_net::send_ex
-   4:| | | | <php_mysqlnd_cmd_write
-   4:| | | | info : PACKET_FREE(0x7fc2a405f308)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : PASS
-   2:| | <mysqlnd_conn_data::simple_command
-   2:| | >mysqlnd_net::close_stream
-   3:| | | >mysqlnd_net::get_stream
-   4:| | | | info : 0x7fc2a4066a00
-   3:| | | <mysqlnd_net::get_stream
-   3:| | | info : Freeing stream. abstract=0x7fc2a4059a00
-   3:| | | >mysqlnd_net::set_stream
-   3:| | | <mysqlnd_net::set_stream
-   2:| | <mysqlnd_net::close_stream
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=6
-   2:| | <mysqlnd_conn_data::set_state
-   1:| <mysqlnd_send_close
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   1:| >mysqlnd_conn::dtor
-   2:| | info : conn=285743
-   2:| | >my   6:| | | | | | <mysqlnd_net::network_read_ex
-   6:| | | | | | info : HEADER: prot_packet_no=1 size= 59
-   5:| | | | | <mysqlnd_read_header
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=59
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | >php_mysqlnd_read_error_from_line
-   5:| | | | | <php_mysqlnd_read_error_from_line
-   5:| | | | | info : conn->server_status=3
-   4:| | | | <php_mysqlnd_rset_header_read
-   4:| | | | >_mysqlnd_pestrdup
-   4:| | | | <_mysqlnd_pestrdup
-   4:| | | | info : adding error [BIGINT UNSIGNED value is out of range in '(0, 10)'] to the list
-   4:| | | | error: error=BIGINT UNSIGNED value is out of range in '(0, 10)'
-   4:| | | | >mysqlnd_conn_data::set_state
-   5:| | | | | info : New state=1
-   4:| | | | <mysqlnd_conn_data::set_state
-   4:| | | | info : PACKET_FREE(0x7fc2a4071008)
-   4:| | | | >php_mysqlnd_rset_header_free_mem
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <php_mysqlnd_rset_header_free_mem
-   4:| | | | info : FAIL
-   3:| | | <mysqlnd_query_read_result_set_header
-   3:| | | >mysqlnd_conn_data::local_tx_end
-   3:| | | <mysqlnd_conn_data::local_tx_end
-   3:| | | info : conn->server_status=3
-   2:| | <mysqlnd_conn_data::reap_query
-   2:| | >mysqlnd_conn_data::local_tx_end
-   2:| | <mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::query
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   0:<mysqlnd_conn_data::tx_commit_or_rollback
-   0:>_mysqlnd_stmt_init
-   1:| >_mysqlnd_pecalloc
-   1:| <_mysqlnd_pecalloc
-   1:| >mysqlnd_object_factory::get_prepared_statement
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | info : stmt=0x7fc2a407d008
-   2:| | >_mysqlnd_pemalloc
-   2:| | <_mysqlnd_pemalloc
-   2:| | >mysqlnd_conn_data::get_reference
-   3:| | | info : conn=285734 new_refcount=2
-   2:| | <mysqlnd_conn_data::get_reference
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   1:| <mysqlnd_object_factory::get_prepared_statement
-   0:<_mysqlnd_stmt_init
-   0:>mysqlnd_stmt::prepare
-   1:| info : stmt=0
-   1:| info : query=select * from test where id = 13
-   1:| >mysqlnd_error_list_pdtor
-   2:| | >_mysqlnd_pefree
-   2:| | <_mysqlnd_pefree
-   1:| <mysqlnd_error_list_pdtor
-   1:| >mysqlnd_conn_data::simple_command
-   2:| | >mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : command=STMT_PREPARE silent=0
-   3:| | | info : conn->server_status=3
-   3:| | | info : sending 33 bytes
-   3:| | | >mysqlnd_conn_data::get_state
-   3:| | | <mysqlnd_conn_data::get_state
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >mysqlnd_protocol::get_command_packet
-   3:| | | <mysqlnd_protocol::get_command_packet
-   3:| | | >php_mysqlnd_cmd_write
-   4:| | | | >mysqlnd_net::send_ex
-   5:| | | | | info : count=33 compression=0
-   5:| | | | | info : to_be_sent=33
-   5:| | | | | info : packets_sent=1
-   5:| | | | | info : compressed_envelope_packet_no=0
-   5:| | | | | info : packet_no=0
-   5:| | | | | info : no compression
-   5:| | | | | >mysqlnd_net::network_write_ex
-   6:| | | | | | info : sending 37 bytes
-   6:| | | | | | >mysqlnd_net::get_stream
-   7:| | | | | | | info : 0x7fc2a4066a00
-   6:| | | | | | <mysqlnd_net::get_stream
-   5:| | | | | <mysqlnd_net::network_write_ex
-   5:| | | | | info : packet_size=0 packet_no=1
-   4:| | | | <mysqlnd_net::send_ex
-   3:| | | <php_mysqlnd_cmd_write
-   3:| | | info : PACKET_FREE(0x7fc2a405f668)
-   3:| | | >_mysqlnd_pefree
-   3:| | | <_mysqlnd_pefree
-   2:| | <mysqlnd_conn_data::simple_command_send_request
-   2:| | info : PASS
-   1:| <mysqlnd_conn_data::simple_command
-   1:| >mysqlnd_stmt_read_prepare_response
-   2:| | info : stmt=0
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >mysqlnd_protocol::get_prepare_response_packet
-   2:| | <mysqlnd_protocol::get_prepare_response_packet
-   2:| | >php_mysqlnd_prepare_read
-   3:| | | info : buf=0x7fc2a406f008 size=4096
-   3:| | | >mysqlnd_read_header
-   4:| | | | info : compressed=0
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=4
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | info : HEADER: prot_packet_no=1 size= 12
-   3:| | | <mysqlnd_read_header
-   3:| | | >mysqlnd_net::receive_ex
-   3:| | | <mysqlnd_net::receive_ex
-   3:| | | >mysqlnd_net::get_stream
-   4:| | | | info : 0x7fc2a4066a00
-   3:| | | <mysqlnd_net::get_stream
-   3:| | | >mysqlnd_net::network_read_ex
-   4:| | | | info : count=12
-   3:| | | <mysqlnd_net::network_read_ex
-   3:| | | info : Prepare packet read: stmt_id=1 fields=2 params=0
-   2:| | <php_mysqlnd_prepare_read
-   2:| | info : PACKET_FREE(0x7fc2a4078288)
-   2:| | >_mysqlnd_pefree
-   2:| | <_mysqlnd_pefree
-   1:| <mysqlnd_stmt_read_prepare_response
-   1:| >_mysqlnd_pecalloc
-   1:| <_mysqlnd_pecalloc
-   1:| >mysqlnd_result_init
-   1:| <mysqlnd_result_init
-   1:| >mysqlnd_conn_data::get_reference
-   2:| | info : conn=285734 new_refcount=3
-   1:| <mysqlnd_conn_data::get_reference
-   1:| >mysqlnd_res::read_result_metadata
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >mysqlnd_result_meta_init
-   3:| | | info : persistent=0
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | info : meta=0x7fc2a4080088
-   2:| | <mysqlnd_result_meta_init
-   2:| | >mysqlnd_res_meta::read_metadata
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >mysqlnd_protocol::get_result_field_packet
-   3:| | | <mysqlnd_protocol::get_result_field_packet
-   3:| | | >php_mysqlnd_rset_field_read
-   4:| | | | info : buf=0x7fc2a406f008 size=4096
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=2 size= 32
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=32
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | >_mysqlnd_pemalloc
-   4:| | | | <_mysqlnd_pemalloc
-   4:| | | | info : allocing root. persistent=0
-   4:| | | | info : FIELD=[test..]
-   3:| | | <php_mysqlnd_rset_field_read
-   3:| | | >php_mysqlnd_rset_field_read
-   4:| | | | info : buf=0x7fc2a406f008 size=4096
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=3 size= 35
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=35
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | >_mysqlnd_pemalloc
-   4:| | | | <_mysqlnd_pemalloc
-   4:| | | | info : allocing root. persistent=0
-   4:| | | | info : FIELD=[test..]
-   3:| | | <php_mysqlnd_rset_field_read
-   3:| | | info : PACKET_FREE(0x7fc2a4078288)
-   3:| | | >_mysqlnd_pefree
-   3:| | | <_mysqlnd_pefree
-   2:| | <mysqlnd_res_meta::read_metadata
-   1:| <mysqlnd_res::read_result_metadata
-   1:| >mysqlnd_stmt_prepare_read_eof
-   2:| | info : stmt=1
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >mysqlnd_protocol::get_eof_packet
-   2:| | <mysqlnd_protocol::get_eof_packet
-   2:| | >php_mysqlnd_eof_read
-   3:| | | info : buf=0x7fc2a406f008 size=4096
-   3:| | | >mysqlnd_read_header
-   4:| | | | info : compressed=0
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=4
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | info : HEADER: prot_packet_no=4 size=  5
-   3:| | | <mysqlnd_read_header
-   3:| | | >mysqlnd_net::receive_ex
-   3:| | | <mysqlnd_net::receive_ex
-   3:| | | >mysqlnd_net::get_stream
-   4:| | | | info : 0x7fc2a4066a00
-   3:| | | <mysqlnd_net::get_stream
-   3:| | | >mysqlnd_net::network_read_ex
-   4:| | | | info : count=5
-   3:| | | <mysqlnd_net::network_read_ex
-   3:| | | info : EOF packet: fields=254 status=2 warnings=0
-   2:| | <php_mysqlnd_eof_read
-   2:| | info : PACKET_FREE(0x7fc2a4078288)
-   2:| | >_mysqlnd_pefree
-   2:| | <_mysqlnd_pefree
-   1:| <mysqlnd_stmt_prepare_read_eof
-   1:| info : PASS
-   0:<mysqlnd_stmt::prepare
-   0:>mysqlnd_stmt::execute
-   1:| >mysqlnd_stmt::send_execute
-   2:| | info : stmt=1
-   2:| | >mysqlnd_stmt::flush
-   3:| | | info : stmt=1
-   3:| | | info : skipping result
-   3:| | | >mysqlnd_res::skip_result
-   3:| | | <mysqlnd_res::skip_result
-   3:| | | >mysqlnd_stmt::more_results
-   3:| | | <mysqlnd_stmt::more_results
-   3:| | | info : PASS
-   2:| | <mysqlnd_stmt::flush
-   2:| | >mysqlnd_res::free_result_buffers
-   3:| | | info : unknown
-   2:| | <mysqlnd_res::free_result_buffers
-   2:| | >mysqlnd_stmt_execute_generate_request
-   3:| | | >mysqlnd_stmt_execute_store_params
-   4:| | | | >mysqlnd_stmt_execute_prepare_param_types
-   4:| | | | <mysqlnd_stmt_execute_prepare_param_types
-   4:| | | | >mysqlnd_stmt_execute_calculate_param_values_size
-   4:| | | | <mysqlnd_stmt_execute_calculate_param_values_size
-   4:| | | | info : ret=PASS
-   3:| | | <mysqlnd_stmt_execute_store_params
-   3:| | | info : ret=PASS
-   2:| | <mysqlnd_stmt_execute_generate_request
-   2:| | >mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : command=STMT_EXECUTE silent=0
-   4:| | | | info : conn->server_status=3
-   4:| | | | info : sending 11 bytes
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_command_packet
-   4:| | | | <mysqlnd_protocol::get_command_packet
-   4:| | | | >php_mysqlnd_cmd_write
-   5:| | | | | >mysqlnd_net::send_ex
-   6:| | | | | | info : count=11 compression=0
-   6:| | | | | | info : to_be_sent=11
-   6:| | | | | | info : packets_sent=1
-   6:| | | | | | info : compressed_envelope_packet_no=0
-   6:| | | | | | info : packet_no=0
-   6:| | | | | | info : no compression
-   6:| | | | | | >mysqlnd_net::network_write_ex
-   7:| | | | | | | info : sending 15 bytes
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::network_write_ex
-   6:| | | | | | info : packet_size=0 packet_no=1
-   5:| | | | | <mysqlnd_net::send_ex
-   4:| | | | <php_mysqlnd_cmd_write
-   4:| | | | info : PACKET_FREE(0x7fc2a405f668)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : PASS
-   2:| | <mysqlnd_conn_data::simple_command
-   1:| <mysqlnd_stmt::send_execute
-   1:| >mysqlnd_stmt_execute_parse_response
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=2
-   2:| | <mysqlnd_conn_data::set_state
-   2:| | >mysqlnd_query_read_result_set_header
-   3:| | | info : stmt=1
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >mysqlnd_protocol::get_rset_header_packet
-   3:| | | <mysqlnd_protocol::get_rset_header_packet
-   3:| | | >php_mysqlnd_rset_header_read
-   4:| | | | info : buf=0x7fc2a406f008 size=4096
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=1 size=  1
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=1
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | info : SELECT
-   3:| | | <php_mysqlnd_rset_header_read
-   3:| | | info : Result set pending
-   3:| | | >mysqlnd_conn_data::set_state
-   4:| | | | info : New state=4
-   3:| | | <mysqlnd_conn_data::set_state
-   3:| | | >mysqlnd_res::read_result_metadata
-   4:| | | | >mysqlnd_res_meta::free
-   5:| | | | | info : persistent=0
-   5:| | | | | info : Freeing fields metadata
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | info : Freeing zend_hash_keys
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | info : Freeing metadata structure
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_res_meta::free
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_result_meta_init
-   5:| | | | | info : persistent=0
-   5:| | | | | >_mysqlnd_pecalloc
-   5:| | | | | <_mysqlnd_pecalloc
-   5:| | | | | >_mysqlnd_pecalloc
-   5:| | | | | <_mysqlnd_pecalloc
-   5:| | | | | info : meta=0x7fc2a4080088
-   4:| | | | <mysqlnd_result_meta_init
-   4:| | | | >mysqlnd_res_meta::read_metadata
-   5:| | | | | >_mysqlnd_pecalloc
-   5:| | | | | <_mysqlnd_pecalloc
-   5:| | | | | >mysqlnd_protocol::get_result_field_packet
-   5:| | | | | <mysqlnd_protocol::get_result_field_packet
-   5:| | | | | >php_mysqlnd_rset_field_read
-   6:| | | | | | info : buf=0x7fc2a406f008 size=4096
-   6:| | | | | | >mysqlnd_read_header
-   7:| | | | | | | info : compressed=0
-   7:| | | | | | | >mysqlnd_net::receive_ex
-   7:| | | | | | | <mysqlnd_net::receive_ex
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   7:| | | | | | | >mysqlnd_net::network_read_ex
-   8:| | | | | | | | info : count=4
-   7:| | | | | | | <mysqlnd_net::network_read_ex
-   7:| | | | | | | info : HEADER: prot_packet_no=2 size= 30
-   6:| | | | | | <mysqlnd_read_header
-   6:| | | | | | >mysqlnd_net::receive_ex
-   6:| | | | | | <mysqlnd_net::receive_ex
-   6:| | | | | | >mysqlnd_net::get_stream
-   7:| | | | | | | info : 0x7fc2a4066a00
-   6:| | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | >mysqlnd_net::network_read_ex
-   7:| | | | | | | info : count=30
-   6:| | | | | | <mysqlnd_net::network_read_ex
-   6:| | | | | | >_mysqlnd_pemalloc
-   6:| | | | | | <_mysqlnd_pemalloc
-   6:| | | | | | info : allocing root. persistent=0
-   6:| | | | | | info : FIELD=[.test.id]
-   5:| | | | | <php_mysqlnd_rset_field_read
-   5:| | | | | >php_mysqlnd_rset_field_read
-   6:| | | | | | info : buf=0x7fc2a406f008 size=4096
-   6:| | | | | | >mysqlnd_read_header
-   7:| | | | | | | info : compressed=0
-   7:| | | | | | | >mysqlnd_net::receive_ex
-   7:| | | | | | | <mysqlnd_net::receive_ex
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   7:| | | | | | | >mysqlnd_net::network_read_ex
-   8:| | | | | | | | info : count=4
-   7:| | | | | | | <mysqlnd_net::network_read_ex
-   7:| | | | | | | info : HEADER: prot_packet_no=3 size= 36
-   6:| | | | | | <mysqlnd_read_header
-   6:| | | | | | >mysqlnd_net::receive_ex
-   6:| | | | | | <mysqlnd_net::receive_ex
-   6:| | | | | | >mysqlnd_net::get_stream
-   7:| | | | | | | info : 0x7fc2a4066a00
-   6:| | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | >mysqlnd_net::network_read_ex
-   7:| | | | | | | info : count=36
-   6:| | | | | | <mysqlnd_net::network_read_ex
-   6:| | | | | | >_mysqlnd_pemalloc
-   6:| | | | | | <_mysqlnd_pemalloc
-   6:| | | | | | info : allocing root. persistent=0
-   6:| | | | | | info : FIELD=[.test.stock]
-   5:| | | | | <php_mysqlnd_rset_field_read
-   5:| | | | | info : PACKET_FREE(0x7fc2a4078288)
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_res_meta::read_metadata
-   3:| | | <mysqlnd_res::read_result_metadata
-   3:| | | >_mysqlnd_pecalloc
-   3:| | | <_mysqlnd_pecalloc
-   3:| | | >mysqlnd_protocol::get_eof_packet
-   3:| | | <mysqlnd_protocol::get_eof_packet
-   3:| | | >php_mysqlnd_eof_read
-   4:| | | | info : buf=0x7fc2a406f008 size=4096
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=4 size=  5
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=5
-   4:| | | | <mysqlnd_net::network_read_ex
-   4:| | | | info : EOF packet: fields=254 status=2 warnings=0
-   3:| | | <php_mysqlnd_eof_read
-   3:| | | info : warnings=0 server_status=2
-   3:| | | info : PACKET_FREE(0x7fc2a4078288)
-   3:| | | >_mysqlnd_pefree
-   3:| | | <_mysqlnd_pefree
-   3:| | | info : PACKET_FREE(0x7fc2a4071008)
-   3:| | | >php_mysqlnd_rset_header_free_mem
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <php_mysqlnd_rset_header_free_mem
-   3:| | | info : PASS
-   2:| | <mysqlnd_query_read_result_set_header
-   2:| | info : server_status=2 cursor=0
-   2:| | info : no cursor
-   2:| | info : use_result
-   2:| | info : server_status=2 cursor=0
-   2:| | info : PASS
-   1:| <mysqlnd_stmt_execute_parse_response
-   0:<mysqlnd_stmt::execute
-   0:>mysqlnd_stmt::bind_result
-   1:| info : stmt=1 field_count=2
-   1:| >mysqlnd_stmt_separate_one_result_bind
-   2:| | info : stmt=1 result_bind=0 field_count=2 param_no=0
-   1:| <mysqlnd_stmt_separate_one_result_bind
-   1:| >_mysqlnd_pecalloc
-   1:| <_mysqlnd_pecalloc
-   1:| info : PASS
-   0:<mysqlnd_stmt::bind_result
-   0:>mysqlnd_stmt::bind_result
-   1:| info : stmt=1 field_count=2
-   1:| >mysqlnd_stmt_separate_one_result_bind
-   2:| | info : stmt=1 result_bind=0x7fc2a405f668 field_count=2 param_no=1
-   1:| <mysqlnd_stmt_separate_one_result_bind
-   1:| >_mysqlnd_perealloc
-   1:| <_mysqlnd_perealloc
-   1:| info : PASS
-   0:<mysqlnd_stmt::bind_result
-   0:>mysqlnd_stmt::result_metadata
-   1:| info : stmt=1 field_count=2
-   1:| >_mysqlnd_pecalloc
-   1:| <_mysqlnd_pecalloc
-   1:| >mysqlnd_result_init
-   1:| <mysqlnd_result_init
-   1:| >_mysqlnd_pecalloc
-   1:| <_mysqlnd_pecalloc
-   1:| >mysqlnd_result_unbuffered_init
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >_mysqlnd_ecalloc
-   2:| | <_mysqlnd_ecalloc
-   2:| | >mysqlnd_mempool_create
-   3:| | | >_mysqlnd_emalloc
-   3:| | | <_mysqlnd_emalloc
-   2:| | <mysqlnd_mempool_create
-   1:| <mysqlnd_result_unbuffered_init
-   1:| >mysqlnd_res_meta::clone_metadata
-   2:| | info : persistent=0
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >_mysqlnd_pemalloc
-   2:| | <_mysqlnd_pemalloc
-   2:| | >_mysqlnd_pemalloc
-   2:| | <_mysqlnd_pemalloc
-   2:| | >_mysqlnd_pemalloc
-   2:| | <_mysqlnd_pemalloc
-   1:| <mysqlnd_res_meta::clone_metadata
-   1:| info : result=0x7fc2a406c308
-   0:<mysqlnd_stmt::result_metadata
-   0:>mysqlnd_res::fetch_fields
-   0:<mysqlnd_res::fetch_fields
-   0:>mysqlnd_res_meta::fetch_fields
-   0:<mysqlnd_res_meta::fetch_fields
-   0:>mysqlnd_stmt::store_result
-   1:| info : stmt=1
-   1:| >mysqlnd_conn_data::get_state
-   1:| <mysqlnd_conn_data::get_state
-   1:| >_mysqlnd_pecalloc
-   1:| <_mysqlnd_pecalloc
-   1:| >mysqlnd_result_buffered_zval_init
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >_mysqlnd_ecalloc
-   2:| | <_mysqlnd_ecalloc
-   2:| | >mysqlnd_mempool_create
-   3:| | | >_mysqlnd_emalloc
-   3:| | | <_mysqlnd_emalloc
-   2:| | <mysqlnd_mempool_create
-   1:| <mysqlnd_result_buffered_zval_init
-   1:| >mysqlnd_res::store_result_fetch_data
-   2:| | >_mysqlnd_pemalloc
-   2:| | <_mysqlnd_pemalloc
-   2:| | >_mysqlnd_pecalloc
-   2:| | <_mysqlnd_pecalloc
-   2:| | >mysqlnd_protocol::get_row_packet
-   2:| | <mysqlnd_protocol::get_row_packet
-   2:| | >php_mysqlnd_rowp_read
-   3:| | | >php_mysqlnd_read_row_ex
-   4:| | | | >mysqlnd_read_header
-   5:| | | | | info : compressed=0
-   5:| | | | | >mysqlnd_net::receive_ex
-   5:| | | | | <mysqlnd_net::receive_ex
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0x7fc2a4066a00
-   5:| | | | | <mysqlnd_net::get_stream
-   5:| | | | | >mysqlnd_net::network_read_ex
-   6:| | | | | | info : count=4
-   5:| | | | | <mysqlnd_net::network_read_ex
-   5:| | | | | info : HEADER: prot_packet_no=5 size=  5
-   4:| | | | <mysqlnd_read_header
-   4:| | | | >mysqlnd_mempool_get_chunk
-   5:| | | | | >_mysqlnd_emalloc
-   5:| | | | | <_mysqlnd_emalloc
-   4:| | | | <mysqlnd_mempool_get_chunk
-   4:| | | | >mysqlnd_net::receive_ex
-   4:| | | | <mysqlnd_net::receive_ex
-   4:| | | | >mysqlnd_net::get_stream
-   5:| | | | | info : 0x7fc2a4066a00
-   4:| | | | <mysqlnd_net::get_stream
-   4:| | | | >mysqlnd_net::network_read_ex
-   5:| | | | | info : count=5
-   4:| | | | <mysqlnd_net::network_read_ex
-   3:| | | <php_mysqlnd_read_row_ex
-   3:| | | info : server_status=2 warning_count=0
-   2:| | <php_mysqlnd_rowp_read
-   2:| | >_mysqlnd_perealloc
-   2:| | <_mysqlnd_perealloc
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=1
-   2:| | <mysqlnd_conn_data::set_state
-   2:| | info : ret=PASS row_count=0 warnings=0 server_status=2
-   2:| | info : PACKET_FREE(0x7fc2a4071008)
-   2:| | >php_mysqlnd_rowp_free_mem
-   3:| | | >mysqlnd_mempool_free_chunk
-   4:| | | | >_mysqlnd_efree
-   4:| | | | <_mysqlnd_efree
-   3:| | | <mysqlnd_mempool_free_chunk
-   3:| | | info : stack_allocation=0 persistent=0
-   3:| | | >_mysqlnd_pefree
-   3:| | | <_mysqlnd_pefree
-   2:| | <php_mysqlnd_rowp_free_mem
-   2:| | info : rows=0
-   1:| <mysqlnd_res::store_result_fetch_data
-   0:<mysqlnd_stmt::store_result
-   0:>mysqlnd_stmt::fetch
-   1:| info : stmt=1
-   1:| info : result_bind=0x7fc2a407d048 separated_once=0
-   1:| >mysqlnd_stmt_fetch_row_buffered
-   2:| | info : stmt=1
-   2:| | info : no more data
-   2:| | info : PASS
-   1:| <mysqlnd_stmt_fetch_row_buffered
-   0:<mysqlnd_stmt::fetch
-   0:>mysqlnd_res::free_result
-   1:| >mysqlnd_res::free_result_internal
-   2:| | >mysqlnd_res::skip_result
-   2:| | <mysqlnd_res::skip_result
-   2:| | >mysqlnd_res::free_result_contents_internal
-   3:| | | >mysqlnd_res::free_result_buffers
-   4:| | | | info : unbuffered
-   4:| | | | >mysqlnd_result_unbuffered, free_result
-   5:| | | | | >mysqlnd_res::unbuffered_free_last_data
-   6:| | | | | | info : field_count=2
-   5:| | | | | <mysqlnd_res::unbuffered_free_last_data
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >mysqlnd_mempool_destroy
-   6:| | | | | | >_mysqlnd_efree
-   6:| | | | | | <_mysqlnd_efree
-   6:| | | | | | >_mysqlnd_efree
-   6:| | | | | | <_mysqlnd_efree
-   5:| | | | | <mysqlnd_mempool_destroy
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_result_unbuffered, free_result
-   3:| | | <mysqlnd_res::free_result_buffers
-   3:| | | >mysqlnd_res_meta::free
-   4:| | | | info : persistent=0
-   4:| | | | info : Freeing fields metadata
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   4:| | | | info : Freeing zend_hash_keys
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   4:| | | | info : Freeing metadata structure
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_res_meta::free
-   2:| | <mysqlnd_res::free_result_contents_internal
-   2:| | >_mysqlnd_pefree
-   2:| | <_mysqlnd_pefree
-   1:| <mysqlnd_res::free_result_internal
-   0:<mysqlnd_res::free_result
-   0:>mysqlnd_stmt::dtor
-   1:| info : stmt=0x7fc2a407d008
-   1:| >mysqlnd_stmt::net_close
-   2:| | info : stmt=1
-   2:| | info : skipping result
-   2:| | >mysqlnd_res::skip_result
-   2:| | <mysqlnd_res::skip_result
-   2:| | >mysqlnd_stmt::more_results
-   2:| | <mysqlnd_stmt::more_results
-   2:| | >mysqlnd_conn_data::get_state
-   2:| | <mysqlnd_conn_data::get_state
-   2:| | >mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : command=STMT_CLOSE silent=0
-   4:| | | | info : conn->server_status=2
-   4:| | | | info : sending 5 bytes
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_command_packet
-   4:| | | | <mysqlnd_protocol::get_command_packet
-   4:| | | | >php_mysqlnd_cmd_write
-   5:| | | | | >mysqlnd_net::send_ex
-   6:| | | | | | info : count=5 compression=0
-   6:| | | | | | info : to_be_sent=5
-   6:| | | | | | info : packets_sent=1
-   6:| | | | | | info : compressed_envelope_packet_no=0
-   6:| | | | | | info : packet_no=0
-   6:| | | | | | info : no compression
-   6:| | | | | | >mysqlnd_net::network_write_ex
-   7:| | | | | | | info : sending 9 bytes
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::network_write_ex
-   6:| | | | | | info : packet_size=0 packet_no=1
-   5:| | | | | <mysqlnd_net::send_ex
-   4:| | | | <php_mysqlnd_cmd_write
-   4:| | | | info : PACKET_FREE(0x7fc2a405f6c8)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : PASS
-   2:| | <mysqlnd_conn_data::simple_command
-   2:| | >_mysqlnd_pefree
-   2:| | <_mysqlnd_pefree
-   2:| | >mysqlnd_stmt::free_stmt_content
-   3:| | | info : stmt=1 param_bind=0 param_count=0
-   3:| | | >mysqlnd_stmt::free_stmt_result
-   4:| | | | >mysqlnd_stmt_separate_result_bind
-   5:| | | | | info : stmt=1 result_bind=0x7fc2a405f668 field_count=2
-   5:| | | | | info : 0 has refcount=0
-   5:| | | | | info : 1 has refcount=0
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_stmt_separate_result_bind
-   4:| | | | >mysqlnd_res::free_result_internal
-   5:| | | | | >mysqlnd_res::skip_result
-   5:| | | | | <mysqlnd_res::skip_result
-   5:| | | | | >mysqlnd_res::free_result_contents_internal
-   6:| | | | | | >mysqlnd_res::free_result_buffers
-   7:| | | | | | | info : buffered
-   7:| | | | | | | >mysqlnd_result_buffered::free_result
-   8:| | | | | | | | info : Freeing 0 row(s)
-   8:| | | | | | | | >mysqlnd_result_buffered_zval::free_result
-   8:| | | | | | | | <mysqlnd_result_buffered_zval::free_result
-   8:| | | | | | | | >_mysqlnd_pefree
-   8:| | | | | | | | <_mysqlnd_pefree
-   8:| | | | | | | | >_mysqlnd_pefree
-   8:| | | | | | | | <_mysqlnd_pefree
-   8:| | | | | | | | >mysqlnd_mempool_destroy
-   9:| | | | | | | | | >_mysqlnd_efree
-   9:| | | | | | | | | <_mysqlnd_efree
-   9:| | | | | | | | | >_mysqlnd_efree
-   9:| | | | | | | | | <_mysqlnd_efree
-   8:| | | | | | | | <mysqlnd_mempool_destroy
-   8:| | | | | | | | >_mysqlnd_pefree
-   8:| | | | | | | | <_mysqlnd_pefree
-   7:| | | | | | | <mysqlnd_result_buffered::free_result
-   6:| | | | | | <mysqlnd_res::free_result_buffers
-   6:| | | | | | >mysqlnd_res_meta::free
-   7:| | | | | | | info : persistent=0
-   7:| | | | | | | info : Freeing fields metadata
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   7:| | | | | | | info : Freeing zend_hash_keys
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   7:| | | | | | | info : Freeing metadata structure
-   7:| | | | | | | >_mysqlnd_pefree
-   7:| | | | | | | <_mysqlnd_pefree
-   6:| | | | | | <mysqlnd_res_meta::free
-   5:| | | | | <mysqlnd_res::free_result_contents_internal
-   5:| | | | | >mysqlnd_conn_data::free_reference
-   6:| | | | | | info : conn=285734 old_refcount=3
-   5:| | | | | <mysqlnd_conn_data::free_reference
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_res::free_result_internal
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_stmt::free_stmt_result
-   2:| | <mysqlnd_stmt::free_stmt_content
-   2:| | >mysqlnd_conn_data::free_reference
-   3:| | | info : conn=285734 old_refcount=2
-   2:| | <mysqlnd_conn_data::free_reference
-   1:| <mysqlnd_stmt::net_close
-   1:| >_mysqlnd_pefree
-   1:| <_mysqlnd_pefree
-   1:| >_mysqlnd_pefree
-   1:| <_mysqlnd_pefree
-   1:| info : PASS
-   0:<mysqlnd_stmt::dtor
-   0:>mysqlnd_conn_data::more_results
-   0:<mysqlnd_conn_data::more_results
-   0:>mysqlnd_conn::close
-   1:| info : conn=285734
-   1:| >mysqlnd_conn_data::local_tx_start
-   1:| <mysqlnd_conn_data::local_tx_start
-   1:| >mysqlnd_conn_data::get_state
-   1:| <mysqlnd_conn_data::get_state
-   1:| >mysqlnd_net::get_stream
-   2:| | info : 0x7fc2a4066a00
-   1:| <mysqlnd_net::get_stream
-   1:| >mysqlnd_send_close
-   2:| | info : conn=285734 net->data->stream->abstract=0x7fc2a405aa00
-   2:| | >mysqlnd_conn_data::get_state
-   2:| | <mysqlnd_conn_data::get_state
-   2:| | >mysqlnd_conn_data::get_state
-   2:| | <mysqlnd_conn_data::get_state
-   2:| | info : state=1
-   2:| | info : Connection clean, sending COM_QUIT
-   2:| | >mysqlnd_conn_data::simple_command
-   3:| | | >mysqlnd_conn_data::simple_command_send_request
-   4:| | | | info : command=QUIT silent=1
-   4:| | | | info : conn->server_status=2
-   4:| | | | info : sending 1 bytes
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >_mysqlnd_pecalloc
-   4:| | | | <_mysqlnd_pecalloc
-   4:| | | | >mysqlnd_protocol::get_command_packet
-   4:| | | | <mysqlnd_protocol::get_command_packet
-   4:| | | | >php_mysqlnd_cmd_write
-   5:| | | | | >mysqlnd_net::send_ex
-   6:| | | | | | info : count=1 compression=0
-   6:| | | | | | info : to_be_sent=1
-   6:| | | | | | info : packets_sent=1
-   6:| | | | | | info : compressed_envelope_packet_no=0
-   6:| | | | | | info : packet_no=0
-   6:| | | | | | info : no compression
-   6:| | | | | | >mysqlnd_net::network_write_ex
-   7:| | | | | | | info : sending 5 bytes
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0x7fc2a4066a00
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::network_write_ex
-   6:| | | | | | info : packet_size=0 packet_no=1
-   5:| | | | | <mysqlnd_net::send_ex
-   4:| | | | <php_mysqlnd_cmd_write
-   4:| | | | info : PACKET_FREE(0x7fc2a405f308)
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::simple_command_send_request
-   3:| | | info : PASS
-   2:| | <mysqlnd_conn_data::simple_command
-   2:| | >mysqlnd_net::close_stream
-   3:| | | >mysqlnd_net::get_stream
-   4:| | | | info : 0x7fc2a4066a00
-   3:| | | <mysqlnd_net::get_stream
-   3:| | | info : Freeing stream. abstract=0x7fc2a405aa00
-   3:| | | >mysqlnd_net::set_stream
-   3:| | | <mysqlnd_net::set_stream
-   2:| | <mysqlnd_net::close_stream
-   2:| | >mysqlnd_conn_data::set_state
-   3:| | | info : New state=6
-   2:| | <mysqlnd_conn_data::set_state
-   1:| <mysqlnd_send_close
-   1:| >mysqlnd_conn_data::local_tx_end
-   1:| <mysqlnd_conn_data::local_tx_end
-   1:| >mysqlnd_conn::dtor
-   2:| | info : conn=285734
-   2:| | >mysqlnd_conn_data::free_reference
-   3:| | | info : conn=285734 old_refcount=1
-   3:| | | >mysqlnd_net::get_stream
-   4:| | | | info : 0
-   3:| | | <mysqlnd_net::get_stream
-   3:| | | >mysqlnd_send_close
-   4:| | | | info : conn=285734 net->data->stream->abstract=0
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | >mysqlnd_conn_data::get_state
-   4:| | | | <mysqlnd_conn_data::get_state
-   4:| | | | info : state=6
-   4:| | | | >mysqlnd_net::close_stream
-   5:| | | | | >mysqlnd_net::get_stream
-   6:| | | | | | info : 0
-   5:| | | | | <mysqlnd_net::get_stream
-   4:| | | | <mysqlnd_net::close_stream
-   3:| | | <mysqlnd_send_close
-   3:| | | >mysqlnd_conn_data::dtor
-   4:| | | | info : conn=285734
-   4:| | | | >mysqlnd_conn_data::free_contents
-   5:| | | | | >mysqlnd_net::free_contents
-   5:| | | | | <mysqlnd_net::free_contents
-   5:| | | | | info : Freeing memory of members
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | info : scheme=tcp://10.80.90.30:4000
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_conn_data::free_contents
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   4:| | | | >mysqlnd_net_free
-   5:| | | | | >mysqlnd_net::dtor
-   6:| | | | | | >mysqlnd_net::free_contents
-   6:| | | | | | <mysqlnd_net::free_contents
-   6:| | | | | | >mysqlnd_net::close_stream
-   7:| | | | | | | >mysqlnd_net::get_stream
-   8:| | | | | | | | info : 0
-   7:| | | | | | | <mysqlnd_net::get_stream
-   6:| | | | | | <mysqlnd_net::close_stream
-   6:| | | | | | info : Freeing cmd buffer
-   6:| | | | | | >_mysqlnd_pefree
-   6:| | | | | | <_mysqlnd_pefree
-   6:| | | | | | >_mysqlnd_pefree
-   6:| | | | | | <_mysqlnd_pefree
-   6:| | | | | | >_mysqlnd_pefree
-   6:| | | | | | <_mysqlnd_pefree
-   5:| | | | | <mysqlnd_net::dtor
-   4:| | | | <mysqlnd_net_free
-   4:| | | | >mysqlnd_protocol_free
-   5:| | | | | >_mysqlnd_pefree
-   5:| | | | | <_mysqlnd_pefree
-   4:| | | | <mysqlnd_protocol_free
-   4:| | | | >_mysqlnd_pefree
-   4:| | | | <_mysqlnd_pefree
-   3:| | | <mysqlnd_conn_data::dtor
-   2:| | <mysqlnd_conn_data::free_reference
-   2:| | >_mysqlnd_pefree
-   2:| | <_mysqlnd_pefree
-   1:| <mysqlnd_conn::dtor
-   0:<mysqlnd_conn::close
-   0:>RSHUTDOWN
+// note: update 时删除
+日志大概有1400行, 因为并没有发现什么重要的东西, 因此省略掉了.
+不过通过git的提交日志, 还可以看到的.
 ```
 
 对应的测试脚本输出:
@@ -2406,3 +766,257 @@ mysqlnd.log_mask = 0
 ```
 
 观察了半天也没发现上面日志有什么不对的地方.
+
+### 再次通过xhprof修复bug
+
+昨天通过mysqlnd的trace日志, 并没有看出任何异常的地方,
+
+这次我们使用xhprof跟踪函数的执行流程, 来诊断究竟是哪个函数没有正确处理数据.
+
+
+安装好xhprof后, 我们首先修改脚本, 将xhprof日志文件名跟我们的脚本输出对应起来.
+
+```
+<?php
+// Copy from laravel
+$options = $options = [
+    PDO::ATTR_CASE => PDO::CASE_NATURAL,
+    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_ORACLE_NULLS => PDO::NULL_NATURAL,
+    PDO::ATTR_STRINGIFY_FETCHES => false,
+    PDO::ATTR_EMULATE_PREPARES => false,
+];
+$pdo = new PDO('mysql:host=10.80.90.30;port=4000;dbname=test', 'root', '', $options);
+//$pdo = new PDO('mysql:host=127.0.0.1;dbname=test', 'root', 'being2015', $options);
+// Test table
+// create table test (id bigint(20) auto_increment primary key, stock int(10) unsigned not null default 0);
+// First
+// insert into test(id, stock) values(1, 10);
+// or update test set stock = 10 where id = 1;
+// Second, decrement stock and insert a value
+
+global $rid;
+$rid = uniqid();
+
+xhprof_enable();
+
+$ret = $pdo->beginTransaction();
+file_log(sprintf('begin ret %s', $ret));
+if ($ret) {
+    try {
+        $ret = $pdo->exec('update test set stock = stock - 10 where id = 1');
+        if (!$ret) {
+            throw new \Exception('update stock failed');
+        }
+        $ret = $pdo->exec(sprintf('insert into test(stock) values(%d)', rand(0, 9999)));
+        if (!$ret) {
+            throw new Exception('insert failed');
+        }
+        $id = $pdo->lastInsertId();
+        file_log(sprintf('last insertId %d', $id));
+        $ret = $pdo->commit();
+        file_log(sprintf('commit ret %d', $ret));
+        $res = $pdo->query(sprintf('select * from test where id = %d', $id));
+        $row = $res->fetch(PDO::FETCH_ASSOC);
+        file_log(sprintf('inserted data %s', json_encode($row)));
+    } catch (Exception $e) {
+        $ret = -1;//$pdo->rollBack();
+        file_log(sprintf('rollback %d exception %s', $ret, $e->getTraceAsString()));
+    } catch (Throwable $e) {
+        $ret = -1;//$pdo->rollBack();
+        file_log(sprintf('rollback %d exception %s', $ret, $e->getTraceAsString()));
+    }
+}
+
+file_put_contents((ini_get('xhprof.output_dir') ? : '/tmp') . '/' . $rid . '.xhprof.xhprof', serialize(xhprof_disable()));
+
+// Third, one terminal 'php -S 127.0.0.1:9093'
+//        another terminal 'ab -c 10 -n 10 http://127.0.0.1:9093/bug_test.php'
+function file_log($msg)
+{
+	global $rid;
+    file_put_contents(__DIR__ . '/test.log', sprintf("%s %s\n", $rid, $msg), FILE_APPEND);
+}
+```
+
+然后是脚本输出日志:
+
+```
+596ad99b2fd95 begin ret 1
+596ad99b2fe22 begin ret 1
+596ad99b2fd95 last insertId 22
+596ad99b2fe22 last insertId 23
+596ad99b2fd95 commit ret 1
+596ad99b2fd95 inserted data {"id":22,"stock":1585}
+596ad99b2fe22 commit ret 1
+596ad99b2fe22 inserted data false
+596ad99b34c38 begin ret 1
+596ad99b34c38 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b36baf begin ret 1
+596ad99b36baf rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b379da begin ret 1
+596ad99b379da rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b39645 begin ret 1
+596ad99b39645 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b3a3fb begin ret 1
+596ad99b3a3fb rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b3c445 begin ret 1
+596ad99b3c445 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b3c976 begin ret 1
+596ad99b3c976 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596ad99b3e500 begin ret 1
+596ad99b3e500 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+```
+
+然后是数据库当前内容:
+```
+mysql> select * from test;
++----+-------+
+| id | stock |
++----+-------+
+|  1 |     0 |
+| 22 |  1585 |
++----+-------+
+2 rows in set (0.00 sec)
+
+mysql> select @@version;
++----------------+
+| @@version      |
++----------------+
+| 5.7.1-TiDB-1.0 |
++----------------+
+1 row in set (0.01 sec)
+```
+
+然后是xhprof的输出:
+
+日志我放到[github上了](https://github.com/yaoguais/cabin/tree/master/tidb/trans_test/xhprof_log).
+
+然后用xhprof的可视化网页查看, 才反应过来, xhprof只能纪录php内置或用户写的函数,
+
+并不能纪录全部的c函数调用流程.
+
+这条路也走不通了, 花费了半个小时.
+
+
+### 再再次通过mysqlnd调试信息修复bug
+
+重新整理了一下思路, 一直的思路应该是没有问题, 首先排除mysql协议的问题,
+
+确定是pdo的问题, 那么通过mysqlnd的内置的调制方法调试, 才是正确的方式.
+
+之前没有找到正确的mysqlnd配置方式, 整理思路后重新查找了一下, 真的找到了.
+
+地址在[这里](http://php.net/manual/zh/mysqlnd.config.php#ini.mysqlnd.debug).
+
+查看了之后, 将mysqlnd的配置修改为:
+
+```
+mysqlnd.debug = "d:F:i:L:n:t,2000:x:A,/tmp/mysqlnd.trace"
+mysqlnd.log_mask = 2043
+```
+
+脚本日志输出:
+```
+596aede076fc2 begin ret 1
+596aede077912 begin ret 1
+596aede078c5e begin ret 1
+596aede076fc2 last insertId 26
+596aede079ba5 begin ret 1
+596aede07d689 begin ret 1
+596aede07e25a begin ret 1
+596aede07e63d begin ret 1
+596aede07e263 begin ret 1
+596aede076fc2 commit ret 1
+596aede07d9fe begin ret 1
+596aede07ebf1 begin ret 1
+596aede077912 last insertId 27
+596aede07e63d rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596aede07e25a last insertId 28
+596aede078c5e last insertId 29
+596aede07e263 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596aede07ebf1 rollback -1 exception #0 /data/test/bug_test.php(30): PDO->exec('update test set...')
+#1 {main}
+596aede079ba5 last insertId 30
+596aede07d9fe last insertId 31
+596aede078c5e commit ret 1
+596aede077912 commit ret 1
+596aede07e25a commit ret 1
+596aede07d9fe commit ret 1
+596aede079ba5 commit ret 1
+596aede07e25a inserted data false
+596aede076fc2 inserted data {"id":26,"stock":1262}
+596aede077912 inserted data false
+596aede079ba5 inserted data false
+596aede07d9fe inserted data false
+596aede078c5e inserted data false
+596aede07d689 last insertId 32
+596aede07d689 commit ret 1
+596aede07d689 inserted data false
+```
+
+数据库的内容为:
+```
++----+-------+
+| id | stock |
++----+-------+
+|  1 |     0 |
+| 26 |  1262 |
++----+-------+
+2 rows in set (0.01 sec)
+```
+
+mysqlnd.trace因为文件太大, 我还是放到github上了.
+
+[地址](https://github.com/yaoguais/cabin/blob/master/tidb/trans_test/mysqlnd.trace.2)
+
+第一次的时候, 日志都混在一起了, 根本区分不了是哪个的日志,
+
+然后我把php-fpm的进程数直接调到30, 然后通过进程号把文件拆分成10个文件,
+
+这下日志就清晰了. 地址在[这里](https://github.com/yaoguais/cabin/tree/master/tidb/trans_test/mysqlnd.trace.2.separate).
+
+看了半天的日志和代码, 终于找到问题所在了.
+
+mysqlnd中status的返回值定义为:
+```
+/* Follow libmysql convention */
+typedef enum func_status
+{
+	PASS = 0,
+	FAIL = 1
+} enum_func_status;
+```
+
+可以看出PASS=0, FAIL=1.
+
+但是commit()函数的返回值是mysql\_handle\_commit()函数返回的,
+
+仔细观察, 这个错误其实很简单的, 就是判断的时候, 无论PASS还是FAIL都返回true,
+
+这就不能区分commit()函数是否提交成功了.
+
+```
+static int mysql_handle_commit(pdo_dbh_t *dbh)
+{
+	PDO_DBG_ENTER("mysql_handle_commit");
+	PDO_DBG_INF_FMT("dbh=%p", dbh);
+#if MYSQL_VERSION_ID >= 40100 || defined(PDO_USE_MYSQLND)
+	PDO_DBG_RETURN(0 <= mysql_commit(((pdo_mysql_db_handle *)dbh->driver_data)->server));
+#else
+	PDO_DBG_RETURN(0 <= mysql_handle_doer(dbh, ZEND_STRL("COMMIT")));
+#endif
+}
+```
+
+好了, 问题得以解决, 直接判断返回值是否等于0即可.
