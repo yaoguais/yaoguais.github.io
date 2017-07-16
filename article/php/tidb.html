@@ -35,10 +35,11 @@
 <p>那么ID 1-5000 在t1, 5001-10000 在t2,
 10001-15000又在t1, 15001-20000在t2.</p>
 <p>如果新增两条纪录, 它们的ID会是1, 5001.</p>
-<p>解决办法是在每张表新增一个字段, 然后到发号器去取一下ID.</p>
+<p>解决办法是在每张表新增一个字段, 然后到发号器去取一下这个ID.</p>
+<p>而表的ID, TIDB建议使用UUID, 而不使用TIDB的自增ID.</p>
+<p>个人觉得, 在要满足业务的条件是用UUID+发号器.</p>
 <p>比如一个简单的实现为:</p>
-<p>以表名在redis保存一个key, 没新增一条纪录, 使用incr命令取一下ID回到,</p>
-<p>插入到表中.</p>
+<p>以表名在redis保存一个key, 每新增一条纪录, 使用incr命令取一下ID, 插入到表中.</p>
 <h3>事务提交</h3>
 <p>具体问题是PDO的commit()函数始终返回true, 所以会导致业务判断失误.</p>
 <p>分析的文章在这里,
@@ -52,15 +53,17 @@
     PDO::ATTR_EMULATE_PREPARES =&gt; true,
 ];
 $pdo = new PDO('', '', '', $options);
-$pdo-&gt;exec('START TRANSACTION');
+$pdo-&gt;exec('START TRANSACTION'); // will throw an exception if failed
 try {
     // SQLs
     // ...
     $pdo-&gt;exec('COMMIT'); // will throw an exception
 } catch (Exception $e) {
     $ret = $pdo-&gt;exec('ROLLBACK');
+    throw $e;
 } catch (Throwable $e) {
     $ret = $pdo-&gt;exec('ROLLBACK');
+    throw $e;
 }</code></pre>
 <p>而且commit()函数在返回true后, 虽然事实事务是失败的, 但是也没有设置errorCode,</p>
 <p>所以办法只有使用rawSql.</p>
@@ -68,7 +71,7 @@ try {
 <p>用PDO的可能会使用prepare语句, 但是在TIDB中遇到的一个问题就是,</p>
 <p>用prepare语句查出来的纪录有时会比理论的少几条.</p>
 <p>具体的问题我也给TIDB提了一个<a href="https://github.com/pingcap/tidb/issues/3712">issue</a>.</p>
-<p>解决办法就是将prepare语句转换成rawSql, 这个PHP已经给我做了,</p>
+<p>解决办法就是将prepare语句转换成rawSql, 这个PHP已经帮我们做了,</p>
 <p>用法如下:</p>
 <pre><code>$options = $options = [
     PDO::ATTR_EMULATE_PREPARES =&gt; true,

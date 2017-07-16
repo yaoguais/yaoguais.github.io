@@ -36,13 +36,15 @@ TIDB的自增ID不是按照时间增序的, 那么按照时间进行分页的需
 
 如果新增两条纪录, 它们的ID会是1, 5001.
 
-解决办法是在每张表新增一个字段, 然后到发号器去取一下ID.
+解决办法是在每张表新增一个字段, 然后到发号器去取一下这个ID.
+
+而表的ID, TIDB建议使用UUID, 而不使用TIDB的自增ID.
+
+个人觉得, 在要满足业务的条件是用UUID+发号器.
 
 比如一个简单的实现为:
 
-以表名在redis保存一个key, 没新增一条纪录, 使用incr命令取一下ID回到,
-
-插入到表中.
+以表名在redis保存一个key, 每新增一条纪录, 使用incr命令取一下ID, 插入到表中.
 
 
 
@@ -65,15 +67,17 @@ $options = $options = [
     PDO::ATTR_EMULATE_PREPARES => true,
 ];
 $pdo = new PDO('', '', '', $options);
-$pdo->exec('START TRANSACTION');
+$pdo->exec('START TRANSACTION'); // will throw an exception if failed
 try {
     // SQLs
     // ...
     $pdo->exec('COMMIT'); // will throw an exception
 } catch (Exception $e) {
     $ret = $pdo->exec('ROLLBACK');
+    throw $e;
 } catch (Throwable $e) {
     $ret = $pdo->exec('ROLLBACK');
+    throw $e;
 }
 ```
 
@@ -93,7 +97,7 @@ try {
 具体的问题我也给TIDB提了一个[issue](https://github.com/pingcap/tidb/issues/3712).
 
 
-解决办法就是将prepare语句转换成rawSql, 这个PHP已经给我做了,
+解决办法就是将prepare语句转换成rawSql, 这个PHP已经帮我们做了,
 
 用法如下:
 
