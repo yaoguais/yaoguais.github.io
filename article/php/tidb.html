@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>PHP在TIDB上遇到的坑</title>
+	<link rel="stylesheet" type="text/css" href="/css/style.css" />
+    <script type="text/javascript" src="/js/jquery-1.11.2.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="/css/markdown.css" />
+	<link rel="shortcut icon" type="image/x-icon" href="/favicon.ico?">
+</head>
+<body>
+<div class="main-body">
+    <div class="left-content" id="markDownContent">
+		<div class="mdBlock">
+			<h2>PHP在TIDB上遇到的坑</h2>
+<p>原因不多说, 总之部署了两套TIDB的集群环境.</p>
+<p>TIDB现在相当的火, 还去过很多次pingcap的在西小口的线下meepup, 各种牛人的分享.</p>
+<p>今天主要是总结一些在tidb中遇到的坑, 有PHP的, 也有TIDB的, 但是可能是自己坑自己的.</p>
+<p>主要问题如下:</p>
+<ul>
+<li>自增ID</li>
+<li>事务提交</li>
+<li>prepare语句</li>
+</ul>
+<p>可以先了解下<a href="https://pingcap.com/doc-mysql-compatibility-zh">TIDB与MYSQL的差异</a></p>
+<p>目录:</p>
+<ol>
+<li>自增ID</li>
+<li>事务提交</li>
+<li>prepare语句</li>
+<li>总结</li>
+</ol>
+<h3>自增ID</h3>
+<p>TIDB的自增ID不是按照时间增序的, 那么按照时间进行分页的需求就比较坑了.</p>
+<p>比如有2台TIDB, t1 和 t2,</p>
+<p>那么ID 1-5000 在t1, 5001-10000 在t2,
+10001-15000又在t1, 15001-20000在t2.</p>
+<p>如果新增两条纪录, 它们的ID会是1, 5001.</p>
+<p>解决办法是在每张表新增一个字段, 然后到发号器去取一下ID.</p>
+<p>比如一个简单的实现为:</p>
+<p>以表名在redis保存一个key, 没新增一条纪录, 使用incr命令取一下ID回到,</p>
+<p>插入到表中.</p>
+<h3>事务提交</h3>
+<p>具体问题是PDO的commit()函数始终返回true, 所以会导致业务判断失误.</p>
+<p>分析的文章在这里,
+<a href="https://yaoguais.github.io/article/php/tidb-pdo-commit.html">PHP的PDO-commit函数在tidb上返回值错误的分析</a></p>
+<p>解决办法是使用rawSql, 其php模版如下:</p>
+<pre><code>$options = $options = [
+    PDO::ATTR_CASE =&gt; PDO::CASE_NATURAL,
+    PDO::ATTR_ERRMODE =&gt; PDO::ERRMODE_EXCEPTION,
+    PDO::ATTR_ORACLE_NULLS =&gt; PDO::NULL_NATURAL,
+    PDO::ATTR_STRINGIFY_FETCHES =&gt; false,
+    PDO::ATTR_EMULATE_PREPARES =&gt; true,
+];
+$pdo = new PDO('', '', '', $options);
+$pdo-&gt;exec('START TRANSACTION');
+try {
+    // SQLs
+    // ...
+    $pdo-&gt;exec('COMMIT'); // will throw an exception
+} catch (Exception $e) {
+    $ret = $pdo-&gt;exec('ROLLBACK');
+} catch (Throwable $e) {
+    $ret = $pdo-&gt;exec('ROLLBACK');
+}</code></pre>
+<p>而且commit()函数在返回true后, 虽然事实事务是失败的, 但是也没有设置errorCode,</p>
+<p>所以办法只有使用rawSql.</p>
+<h3>prepare语句</h3>
+<p>用PDO的可能会使用prepare语句, 但是在TIDB中遇到的一个问题就是,</p>
+<p>用prepare语句查出来的纪录有时会比理论的少几条.</p>
+<p>具体的问题我也给TIDB提了一个<a href="https://github.com/pingcap/tidb/issues/3712">issue</a>.</p>
+<p>解决办法就是将prepare语句转换成rawSql, 这个PHP已经给我做了,</p>
+<p>用法如下:</p>
+<pre><code>$options = $options = [
+    PDO::ATTR_EMULATE_PREPARES =&gt; true,
+];
+$pdo = new PDO('', '', '', $options);</code></pre>
+<p><a href="http://php.net/manual/zh/pdo.setattribute.php">摘自PHP手册 - PDO::setAttribute</a></p>
+<pre><code>PDO::ATTR_EMULATE_PREPARES 启用或禁用预处理语句的模拟。
+有些驱动不支持或有限度地支持本地预处理。
+使用此设置强制PDO总是模拟预处理语句（如果为 TRUE ），
+或试着使用本地预处理语句（如果为 FALSE）。
+如果驱动不能成功预处理当前查询，
+它将总是回到模拟预处理语句上。
+需要 bool 类型。</code></pre>
+<h3>总结</h3>
+<p>虽然在TIDB听了他们开发者讲了很多细节,</p>
+<p>但是离真正用好TIDB还有很长的一段距离.</p>
+<p>目前遇到的问题, 都可以使用各种方式&quot;解决&quot;,</p>
+<p>但是或多或少都没有达到不修改代码直接迁移到TIDB的地步,</p>
+<p>后续有什么其他的问题, 我也会一并整理到这篇文章.</p>
+		</div>
+    </div>
+    <div class="right-nav nav-box">
+        <ul class="nav">
+			<li><a title="主页导航" href="/index.html">Home</a></li>
+            <li><a title="PHP之CLI模式下的执行流程" href="/article/php/cli.html">php cli execute</a></li>
+            <li><a title="PHP扩展开发之基础环境及工具介绍" href="/article/php/extension.html">php extension</a></li>
+			<li><a title="PHP扩展开发之配置解析" href="/article/php/extension-ini.html">php extension 2</a></li>
+			<li><a title="PHP扩展开发之函数与类的实现" href="/article/php/extension-function.html">php extension 3</a></li>
+			<li><a title="PHP之编译流程分析" href="/article/php/compile.html">php compile</a></li>
+			<li><a title="PHP之PHPNG简介" href="/article/php/php7-intro.html">phpng introduction</a></li>
+			<li><a title="PHP之PHPNG实现细节" href="/article/php/php7-vm.html">phpng vm</a></li>
+			<li><a title="PHP之把扩展从PHP5升级到PHPNG" href="/article/php/extension-php5to7.html">php5 to phpng</a></li>
+			<li><a title="PHP之private修饰符" href="/article/php/php-private.html">php private</a></li>
+			<li><a title="xhprof之简介与环境搭建" href="/article/xhprof/intro.html">xhprof intro</a></li>
+			<li><a title="xhprof之扩展实现细节" href="/article/xhprof/theory.html">xhprof theory</a></li>
+			<li><a title="linux之shell简介" href="/article/linux/shell.html">linux shell</a></li>
+			<li><a title="数据结构之最小堆的基本操作" href="/article/data_structure/heap.html">min heap operation</a></li>
+			<li><a title="数据结构之二叉搜索树" href="/article/data_structure/binary_search.html">binary search</a></li>
+			<li><a title="数据结构之AVL平衡树" href="/article/data_structure/avl.html">avl</a></li>
+			<li><a title="数据结构之散列表总结" href="/article/data_structure/hash.html">hash table</a></li>
+			<li><a title="MYSQL之索引优化" href="/article/mysql/index.html">mysql index optimize</a></li>
+        </ul>
+		<div class="back-to-top"></div>
+    </div>
+</div>
+<script type="text/javascript">
+	$.nav_high_light = function(obj,on,hlClass){
+		hlClass = hlClass || "hover";
+		$(".nav li a").removeClass(hlClass);
+		if(on){
+			$(obj).addClass(hlClass);
+		}else{
+			var url = $(".mdBlock:visible").attr("data-href");
+			$(".nav li a[href='"+url+"']").addClass(hlClass);
+		}		
+	}
+	$.nav_high_light.timeOutHandle = null;
+	$(document).ready(function(){
+		$(".nav li a").click(function(){
+			$.nav_high_light(this,true,"hover");
+		}).hover(function(){
+			$.nav_high_light(this,true,"hover");
+		},function(){
+			if($.nav_high_light.timeOutHandle)
+				clearTimeout($.nav_high_light.timeOutHandle);
+			$.nav_high_light.timeOutHandle = setTimeout(function(){
+				$.nav_high_light(this,false,"hover");
+			},1000);
+		});
+
+		$(".back-to-top").css({
+			position : "fixed",
+			left : $("#markDownContent").offset().left + $("#markDownContent").width() + 10,
+			bottom : "10px"
+		}).click(function(){
+			$("html,body").stop().animate( { scrollTop: 0}, 200);
+		});
+		$(window).bind('scroll resize',function(){
+			if($("body").scrollTop()>=$(window).height()){
+				$(".back-to-top").show();
+			}else{
+				$(".back-to-top").hide();
+			}
+		});
+		//index-hidden-begin
+		$('.mdBlock>ol li').click(function(){
+			var index = $(".mdBlock>ol li").index($(this)[0]),
+					$title = $(this).parents(".mdBlock").find("h3,h4,h5").eq(index);
+			if($title.length>0){
+				$("html,body").stop().animate( { scrollTop: $title.offset().top}, 200);
+			}
+			return false;
+		});
+		//index-hidden-end
+		var $nav = $(".nav");
+		$nav.height($("#markDownContent").height() - parseInt($nav.css("margin-top")) - parseInt($nav.css("margin-bottom")));
+	});
+
+</script>
+</body>
+</html>

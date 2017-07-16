@@ -17,6 +17,7 @@
 13. [聊天系统Jegarn的常见问题](?s=md/jegarn/faq_zh-cn.md)
 14. [php协程与swoole协程](?s=md/php/coroutine.md)
 15. [PHP的PDO-commit函数在tidb上返回值错误的分析](?s=md/php/tidb-pdo-commit.md)
+15. [PHP在TIDB上遇到的坑](?s=md/php/tidb.md)
 
 
 
