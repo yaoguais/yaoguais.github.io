@@ -20,7 +20,8 @@ TIDB现在相当的火, 还去过很多次pingcap的在西小口的线下meepup,
 1. 自增ID
 2. 事务提交
 3. prepare语句
-4. 总结
+4. 在lavavel中使用TIDB
+5. 总结
 
 
 
@@ -85,6 +86,16 @@ try {
 
 所以办法只有使用rawSql.
 
+TIDB还有一个事务问题, 是理论上能够成功提交的事务, 实际上多次提交也成功不了,
+
+在我这里是一次都没成功过, 而且因为PHP-commit()函数的问题, 又会导致误判.
+
+但是换了sql的参数后, 就能成功提交.
+
+这个问题暂时无解, 但是业务上也不能出错才行, 可以通过rawSql-COMMIT暂时处理下.
+
+
+
 
 
 
@@ -118,6 +129,257 @@ PDO::ATTR_EMULATE_PREPARES 启用或禁用预处理语句的模拟。
 它将总是回到模拟预处理语句上。
 需要 bool 类型。
 ```
+
+
+
+
+### 在lavavel中使用TIDB
+
+现在Lavavel应该是PHP中最火的框架了, 在我使用lavavel+TIDB遇到的问题,
+
+基本就是上面提到的一些问题, 我给出的解决办法如下:
+
+1. 修改database配置, 使其不使用prepare语句
+
+重点在mysql数组中增加options字段, 其实为
+```
+'options' => [
+    PDO::ATTR_EMULATE_PREPARES => true,
+],
+```
+
+file: config/database.php
+```
+<?php
+
+return [
+    'fetch' => PDO::FETCH_CLASS,
+    'default' => env('DB_CONNECTION', 'mysql'),
+    'connections' => [
+
+        'testing' => [
+            'driver' => 'sqlite',
+            'database' => ':memory:',
+        ],
+
+        'sqlite' => [
+            'driver' => 'sqlite',
+            'database' => env('DB_DATABASE', storage_path('database.sqlite')),
+            'prefix' => env('DB_PREFIX', ''),
+        ],
+
+        'mysql' => [
+            'read' => [
+                'host' => env('DB_READ_HOST','localhost'),
+            ],
+            'write' => [
+                'host' => env('DB_WRITE_HOST','localhost'),
+            ],
+            'driver' => 'mysql',
+            'port' => env('DB_PORT', 3306),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
+            'prefix' => env('DB_PREFIX', ''),
+            'timezone' => env('DB_TIMEZONE', '+08:00'),
+            'strict' => false,
+            'options' => [
+                PDO::ATTR_EMULATE_PREPARES => true,
+            ],
+        ],
+
+        'pgsql' => [
+            'driver' => 'pgsql',
+            'host' => env('REDSHIFT_HOST', 'localhost'),
+            'port' => env('REDSHIFT_PORT', 5432),
+            'database' => env('REDSHIFT_DATABASE', 'forge'),
+            'username' => env('REDSHIFT_USERNAME', 'forge'),
+            'password' => env('REDSHIFT_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => env('DB_PREFIX', ''),
+            'schema' => 'public',
+        ],
+
+        'sqlsrv' => [
+            'driver' => 'sqlsrv',
+            'host' => env('DB_HOST', 'localhost'),
+            'database' => env('DB_DATABASE', 'forge'),
+            'username' => env('DB_USERNAME', 'forge'),
+            'password' => env('DB_PASSWORD', ''),
+            'prefix' => env('DB_PREFIX', ''),
+        ],
+
+        'mongodb' => [
+            'driver' => 'mongodb',
+            'host' => explode(',', env('MONGODB_HOST', 'localhost')),
+            'port' => env('MONGODB_PORT', 27017),
+            'username' => env('MONGODB_USERNAME', 'accountUser'),
+            'password' => env('MONGODB_PASSWORD', 'password'),
+            'database' => env('MONGODB_DATABASE', 'users'),
+            'options' => ['replicaSet' => env('MONGODB_RS_NAME')]
+        ],
+
+    ],
+
+    'migrations' => 'migrations',
+
+    'redis' => [
+        'cluster' => env('REDIS_CLUSTER', false),
+
+        'default' => [
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'port' => env('REDIS_PORT', 6379),
+            'database' => intval(env('REDIS_DATABASE', 0)),
+            'password' => env('REDIS_PASSWORD', null)
+        ]
+
+    ],
+
+];
+```
+
+2. 添加自定义的TidbConnection, 使其使用SQL语句进行提交
+
+新建文件"app/Database/TidbConnection.php", 其内容如下:
+
+```
+<?php
+
+namespace App\Database;
+
+use Closure;
+use Exception;
+use Throwable;
+use Illuminate\Database\MySqlConnection;
+
+class TidbConnection extends MySqlConnection
+{
+    public function transaction(Closure $callback)
+    {
+        $this->beginTransaction();
+
+        // We'll simply execute the given callback within a try / catch block
+        // and if we catch any exception we can rollback the transaction
+        // so that none of the changes are persisted to the database.
+        try {
+            $result = $callback($this);
+
+            $this->commit();
+        }
+
+            // If we catch an exception, we will roll back so nothing gets messed
+            // up in the database. Then we'll re-throw the exception so it can
+            // be handled how the developer sees fit for their applications.
+        catch (Exception $e) {
+            $this->rollBack();
+
+            throw $e;
+        } catch (Throwable $e) {
+            $this->rollBack();
+
+            throw $e;
+        }
+
+        return $result;
+    }
+
+    /**
+     * Start a new database transaction.
+     *
+     * @return void
+     * @throws Exception
+     */
+    public function beginTransaction()
+    {
+        ++$this->transactions;
+
+        if ($this->transactions == 1) {
+            try {
+                $this->pdo->exec('START TRANSACTION');
+            } catch (Exception $e) {
+                --$this->transactions;
+
+                throw $e;
+            }
+        } elseif ($this->transactions > 1 && $this->queryGrammar->supportsSavepoints()) {
+            $this->pdo->exec(
+                $this->queryGrammar->compileSavepoint('trans'.$this->transactions)
+            );
+        }
+
+        $this->fireConnectionEvent('beganTransaction');
+    }
+
+    /**
+     * Commit the active database transaction.
+     *
+     * @return void
+     */
+    public function commit()
+    {
+        if ($this->transactions == 1) {
+            $this->pdo->exec('COMMIT');
+        }
+
+        --$this->transactions;
+
+        $this->fireConnectionEvent('committed');
+    }
+
+    /**
+     * Rollback the active database transaction.
+     *
+     * @return void
+     */
+    public function rollBack()
+    {
+        if ($this->transactions == 1) {
+            $this->pdo->exec('ROLLBACK');
+        } elseif ($this->transactions > 1 && $this->queryGrammar->supportsSavepoints()) {
+            $this->pdo->exec(
+                $this->queryGrammar->compileSavepointRollBack('trans'.$this->transactions)
+            );
+        }
+
+        $this->transactions = max(0, $this->transactions - 1);
+
+        $this->fireConnectionEvent('rollingBack');
+    }
+}
+```
+
+然后注入到容器里面, 方法如下:
+
+编辑"app/Providers/AppServiceProvider.php", 其内容如下:
+```
+<?php
+
+namespace App\Providers;
+
+use Illuminate\Support\ServiceProvider;
+
+class AppServiceProvider extends ServiceProvider
+{
+    public function register()
+    {
+        $this->app->bind('db.connection.mysql', function ($app, $parameters) {
+            $rc = new \ReflectionClass('App\Database\TidbConnection');
+            return $rc->newInstanceArgs($parameters);
+        });
+    }
+}
+```
+
+最后确保框架引入了AppServiceProvider
+
+Lumen需要编辑的文件"bootstrap/app.php"
+```
+$app->register(App\Providers\AppServiceProvider::class);
+```
+
+Laravel一般不需要修改内容, 它已经在"config/app.php"引入了"AppServiceProvider"类.
 
 
 
