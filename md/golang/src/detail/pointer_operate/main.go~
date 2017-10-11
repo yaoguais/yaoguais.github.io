@@ -1,0 +1,46 @@
+package main
+
+import (
+	"fmt"
+	"unsafe"
+)
+
+func main() {
+	// 移动指针
+	{
+		x := [...]int{1, 2, 3, 4, 5}
+		p := &x[0]
+		//p = p + 1
+		index2Pointer := unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(x[0]))
+		p = (*int)(index2Pointer) //x[1]
+		fmt.Printf("%d\n", *p)    //2
+	}
+	//
+	{
+		var i int64 = 100
+		var p *int64 = &i //*int64
+		P := unsafe.Pointer(p)
+		fmt.Printf("%T\n", P)
+	}
+	{
+		var i int64 = 100
+		var p *int64 = &i //*int64
+		P := unsafe.Pointer(p)
+		p2 := (*int32)(P) //*int32
+		fmt.Println(*p2)
+	}
+	{
+		var i int64 = 200<<32 + 100
+		var p = &i
+		P0 := unsafe.Pointer(p)
+		P := unsafe.Pointer(uintptr(P0) + 4)
+		p2 := (*int32)(P)
+		fmt.Println(*p2) //200
+	}
+	{
+		var i = new(int)
+		var s = new(string)
+		var j = new(struct{ int })
+		fmt.Printf("%T %T %T\n", i, s, j) //*int *string *struct { int }
+	}
+}

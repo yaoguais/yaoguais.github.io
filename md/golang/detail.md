@@ -268,6 +268,83 @@ Golang目前的保留字有25个，我们如下分类：
 
 （3）指针运算
 
+Golang中与指针相关的有取址运算符“&”、指针运算符“*”、类型uintptr、类型unsafe.Pointer。
+
+指针可以支持相等运算符，但不能像C语言一样加减乘除和一般类型转换。
+
+其拥有以下几种特殊操作：
+
+- 任意类型的指针可以被转换成一个 Pointer对象。
+- 相反一个Pointer也可以转换成任意类型的指针。
+- 一个uintptr可以转换成一个Pointer。
+- 相反一个Pointer可以转换成uintptr。
+- 内建的new函数可以为类型T创建零值的对象,它返回的对象类型为*T。
+
+unsafe.Pointer定义如下：
+
+```
+type ArbitraryType int  // shorthand for an arbitrary Go type; it is not a real type
+type Pointer *ArbitraryType
+```
+
+示例代码如下：
+
+```
+// 移动指针
+{
+        x := [...]int{1, 2, 3, 4, 5}
+        p := &x[0]
+        //p = p + 1
+        index2Pointer := unsafe.Pointer(uintptr(unsafe.Pointer(p)) + unsafe.Sizeof(x[0]))
+        p = (*int)(index2Pointer) //x[1]
+        fmt.Printf("%d\n", *p)    //2
+}
+// 任意类型的指针可以被转换成一个 Pointer对象
+// *T -> Pointer to T2
+{
+        var i int64 = 100
+        var p *int64 = &i //*int64
+        P := unsafe.Pointer(p)
+        fmt.Printf("%T\n", P)
+}
+// 相反一个Pointer也可以转换成任意类型的指针
+// Pointer to T2 -> *T
+{
+        var i int64 = 100
+        var p *int64 = &i //*int64
+        P := unsafe.Pointer(p)
+        p2 := (*int32)(P) //*int32
+        fmt.Println(*p2)
+}
+// 一个uintptr可以转换成一个Pointer，相反一个Pointer可以转换成uintptr
+{
+        var i int64 = 200<<32 + 100
+        var p = &i
+        P0 := unsafe.Pointer(p)
+        P := unsafe.Pointer(uintptr(P0) + 4)
+        p2 := (*int32)(P)
+        fmt.Println(*p2) //200
+}
+// 内建的new函数可以为类型T创建零值的对象,它返回的对象类型为*T
+{
+        var i = new(int)
+        var s = new(string)
+        var j = new(struct{ int })
+        fmt.Printf("%T %T %T\n", i, s, j) //*int *string *struct { int }
+}
+// output:
+2
+unsafe.Pointer
+100
+200
+*int *string *struct { int }
+```
+
+参考：
+
+[http://colobu.com/2016/06/16/dive-into-go-3/](http://colobu.com/2016/06/16/dive-into-go-3/)
+
+
 
 （4）控制流
 
