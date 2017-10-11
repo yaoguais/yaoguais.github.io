@@ -10,6 +10,7 @@
 目录：
 
 1. 类型
+2. 常量与变量
 
 
 
@@ -87,7 +88,7 @@ type data [2]int
 - 所属的类型相同
 - 基础类型相同，其中一个是未命名类型。
 - 数据类型相同，将双向通道赋值给单向通道，其中一个为未命名类型。
-- 将默认值赋值给slice、map、channel、指针、函数或接口。
+- 将nil赋值给slice、map、channel、指针、函数或接口。
 - 将对象赋值给接口变量，只要对象实现了该接口。
 
 
@@ -115,14 +116,26 @@ array、struct根据其元素不同而对应赋予默认值。
 var1 := 0
 var2 := 0.0
 // var3 := 0xffffffffffffffff //constant 18446744073709551615 overflows int
+var4 := 'c'
+var5 := '我'
 fmt.Printf("0: %T\n", var1)
 fmt.Printf("0.0: %T\n", var2)
+// fmt.Printf("0xffffffffffffffff: %T\n", var3)
+fmt.Printf("c: %T\n", var4)
+fmt.Printf("我: %T\n", var5)
 
-output:
+//output:
 0: int
 0.0: float64
+c: int32
+我: int32
 ```
 
-可以看出整数是推断出int，浮点数是推断出float64，如果超出其范围，在编译时就会报错。
+可以看出整数是推断出int，浮点数是推断出float64，字符是推断出int32，如果超出其范围，在编译时就会报错。
+
+
+
+
+### 常量与变量
 
 
