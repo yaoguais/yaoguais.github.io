@@ -427,4 +427,117 @@ end
 ```
 
 
+（8）for...range
+
+for...range主要完成迭代，支持字符串、数组、数组指针、切片、字典、通道。
+
+在遍历时的局部变量，也会被重复使用，因而其地址不变。
+
+示例代码如下：
+
+```
+func main() {
+        fmt.Println("普通字符串")
+        for i, v := range "abc" {
+                fmt.Printf("i=%v, v=%v\n", i, v)
+        }
+        fmt.Println("汉字字符串")
+        for i, v := range "汉字" {
+                fmt.Printf("i=%v, v=%v\n", i, v)
+        }
+        fmt.Println("数组")
+        for i, v := range [2]int{10, 11} {
+                fmt.Printf("i=%v, v=%v\n", i, v)
+        }
+        for i := range [2]int{10, 11} {
+                fmt.Printf("i=%v\n", i)
+        }
+        fmt.Println("切片")
+        for i, v := range []int{10, 11} {
+                fmt.Printf("i=%v, v=%v\n", i, v)
+        }
+        fmt.Println("字典")
+        m := make(map[string]string)
+        m["a"] = "b"
+        for k, v := range m {
+                fmt.Printf("k=%v, v=%v\n", k, v)
+        }
+        for k := range m {
+                fmt.Printf("k=%v\n", k)
+        }
+        fmt.Println("通道")
+        c := make(chan int)
+        go func() {
+                for v := range c {
+                        fmt.Printf("v=%v\n", v)
+                }
+                fmt.Println("read channel finish")
+        }()
+        c <- 20
+        c <- 21
+        close(c)
+        // c = nil // 会导致for-range阻塞，从而可能导致死锁。
+        fmt.Println("局部变量会重复使用")
+        for i, v := range [2]int{10, 11} {
+                fmt.Printf("i=%v, v=%v\n", &i, &v)
+        }
+
+        done := make(chan struct{})
+        <-done
+}
+// output:
+普通字符串
+i=0, v=97
+i=1, v=98
+i=2, v=99
+汉字字符串
+i=0, v=27721
+i=3, v=23383
+数组
+i=0, v=10
+i=1, v=11
+i=0
+i=1
+切片
+i=0, v=10
+i=1, v=11
+字典
+k=a, v=b
+k=a
+通道
+v=20
+局部变量会重复使用
+i=0xc420014138, v=0xc420014140
+i=0xc420014138, v=0xc420014140
+v=21
+read channel finish
+fatal error: all goroutines are asleep - deadlock!
+```
+
+遍历数组指针，其实就是在遍历其指向的数组。如：
+```
+a := [2]int{10, 11}
+p := &a
+fmt.Printf("%T\n", p)
+for i, v := range p {
+        fmt.Printf("i=%v, v=%v\n", i, v)
+}
+// output:
+*[2]int
+i=0, v=10
+i=1, v=11
+```
+
+在遍历数组时，实际遍历的是数组的复制品，所以会发生内存拷贝。可以转换为切片再遍历。
+比如：
+```
+data := [3]int{10, 20, 30}
+for i, x := range data { // 这里有内存拷贝
+}
+// 不会拷贝内存
+for i, x := range data[:] {
+}
+```
+
+
 
