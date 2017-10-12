@@ -13,7 +13,7 @@
 2. 常量与变量
 3. 表达式
 4. 数据
-
+5. 结构体
 
 
 ### 类型
@@ -758,6 +758,88 @@ fmt.Printf("%#v len:%d cap:%d\n", i, len(i), cap(i))
 
 
 
+（5）结构体
+
+结构体将不同类型的字段组合成一个复合类型。
+
+常见的申明定义初始化如下：
+```
+type node struct {
+        _    int
+        _    int
+        val  int
+        next *node
+}
+type user struct {
+        name string
+        age  byte
+}
+// u1 := user{"Tom"} // error: too fewer values
+u1 := user{"Tom", 16}
+u2 := user{name: "Tom"}
+
+u3 := struct {
+        name string
+        age  byte
+}{
+        name: "Tom",
+        age:  20,
+}
+type file struct {
+        name string
+        attr struct {
+                owner int
+                perm  int
+        }
+}
+f := file{
+        name: "a.txt",
+        //attr: {
+        //  owner: 1,
+        //  perm: 0755,
+        //},
+}
+f.attr.owner = 1
+f.attr.perm = 0775
+
+type attr struct {
+        perm int
+}
+type File struct {
+        name string
+        attr
+}
+f2 := File{
+        name: "a.txt",
+        attr: attr{
+                perm: 0755,
+        },
+}
+f2.perm = 0775
+
+type FILE struct {
+        name string
+}
+type log struct {
+        name string
+}
+type data struct {
+        FILE
+        log
+}
+g := data{}
+// g.name = "go" // error
+g.log.name = "go"
+fmt.Println(u1, u2, u3, f, f2, g)
+```
+
+综合上面，结构体具有以下特点：
+
+- 可用“_”作为字段名进行占位，多用于补齐内存布局。
+- 如果结构体只用一次，可以申明为匿名结构体。
+- 空结构struct{}多用在通道，作为通知作用，因为其占内存最小。
+- 结构体支持匿名字段，当匿名字段有属性重名时，需显式读写。
+- 字段标签也是结构的一部分。Go1.9后，只有标签不同的结构体可以相互赋值。
 
 
 
