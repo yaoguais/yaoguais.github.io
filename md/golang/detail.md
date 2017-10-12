@@ -14,6 +14,7 @@
 3. 表达式
 4. 数据
 5. 结构体
+6. 函数
 
 
 ### 类型
@@ -758,7 +759,7 @@ fmt.Printf("%#v len:%d cap:%d\n", i, len(i), cap(i))
 
 
 
-（5）结构体
+### 结构体
 
 结构体将不同类型的字段组合成一个复合类型。
 
@@ -843,6 +844,39 @@ fmt.Println(u1, u2, u3, f, f2, g)
 
 
 
+### 函数
 
+函数是特定功能的最小单元。Go中使用func定义函数。
+
+（1）定义及特点
+
+其定义如下：
+```
+func someFunc(int a, int b) (c int, err error) {
+}
+带变长参数函数：
+func format(s string, a ...interface{}) (string, error){
+}
+```
+
+函数具有以下特点：
+
+- 仅能判断函数是否为nil, nil也为函数的默认值。
+- 不支持参数默认值。
+- 在调用变参函数时，可以使用“...”展开切片，如“format("%d %d", []interface{}{1, 2}...)”。
+- 支持匿名函数。
+- 通道也可传递函数，包括匿名函数。
+- 支持闭包。
+- 支持延迟调用defer，其顺序是前进后出，构成延迟调用栈。
+- 错误处理中，error多为最后一个返回值。如“func some() (int, error){}”。
+- 没有try/catch，而使用panic/recover。
+
+
+（2）panic/recover
+
+panic会中断函数调用，而执行延迟调用。
+而在延迟调用中，可以使用recover捕获panic提交的错误对象。
+
+panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。
 
 
