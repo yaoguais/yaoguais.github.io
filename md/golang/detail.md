@@ -12,7 +12,7 @@
 1. 类型
 2. 常量与变量
 3. 表达式
-
+4. 数据
 
 
 
@@ -538,6 +538,78 @@ for i, x := range data { // 这里有内存拷贝
 for i, x := range data[:] {
 }
 ```
+
+
+
+
+
+### 数据
+
+Golang内置的数据类型我们已经在“类型”一章已经梳理。这部分重点讲解string、array、slice、map。
+像struct我们单独放一章。
+
+（1）字符串
+
+字符串是不可变字符序列，在golang中的定义类似于[]byte+length。
+
+其有一下特点：
+
+- 不同于C的字符串，结尾没有NULL。而用额外字段length保存内存长度，因而是二进制安全的。
+- 默认以UTF-8存储，但是支持十六进制、八进制、UTF编码，如"\x61\142\u0041"。
+- 可用内置函数len获取长度，但不支持使用cap函数。
+- 默认值是空字符串""，而不是nil。
+- 可以使用命令提示符“`”，实现跨行字符串。
+- 支持比较符，支持“+、=+”。
+- 支持用下标获取元素，元素类型为uint8，如“str[0]”。
+- 不支持设置元素，如“str[0] = 'A'”会报错。
+- 使用for...range遍历可以获取Unicode字符，比如从字符串“好的”获取“好”出来。可以参考下面代码。
+- 要修改字符串，可以将其转换为[]byte或[]rune，修改后再转换回来。但是一定会重新分配内存。
+- 可用append函数将字符串添加到[]byte中，如“bs = append(bs, "abc"...)”。
+- 拼接多个字符串，可用bytes.Buffer提升性能。
+- 拼接字符串，可以考虑在栈上先分配一个大字节数组，避免垃圾回收，从而提升性能。
+- 标准库“utf8”已提供方法用作判断Unicode字符串是否合法和获取其长度。
+
+实现字符串截取：
+```
+s := "abcdefg"
+s1 := s[:3]
+s2 := s[1:4]
+s3 := s[2:]
+fmt.Printf("%s %s %s\n", s1, s2, s3)
+fmt.Printf("%#v\n", (*reflect.StringHeader)(unsafe.Pointer(&s)))
+fmt.Printf("%#v\n", (*reflect.StringHeader)(unsafe.Pointer(&s1)))
+// s1[0] = 'A'
+// fmt.Printf("%s %s %s\n", s1, s2, s3)
+
+// output:
+abc bcd cdefg
+&reflect.StringHeader{Data:0x4b9008, Len:7}
+&reflect.StringHeader{Data:0x4b9008, Len:3}
+```
+
+使用for...range遍历Unicode字符串：
+```
+s := "汉字a"
+for i := 0; i < len(s); i++ {
+        fmt.Printf("%d %c\n", i, s[i])
+}
+for i, v := range s {
+        fmt.Printf("%d %c\n", i, v)
+}
+// output:
+0 æ
+1 ±
+2 
+3 å
+4 ­
+5 
+6 a
+0 汉
+3 字
+6 a
+```
+
+因为字符串和[]byte转换会涉及内存拷贝，可以取巧地使用unsafe.Pointer进行转换而不发生内存拷贝。
 
 
 
