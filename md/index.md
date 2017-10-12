@@ -33,6 +33,14 @@
 
 
 
+### Golang ###
+
+1. [Golang细节梳理](?s=md/golang/detail.md)
+
+
+
+
+
 ### Linux ###
 
 1. [shell 简介与使用](?s=md/linux/shell.md)
@@ -90,5 +98,4 @@
 
 1. [Mysql表优化](?s=md/mysql/index.md)
 2. [MQTT协议](?s=md/protocol/mqtt.md)
-3. [Golang开发之准备工作](?s=md/golang/start.md)
-4. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
+3. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
