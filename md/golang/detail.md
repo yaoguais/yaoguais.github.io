@@ -690,6 +690,77 @@ fmt.Println(a, b, c, d, e, f, g, h, i, j, k)
 
 
 
+（3）切片
+
+切片是数组的包装。其还有一个指向底层数据的指针，和len、cap两个属性。
+
+其申明和初始化如下：
+```
+// 申明
+var a []int
+var b []int
+var c []int
+// 初始化
+a = make([]int, 0, 5) // len, cap
+b = make([]int, 5)    // len, cap默认等于len
+c = append(c, 1)
+d := []int{10, 3: 13}
+// 截取
+e := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+f := e[:]
+g := e[1:2]
+h := e[1:2:6]
+i := e[:1:3]
+// i := e[1::3] // 语法错误。按1个位置都可以忽略共7种可能，只有这种不行从而有6种可行。
+// 其语法含义为[start:end:max]; len = end - start; cap = max - start; cap >= len;
+fmt.Println(a, b, c, d)
+fmt.Println(e)
+fmt.Printf("%#v len:%d cap:%d\n", f, len(f), cap(f))
+fmt.Printf("%#v len:%d cap:%d\n", g, len(g), cap(g))
+fmt.Printf("%#v len:%d cap:%d\n", h, len(h), cap(h))
+fmt.Printf("%#v len:%d cap:%d\n", i, len(i), cap(i))
+// output:
+[] [0 0 0 0 0] [1] [10 0 0 13]
+[0 1 2 3 4 5 6 7 8 9]
+[]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9} len:10 cap:10
+[]int{1} len:1 cap:9
+[]int{1} len:1 cap:5
+[]int{0} len:1 cap:3
+```
+
+切片还有以下特点：
+
+- 不像数组，它不支持比较操作，仅可判断是否为nil。
+- 可以使用“s[:]”进行截取。
+
+
+- 支持append函数，append函数从第二个参数开始，都应是切片的元素。
+- 支持copy(起始地址，新增内容)函数。
+
+
+（4）字典
+
+字典即为哈希表。
+字典要求key必须能够比较，以便在哈希冲突时解决冲突。
+如数字、字符串、指针、某些数组、结构体，某些接口。
+
+其有如下特点：
+
+- 因为是引用类型，需要用make初始化。
+- 获取不存在的key，返回val的默认值。最好使用ok-idiom模式，“v, ok =:= m["k"]”。
+- for...range每次遍历，生成的key的序列是不同的。即遍历访问key是随机的。
+- 可以使用len获取元素个数，但不支持cap函数。
+- 字典是非线程安全的，并发读写或删除都会导致错误。
+- nil字典不可写，但可以读，只是key都是不存在的。
+- 一般为避免重新哈希，需要多少个元素，应创建字典时就指定好。如“m:=make(map[string]string, 1024)”。
+- 字典不会收缩内存，删除大部分key后，可考虑创建新字典以释放内存。
+- Go1.9新增sync.Map作为线程安全的字典，其性能较高，但因为不是内置类型，使用上需当自定义类型使用。
+
+
+
+
+
+
 
 
 
