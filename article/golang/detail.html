@@ -21,6 +21,10 @@
 <li>类型</li>
 <li>常量与变量</li>
 <li>表达式</li>
+<li>数据</li>
+<li>结构体</li>
+<li>函数</li>
+<li>方法</li>
 </ol>
 <h3>类型</h3>
 <p>类型包含基础类型与引用类型，基础类型包含“int、float”等等，引用类型包含“slice、map、channel”三种类型。</p>
@@ -427,6 +431,315 @@ for i, x := range data { // 这里有内存拷贝
 // 不会拷贝内存
 for i, x := range data[:] {
 }</code></pre>
+<h3>数据</h3>
+<p>Golang内置的数据类型我们已经在“类型”一章已经梳理。这部分重点讲解string、array、slice、map。
+像struct我们单独放一章。</p>
+<p>（1）字符串</p>
+<p>字符串是不可变字符序列，在golang中的定义类似于[]byte+length。</p>
+<p>其有一下特点：</p>
+<ul>
+<li>不同于C的字符串，结尾没有NULL。而用额外字段length保存内存长度，因而是二进制安全的。</li>
+<li>默认以UTF-8存储，但是支持十六进制、八进制、UTF编码，如&quot;\x61\142\u0041&quot;。</li>
+<li>可用内置函数len获取长度，但不支持使用cap函数。</li>
+<li>默认值是空字符串&quot;&quot;，而不是nil。</li>
+<li>可以使用命令提示符“`”，实现跨行字符串。</li>
+<li>支持比较符，支持“+、=+”。</li>
+<li>支持用下标获取元素，元素类型为uint8，如“str[0]”。</li>
+<li>不支持设置元素，如“str[0] = 'A'”会报错。</li>
+<li>使用for...range遍历可以获取Unicode字符，比如从字符串“好的”获取“好”出来。可以参考下面代码。</li>
+<li>要修改字符串，可以将其转换为[]byte或[]rune，修改后再转换回来。但是一定会重新分配内存。</li>
+<li>可用append函数将字符串添加到[]byte中，如“bs = append(bs, &quot;abc&quot;...)”。</li>
+<li>拼接多个字符串，可用bytes.Buffer提升性能。</li>
+<li>拼接字符串，可以考虑在栈上先分配一个大字节数组，避免垃圾回收，从而提升性能。</li>
+<li>标准库“utf8”已提供方法用作判断Unicode字符串是否合法和获取其长度。</li>
+</ul>
+<p>实现字符串截取：</p>
+<pre><code>s := "abcdefg"
+s1 := s[:3]
+s2 := s[1:4]
+s3 := s[2:]
+fmt.Printf("%s %s %s\n", s1, s2, s3)
+fmt.Printf("%#v\n", (*reflect.StringHeader)(unsafe.Pointer(&amp;s)))
+fmt.Printf("%#v\n", (*reflect.StringHeader)(unsafe.Pointer(&amp;s1)))
+// s1[0] = 'A'
+// fmt.Printf("%s %s %s\n", s1, s2, s3)
+
+// output:
+abc bcd cdefg
+&amp;reflect.StringHeader{Data:0x4b9008, Len:7}
+&amp;reflect.StringHeader{Data:0x4b9008, Len:3}</code></pre>
+<p>使用for...range遍历Unicode字符串：</p>
+<pre><code>s := "汉字a"
+for i := 0; i &lt; len(s); i++ {
+        fmt.Printf("%d %c\n", i, s[i])
+}
+for i, v := range s {
+        fmt.Printf("%d %c\n", i, v)
+}
+// output:
+0 æ
+1 ±
+2 
+3 å
+4 ­
+5 
+6 a
+0 汉
+3 字
+6 a</code></pre>
+<p>因为字符串和[]byte转换会涉及内存拷贝，可以取巧地使用unsafe.Pointer进行转换而不发生内存拷贝。</p>
+<pre><code>package main
+
+import (
+        "fmt"
+        "reflect"
+        "unsafe"
+)
+
+func SliceToString(bs []byte) string {
+        return *(*string)(unsafe.Pointer(&amp;bs))
+}
+
+func StringToSlice(s string) []byte {
+        sh := (*reflect.SliceHeader)(unsafe.Pointer(&amp;s))
+        sh.Cap = len(s)
+        return *(*[]byte)(unsafe.Pointer(sh))
+}
+
+func main() {
+        bs := []byte("hello")
+        arr := [2]byte{'a', 'b'}
+        fmt.Println(SliceToString(bs))
+        fmt.Println(SliceToString(arr[:]))
+        fmt.Printf("%#v\n", StringToSlice("hello"))
+}
+// output:
+hello
+ab
+[]byte{0x68, 0x65, 0x6c, 0x6c, 0x6f}</code></pre>
+<p>（2）数组</p>
+<p>数组主要关注其申明和赋值，其常见形式如下：</p>
+<pre><code>// 申明
+// 申明时，每一纬长度都要明确，要不然就申明成切片了。
+var a [2]int
+var b [2][2]int
+var c [2]int
+var d [2][2][2]int
+// 初始化
+e := [4]int{1, 2}
+f := [4]int{10, 3: 13}
+g := [...]int{1, 2, 3} // 自动推导长度
+h := [...]int{10, 3: 13}
+i := [...]int{10, 3: 13, 14}
+type user struct {
+        name string
+}
+j := [...]user{
+        {"Tom"},
+        {name: "Jack"},
+}
+k := [2]*user{
+        &amp;user{"Tom"},
+        &amp;user{"Jack"},
+}
+// 赋值
+a = [2]int{1}
+b = [2][2]int{1: {1: 1}}
+
+fmt.Println(a, b, c, d, e, f, g, h, i, j, k)</code></pre>
+<p>综合来看数组有以下特点：</p>
+<ul>
+<li>申明时，每一纬长度都要指明。</li>
+<li>定义时，只有第一维能使用“...”进行推断。</li>
+<li>内置函数len和cap都返回第一维长度</li>
+<li>如果元素都支持“==或!=”比较符，那么数组也可以比较，否则会报错。</li>
+<li>区别数组指针“<em>[2]int”和指针数组“[2]</em>int”。</li>
+<li>数组作为参数或者赋值都会导致内存拷贝，解决办法是转换为切片或者指针。</li>
+</ul>
+<p>（3）切片</p>
+<p>切片是数组的包装。其还有一个指向底层数据的指针，和len、cap两个属性。</p>
+<p>其申明和初始化如下：</p>
+<pre><code>// 申明
+var a []int
+var b []int
+var c []int
+// 初始化
+a = make([]int, 0, 5) // len, cap
+b = make([]int, 5)    // len, cap默认等于len
+c = append(c, 1)
+d := []int{10, 3: 13}
+// 截取
+e := []int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
+f := e[:]
+g := e[1:2]
+h := e[1:2:6]
+i := e[:1:3]
+// i := e[1::3] // 语法错误。按1个位置都可以忽略共7种可能，只有这种不行从而有6种可行。
+// 其语法含义为[start:end:max]; len = end - start; cap = max - start; cap &gt;= len;
+fmt.Println(a, b, c, d)
+fmt.Println(e)
+fmt.Printf("%#v len:%d cap:%d\n", f, len(f), cap(f))
+fmt.Printf("%#v len:%d cap:%d\n", g, len(g), cap(g))
+fmt.Printf("%#v len:%d cap:%d\n", h, len(h), cap(h))
+fmt.Printf("%#v len:%d cap:%d\n", i, len(i), cap(i))
+// output:
+[] [0 0 0 0 0] [1] [10 0 0 13]
+[0 1 2 3 4 5 6 7 8 9]
+[]int{0, 1, 2, 3, 4, 5, 6, 7, 8, 9} len:10 cap:10
+[]int{1} len:1 cap:9
+[]int{1} len:1 cap:5
+[]int{0} len:1 cap:3</code></pre>
+<p>切片还有以下特点：</p>
+<ul>
+<li>不像数组，它不支持比较操作，仅可判断是否为nil。</li>
+<li>
+<p>可以使用“s[:]”进行截取。</p>
+</li>
+<li>支持append函数，append函数从第二个参数开始，都应是切片的元素。</li>
+<li>支持copy(起始地址，新增内容)函数。</li>
+</ul>
+<p>（4）字典</p>
+<p>字典即为哈希表。
+字典要求key必须能够比较，以便在哈希冲突时解决冲突。
+如数字、字符串、指针、某些数组、结构体，某些接口。</p>
+<p>其有如下特点：</p>
+<ul>
+<li>因为是引用类型，需要用make初始化。</li>
+<li>获取不存在的key，返回val的默认值。最好使用ok-idiom模式，“v, ok =:= m[&quot;k&quot;]”。</li>
+<li>for...range每次遍历，生成的key的序列是不同的。即遍历访问key是随机的。</li>
+<li>可以使用len获取元素个数，但不支持cap函数。</li>
+<li>字典是非线程安全的，并发读写或删除都会导致错误。</li>
+<li>nil字典不可写，但可以读，只是key都是不存在的。</li>
+<li>一般为避免重新哈希，需要多少个元素，应创建字典时就指定好。如“m:=make(map[string]string, 1024)”。</li>
+<li>字典不会收缩内存，删除大部分key后，可考虑创建新字典以释放内存。</li>
+<li>Go1.9新增sync.Map作为线程安全的字典，其性能较高，但因为不是内置类型，使用上需当自定义类型使用。</li>
+</ul>
+<h3>结构体</h3>
+<p>结构体将不同类型的字段组合成一个复合类型。</p>
+<p>常见的申明定义初始化如下：</p>
+<pre><code>type node struct {
+        _    int
+        _    int
+        val  int
+        next *node
+}
+type user struct {
+        name string
+        age  byte
+}
+// u1 := user{"Tom"} // error: too fewer values
+u1 := user{"Tom", 16}
+u2 := user{name: "Tom"}
+
+u3 := struct {
+        name string
+        age  byte
+}{
+        name: "Tom",
+        age:  20,
+}
+type file struct {
+        name string
+        attr struct {
+                owner int
+                perm  int
+        }
+}
+f := file{
+        name: "a.txt",
+        //attr: {
+        //  owner: 1,
+        //  perm: 0755,
+        //},
+}
+f.attr.owner = 1
+f.attr.perm = 0775
+
+type attr struct {
+        perm int
+}
+type File struct {
+        name string
+        attr
+}
+f2 := File{
+        name: "a.txt",
+        attr: attr{
+                perm: 0755,
+        },
+}
+f2.perm = 0775
+
+type FILE struct {
+        name string
+}
+type log struct {
+        name string
+}
+type data struct {
+        FILE
+        log
+}
+g := data{}
+// g.name = "go" // error
+g.log.name = "go"
+fmt.Println(u1, u2, u3, f, f2, g)</code></pre>
+<p>综合上面，结构体具有以下特点：</p>
+<ul>
+<li>可用“_”作为字段名进行占位，多用于补齐内存布局。</li>
+<li>如果结构体只用一次，可以申明为匿名结构体。</li>
+<li>空结构struct{}多用在通道，作为通知作用，因为其占内存最小。</li>
+<li>结构体支持匿名字段，当匿名字段有属性重名时，需显式读写。</li>
+<li>字段标签也是结构的一部分。Go1.9后，只有标签不同的结构体可以相互赋值。</li>
+</ul>
+<h3>函数</h3>
+<p>函数是特定功能的最小单元。Go中使用func定义函数。</p>
+<p>（1）定义及特点</p>
+<p>其定义如下：</p>
+<pre><code>func someFunc(int a, int b) (c int, err error) {
+}
+带变长参数函数：
+func format(s string, a ...interface{}) (string, error){
+}</code></pre>
+<p>函数具有以下特点：</p>
+<ul>
+<li>仅能判断函数是否为nil, nil也为函数的默认值。</li>
+<li>不支持参数默认值。</li>
+<li>在调用变参函数时，可以使用“...”展开切片，如“format(&quot;%d %d&quot;, []interface{}{1, 2}...)”。</li>
+<li>支持匿名函数。</li>
+<li>通道也可传递函数，包括匿名函数。</li>
+<li>支持闭包。</li>
+<li>支持延迟调用defer，其顺序是前进后出，构成延迟调用栈。</li>
+<li>错误处理中，error多为最后一个返回值。如“func some() (int, error){}”。</li>
+<li>没有try/catch，而使用panic/recover。</li>
+</ul>
+<p>（2）panic/recover</p>
+<p>panic会中断函数调用，而执行延迟调用。
+而在延迟调用中，可以使用recover捕获panic提交的错误对象。</p>
+<p>panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。</p>
+<h3>方法</h3>
+<p>方法是有名类型绑定的函数。</p>
+<p>（1）定义</p>
+<p>除内置的“int、string”等外，可以为任何有名类型定义绑定方法。</p>
+<p>一般定义如下：</p>
+<pre><code>type N int
+func (x N) toString() string {
+    return fmt.Sprintf("%v", x)
+}</code></pre>
+<p>（2）匿名字段</p>
+<p>可以直接调用结构体中匿名字段的方法。
+但是如果结构体也绑定同样的方法，直接调用会调用结构体的方法。若想调用匿名字段的方法，需写清楚字段名，如“f.log.ToString()”。</p>
+<p>（3）方法集</p>
+<p>类型的方法集，决定其是否实现某一接口。</p>
+<p>其有如下规则：</p>
+<ul>
+<li>类型T方法集包含所有receiver T的方法。</li>
+<li>类型<em>T包含所有receiver T + </em>T方法。</li>
+<li>匿名嵌入S，T还包含所有receiver S的方法。</li>
+<li>匿名嵌入<em>S，T还包含所有receiver S + </em>S方法。</li>
+<li>匿名嵌入S或<em>S，</em>T还包含所有receiver S + *S方法。</li>
+</ul>
+<p>可见，匿名字段即为方法集而精心设计的。</p>
 		</div>
     </div>
     <div class="right-nav nav-box">
