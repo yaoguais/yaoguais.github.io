@@ -611,5 +611,37 @@ for i, v := range s {
 
 因为字符串和[]byte转换会涉及内存拷贝，可以取巧地使用unsafe.Pointer进行转换而不发生内存拷贝。
 
+```
+package main
+
+import (
+        "fmt"
+        "reflect"
+        "unsafe"
+)
+
+func SliceToString(bs []byte) string {
+        return *(*string)(unsafe.Pointer(&bs))
+}
+
+func StringToSlice(s string) []byte {
+        sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
+        sh.Cap = len(s)
+        return *(*[]byte)(unsafe.Pointer(sh))
+}
+
+func main() {
+        bs := []byte("hello")
+        arr := [2]byte{'a', 'b'}
+        fmt.Println(SliceToString(bs))
+        fmt.Println(SliceToString(arr[:]))
+        fmt.Printf("%#v\n", StringToSlice("hello"))
+}
+// output:
+hello
+ab
+[]byte{0x68, 0x65, 0x6c, 0x6c, 0x6f}
+```
+
 
 
