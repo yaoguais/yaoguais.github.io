@@ -705,17 +705,72 @@ func format(s string, a ...interface{}) (string, error){
 }</code></pre>
 <p>函数具有以下特点：</p>
 <ul>
-<li>仅能判断函数是否为nil, nil也为函数的默认值。</li>
-<li>不支持参数默认值。</li>
-<li>在调用变参函数时，可以使用“...”展开切片，如“format(&quot;%d %d&quot;, []interface{}{1, 2}...)”。</li>
-<li>支持匿名函数。</li>
+<li>仅能判断函数是否为nil, nil也为函数的默认值。不支持比较操作。</li>
 <li>通道也可传递函数，包括匿名函数。</li>
-<li>支持闭包。</li>
+<li>支持匿名函数。支持闭包。</li>
 <li>支持延迟调用defer，其顺序是前进后出，构成延迟调用栈。</li>
 <li>错误处理中，error多为最后一个返回值。如“func some() (int, error){}”。</li>
 <li>没有try/catch，而使用panic/recover。</li>
 </ul>
-<p>（2）panic/recover</p>
+<p>（2）参数</p>
+<p>函数参数有以下特点：</p>
+<ul>
+<li>参数不支持默认值，命名支持“_”。紧邻的参数类型相同，可只声明最后一个参数类型。</li>
+<li>传递参数都是值拷贝，只不过拷贝引用类型，可以通过形参修改实参。</li>
+<li>在调用变参函数时，可以使用“...”展开切片，如“format(&quot;%d %d&quot;, []interface{}{1, 2}...)”。</li>
+</ul>
+<p>传参，是传递值还是指针？</p>
+<ul>
+<li>值传递主要消耗在拷贝，但内存是分配在栈上的。</li>
+<li>指针传递可能导致堆上的内存分配。</li>
+<li>重点还是在拷贝成本，高则指针，不高则值。</li>
+</ul>
+<pre><code>// 指针参数导致实参重新被分配到堆上
+
+func test(p *int) {
+        go func() {
+                println(p)
+        }()
+}
+
+func main() {
+        x := 0
+        p := &amp;x
+        test(p)
+}</code></pre>
+<p>（3）返回值</p>
+<p>Golang是支持多返回值的，但常用在返回错误了。</p>
+<p>其有以下几个特点：</p>
+<ul>
+<li>函数返回局部变量是安全的。不同于C语言。</li>
+<li>返回内容可以通过返回值，也可通过耳机指针参数，在C语言中常用。</li>
+<li>返回值可以使用“_”忽略。</li>
+<li>多返回可直接传入函数参数，不必展开。如“a(int,int){};b(int,int){};a(b());”。</li>
+<li>命令返回值，多用于生成doc。它也是函数内部的局部变量，可以随时修改。</li>
+<li>命令返回值，最好要么全部命名，全部不命名，不然return时会导致错误。</li>
+</ul>
+<p>（4）匿名函数</p>
+<p>匿名函数与一般函数无异，系统会自动给它分配一个隐式的名称。
+未被使用的匿名函数，会导致错误。</p>
+<p>（5）defer</p>
+<p>defer常用在资源释放、释放锁、错误处理等。其顺序是前进后出，构成延迟调用栈。</p>
+<p>defer也会有一定的性能损耗，因为它它需要执行注册、执行等操作。</p>
+<p>可以理解为defer是插入在函数退栈指令前的指定片段，当然也就在return语句的指令后面了。</p>
+<pre><code>func test() (z int) {
+        defer func() {
+                println("defer", z)
+                z += 1
+        }()
+        return 2
+}
+
+func main() {
+        println("return", test())
+}
+// output:
+defer 2
+return 3</code></pre>
+<p>（6）panic/recover</p>
 <p>panic会中断函数调用，而执行延迟调用。
 而在延迟调用中，可以使用recover捕获panic提交的错误对象。</p>
 <p>panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。</p>
