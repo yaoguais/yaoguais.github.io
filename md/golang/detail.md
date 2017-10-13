@@ -938,4 +938,92 @@ func (x N) toString() string {
 - 超集接口变量可以转换为子集接口变量，就类似于把子类对象赋值给父类对象。
 - 接口嵌入接口，不能形成循环嵌套。
 
+（2）空接口
 
+空接口类似于Java中的Object，任何值都可以赋予空接口。
+
+比如我们想实现一个函数，可以处理任意类型的数据，那么我们可以把参数定义为空接口。
+
+```
+func printType(x interface{}) {
+        switch x.(type) {
+        case int:
+                fmt.Println("int")
+        case *int:
+                fmt.Println("*int")
+        case string:
+                fmt.Println("string")
+        default:
+                fmt.Printf("%T\n", x)
+        }
+}
+
+func main() {
+        printType(1)
+        printType("hello")
+        a := 1
+        printType(&a)
+        b := "s"
+        printType(&b)
+}
+// output:
+int
+string
+*int
+*string
+```
+
+（3）类型或类型指针
+
+当我们把T或*T赋值给接口对象时，它们的区别如下：
+
+- 必然的，它们都实现了目标接口。
+- 无法修改T的数据，但是可以修改*T的。原因是赋值给接口，那么接口中保存的是T或者*T的拷贝。
+
+```
+type data struct {
+        x int
+}
+// var t interface{} = data{100}
+// p := &t.(data) // cannot take the address of t.(data)
+// t.(data).x = 101 // cannot assign to t.(data).x
+// fmt.Println(t)
+a := &data{200}
+var b interface{} = a
+c := b.(*data)
+c.x = 201
+fmt.Println(a.x, c.x)
+// output:
+201 201
+```
+
+（4）是否相等
+
+判断相等常见在判断error是否为nil，但是这里极易错误。
+只有一个接口变量在类型和内容都为nil时，才为nil。
+
+```
+type myErr struct {
+}
+
+func (*myErr) Error() string {
+        return "error"
+}
+
+func main() {
+        var a interface{} = nil
+        var b interface{} = (*int)(nil) // 内容是个指针
+        var c, d interface{}
+        type e struct {
+                x int
+        }
+        var f interface{} = e{100}
+        var g interface{} = e{100}
+        var h interface{} = e{101}
+        var i *myErr
+        var j error = i
+        fmt.Println(a == nil, b == nil, c == d, b == c, f == g, f == h, j == nil)
+}
+// output:
+true false true false true false false
+```
