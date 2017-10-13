@@ -25,6 +25,8 @@
 <li>结构体</li>
 <li>函数</li>
 <li>方法</li>
+<li>接口</li>
+<li>通道</li>
 </ol>
 <h3>类型</h3>
 <p>类型包含基础类型与引用类型，基础类型包含“int、float”等等，引用类型包含“slice、map、channel”三种类型。</p>
@@ -87,7 +89,7 @@
 <li>将对象赋值给接口变量，只要对象实现了该接口。</li>
 </ul>
 <p>（6）默认值</p>
-<p>当申明一个变量时，系统都被默认初始化，以确保不会发生异常。这不同于C的局部变量。</p>
+<p>当声明一个变量时，系统都被默认初始化，以确保不会发生异常。这不同于C的局部变量。</p>
 <p>其总结如下：</p>
 <ul>
 <li>false：bool</li>
@@ -98,7 +100,7 @@
 </ul>
 <p>array、struct根据其元素不同而对应赋予默认值。</p>
 <p>（7）类型推断</p>
-<p>类型推断就是不用申明具体的类型，而根据被赋予的值推断类型。
+<p>类型推断就是不用声明具体的类型，而根据被赋予的值推断类型。
 所以我们在使用类型推断时，应该清楚的知道当前被赋予什么类型。</p>
 <pre><code>var1 := 0
 var2 := 0.0
@@ -125,7 +127,7 @@ c: int32
 <li>其值必须是字符、字符串、数字、布尔值</li>
 <li>支持类型推断</li>
 </ul>
-<p>在申明时，可以使用常量组，如果不指定类型和初始值，则与上一行非空常量右值表达式文本相同。
+<p>在声明时，可以使用常量组，如果不指定类型和初始值，则与上一行非空常量右值表达式文本相同。
 这里提到表达式文本，主要是针对iota而言的，因为处于不同行的iota的值是不相同的。</p>
 <p>常量的值也可以是编译时期可以确定的表达式，其例子如下：</p>
 <pre><code>const (
@@ -150,7 +152,7 @@ c: int32
 <p>变量支持简短模式，即使用操作符“:=”，其有以下三个限制：</p>
 <ul>
 <li>定义变量需要同时显示初始化</li>
-<li>不能申明其数据类型</li>
+<li>不能声明其数据类型</li>
 <li>只能用在函数内部，即不能作用于全局变量</li>
 </ul>
 <p>变量支持退化赋值，其条件为：至少有一个新变量被定义，新变量须与旧变量处于统一作用域。</p>
@@ -518,9 +520,9 @@ hello
 ab
 []byte{0x68, 0x65, 0x6c, 0x6c, 0x6f}</code></pre>
 <p>（2）数组</p>
-<p>数组主要关注其申明和赋值，其常见形式如下：</p>
-<pre><code>// 申明
-// 申明时，每一纬长度都要明确，要不然就申明成切片了。
+<p>数组主要关注其声明和赋值，其常见形式如下：</p>
+<pre><code>// 声明
+// 声明时，每一纬长度都要明确，要不然就声明成切片了。
 var a [2]int
 var b [2][2]int
 var c [2]int
@@ -549,7 +551,7 @@ b = [2][2]int{1: {1: 1}}
 fmt.Println(a, b, c, d, e, f, g, h, i, j, k)</code></pre>
 <p>综合来看数组有以下特点：</p>
 <ul>
-<li>申明时，每一纬长度都要指明。</li>
+<li>声明时，每一纬长度都要指明。</li>
 <li>定义时，只有第一维能使用“...”进行推断。</li>
 <li>内置函数len和cap都返回第一维长度</li>
 <li>如果元素都支持“==或!=”比较符，那么数组也可以比较，否则会报错。</li>
@@ -558,8 +560,8 @@ fmt.Println(a, b, c, d, e, f, g, h, i, j, k)</code></pre>
 </ul>
 <p>（3）切片</p>
 <p>切片是数组的包装。其还有一个指向底层数据的指针，和len、cap两个属性。</p>
-<p>其申明和初始化如下：</p>
-<pre><code>// 申明
+<p>其声明和初始化如下：</p>
+<pre><code>// 声明
 var a []int
 var b []int
 var c []int
@@ -616,7 +618,7 @@ fmt.Printf("%#v len:%d cap:%d\n", i, len(i), cap(i))
 </ul>
 <h3>结构体</h3>
 <p>结构体将不同类型的字段组合成一个复合类型。</p>
-<p>常见的申明定义初始化如下：</p>
+<p>常见的声明定义初始化如下：</p>
 <pre><code>type node struct {
         _    int
         _    int
@@ -687,7 +689,7 @@ fmt.Println(u1, u2, u3, f, f2, g)</code></pre>
 <p>综合上面，结构体具有以下特点：</p>
 <ul>
 <li>可用“_”作为字段名进行占位，多用于补齐内存布局。</li>
-<li>如果结构体只用一次，可以申明为匿名结构体。</li>
+<li>如果结构体只用一次，可以声明为匿名结构体。</li>
 <li>空结构struct{}多用在通道，作为通知作用，因为其占内存最小。</li>
 <li>结构体支持匿名字段，当匿名字段有属性重名时，需显式读写。</li>
 <li>字段标签也是结构的一部分。Go1.9后，只有标签不同的结构体可以相互赋值。</li>
@@ -740,6 +742,228 @@ func (x N) toString() string {
 <li>匿名嵌入S或<em>S，</em>T还包含所有receiver S + *S方法。</li>
 </ul>
 <p>可见，匿名字段即为方法集而精心设计的。</p>
+<p>（4）类型或类型指针</p>
+<p>在定义方法时，是使用T还是*T时，有以下几个区别：</p>
+<ul>
+<li>造成类型的方法集不同。</li>
+<li>调用方法时，会发生内存拷贝，那么类型无法修改T的数据，*T由于是拷贝指针而可以修改。</li>
+<li>下面讲到接口，做类型转换同样有T无法修改数据而*T可以的区别。</li>
+</ul>
+<p>其实我们在调用时，把T或*T当成传入函数的第一个参数，就好理解了。发不发生拷贝，就看其是不是指针或引用类型。</p>
+<pre><code>type N int
+
+func (n N) value() {
+        n++
+        fmt.Printf("%p %v\n", &amp;n, n)
+}
+
+func (n *N) pointer() {
+        *n++
+        fmt.Printf("%p %v\n", n, *n)
+}
+func main() {
+        var n N = 1
+        n.value()
+        fmt.Printf("%p %v\n", &amp;n, n)
+        n.pointer()
+        fmt.Printf("%p %v\n", &amp;n, n)
+}
+// output:
+0xc4200120b8 2
+0xc4200120b0 1
+0xc4200120b0 2
+0xc4200120b0 2</code></pre>
+<p>那么如何选择使用T还是*T，大致有如下的规则：</p>
+<ul>
+<li>要修改实例的状态，用*T。</li>
+<li>无需修改状态的小对象或固定值，用T。</li>
+<li>大对象建议用*T，以减少内存拷贝的成本。</li>
+<li>引用类型、字符串、函数等指针包装对象，直接使用T。</li>
+<li>若包含Mutex等同步字段，用*T，以避免用T时内存拷贝，造成无效的锁操作。</li>
+<li>其他无法确定的情况，建议使用*T。</li>
+</ul>
+<p>总之就是一句话，不知道选哪个的时候，用*T就行了。</p>
+<p>（5）方法作为表达式</p>
+<p>就像我们在C语言中，能把函数名赋值给变量一样。Golang中也可以把函数和方法赋值给变量，同样可以用变量实现函数调用。</p>
+<pre><code>type N int
+
+func (n N) value() {
+        n++
+        fmt.Printf("%p %v\n", &amp;n, n)
+}
+
+func (n *N) pointer() {
+        *n++
+        fmt.Printf("%p %v\n", n, *n)
+}
+
+func main() {
+        var n N = 1
+        fmt.Printf("%p %v\n", &amp;n, n)
+
+        f1 := N.value
+        f2 := (*N).value
+        //f3 := N.pointer // N.pointer undefined (type N has no method pointer)
+        f4 := (*N).pointer
+
+        f1(n)
+        fmt.Printf("%p %v\n", &amp;n, n)
+        f2(&amp;n)
+        fmt.Printf("%p %v\n", &amp;n, n)
+        // f3(&amp;n)
+        // fmt.Printf("%p %v\n", &amp;n, n)
+        f4(&amp;n)
+        fmt.Printf("%p %v\n", &amp;n, n)
+
+        N.value(n)
+        fmt.Printf("%p %v\n", &amp;n, n)
+        // (*N).pointer(n)
+        // cannot use n (type N) as type *N in argument to (*N).pointer
+
+}
+// output:
+0xc4200120b0 1
+0xc4200120d0 2
+0xc4200120b0 1
+0xc4200120e8 2
+0xc4200120b0 1
+0xc4200120b0 2
+0xc4200120b0 2
+0xc420012110 3
+0xc4200120b0 2</code></pre>
+<p>从上面的输出可以看出以下几点：</p>
+<ul>
+<li>方法的第一个参数需要与声明的类型一致，*T就必须传入指针，否则编译报类型不匹配。</li>
+<li>不管使用T还是*T，只要调用的是T的方法，都会发生复制。</li>
+<li>因为T类型的方法集中没有pointer方法，调用自然会编译报错。</li>
+<li>*T方法调用不会发生复制，从而可以修改原实例。</li>
+</ul>
+<h3>接口</h3>
+<p>接口是多个方法的集合。</p>
+<p>接口只有包含两种内容：函数声明和嵌入的其他接口名。而不能有常量等等。</p>
+<p>（1）特点</p>
+<ul>
+<li>支持ok-idiom模式，尝试进行转换，如“v, ok := x.(fmt.Stringer)”。</li>
+<li>超集接口变量可以转换为子集接口变量，就类似于把子类对象赋值给父类对象。</li>
+<li>接口嵌入接口，不能形成循环嵌套。</li>
+</ul>
+<p>（2）空接口</p>
+<p>空接口类似于Java中的Object，任何值都可以赋予空接口。</p>
+<p>比如我们想实现一个函数，可以处理任意类型的数据，那么我们可以把参数定义为空接口。</p>
+<pre><code>func printType(x interface{}) {
+        switch x.(type) {
+        case int:
+                fmt.Println("int")
+        case *int:
+                fmt.Println("*int")
+        case string:
+                fmt.Println("string")
+        default:
+                fmt.Printf("%T\n", x)
+        }
+}
+
+func main() {
+        printType(1)
+        printType("hello")
+        a := 1
+        printType(&amp;a)
+        b := "s"
+        printType(&amp;b)
+}
+// output:
+int
+string
+*int
+*string</code></pre>
+<p>（3）类型或类型指针</p>
+<p>当我们把T或*T赋值给接口对象时，它们的区别如下：</p>
+<ul>
+<li>必然的，它们都实现了目标接口。</li>
+<li>无法修改T的数据，但是可以修改*T的。原因是赋值给接口，那么接口中保存的是T或者*T的拷贝。</li>
+</ul>
+<pre><code>type data struct {
+        x int
+}
+// var t interface{} = data{100}
+// p := &amp;t.(data) // cannot take the address of t.(data)
+// t.(data).x = 101 // cannot assign to t.(data).x
+// fmt.Println(t)
+a := &amp;data{200}
+var b interface{} = a
+c := b.(*data)
+c.x = 201
+fmt.Println(a.x, c.x)
+// output:
+201 201</code></pre>
+<p>（4）是否相等</p>
+<p>判断相等常见在判断error是否为nil，但是这里极易错误。
+只有一个接口变量在类型和内容都为nil时，才为nil。</p>
+<pre><code>type myErr struct {
+}
+
+func (*myErr) Error() string {
+        return "error"
+}
+
+func main() {
+        var a interface{} = nil
+        var b interface{} = (*int)(nil) // 内容是个指针
+        var c, d interface{}
+        type e struct {
+                x int
+        }
+        var f interface{} = e{100}
+        var g interface{} = e{100}
+        var h interface{} = e{101}
+        var i *myErr
+        var j error = i
+        fmt.Println(a == nil, b == nil, c == d, b == c, f == g, f == h, j == nil)
+}
+// output:
+true false true false true false false</code></pre>
+<h3>通道</h3>
+<p>通过是用作数据共享的队列。通道分为同步通道和异步通道。</p>
+<p>（1）创建</p>
+<p>通道可以创建同步通道、异步通道、单发通道、单收通道。</p>
+<pre><code>// 同步通道
+a := make(chan int)
+b := make(chan int, 0)
+// 异步通道
+c := make(chan int, 1)
+d := make(chan int, 2)
+// 单发通道
+var e chan&lt;- int = a
+// 单收通道
+var f &lt;-chan int = a</code></pre>
+<p>（2）收发规则</p>
+<p>对于已初始化的通道：</p>
+<ul>
+<li>同步通道最多保存一个数据，当通道有数据时写入会阻塞，当通道没有数据时读取会阻塞。</li>
+<li>异步通道可以保存一个或多个数据，当通道满时写入会阻塞，当通道没有数据时读取会阻塞。</li>
+</ul>
+<p>对于closed和nil通道，有以下特点：</p>
+<ul>
+<li>向closed通道发送数据，引发panic。</li>
+<li>向closed通道接收数据，返回已缓冲数据或nil。</li>
+<li>nil通道，无论收发都会阻塞。</li>
+</ul>
+<p>（3）关闭规则</p>
+<ul>
+<li>重复关闭通道，会引发panic。</li>
+<li>不能关闭单收通道。</li>
+<li>关闭通道，所有接收操作都可以收到通知。常用作一次性通知事件。</li>
+</ul>
+<p>（4）len与cap</p>
+<p>同步通道len和cap函数都返回0。
+函数len可以获取异步通道当前已缓冲的数量，cap获取缓冲区大小。
+因此可以通过这点判断通道是同步还是异步。</p>
+<p>（5）注意事项</p>
+<ul>
+<li>发送大数据，应该使用指针，避免复制。</li>
+<li>因为操作通道实际会有锁，所以可以通过把多个数据打包成一个数据发送，从而提升性能。</li>
+<li>务必避免使通道永久阻塞，从而导致死锁或goroutine内存泄漏。</li>
+</ul>
 		</div>
     </div>
     <div class="right-nav nav-box">
