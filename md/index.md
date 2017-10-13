@@ -98,4 +98,4 @@
 
 1. [Mysql表优化](?s=md/mysql/index.md)
 2. [MQTT协议](?s=md/protocol/mqtt.md)
-3. [海量数据处理之Hadoop配置使用](?s=md/hadoop/start.md)
+3. [Hadoop配置使用](?s=md/hadoop/start.md)

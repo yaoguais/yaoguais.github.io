@@ -53,6 +53,6 @@
 51. [基于聊天框架jegarn实现的Android即时通讯应用](https://github.com/Yaoguais/android-on-the-way/tree/master/android-chat-system)
 52. [Mysql表优化](https://yaoguais.github.io/article/mysql/index.html)
 53. [MQTT协议](https://yaoguais.github.io/article/protocol/mqtt.html)
-54. [海量数据处理之Hadoop配置使用](https://yaoguais.github.io/article/hadoop/start.html)
+54. [Hadoop配置使用](https://yaoguais.github.io/article/hadoop/start.html)
 
 #[click here to view](https://yaoguais.github.io)#
