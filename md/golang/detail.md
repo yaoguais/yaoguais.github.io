@@ -923,6 +923,115 @@ func (x N) toString() string {
 
 可见，匿名字段即为方法集而精心设计的。
 
+（4）类型或类型指针
+
+在定义方法时，是使用T还是*T时，有以下几个区别：
+
+- 造成类型的方法集不同。
+- 调用方法时，会发生内存拷贝，那么类型无法修改T的数据，*T由于是拷贝指针而可以修改。
+- 下面讲到接口，做类型转换同样有T无法修改数据而*T可以的区别。
+
+其实我们在调用时，把T或*T当成传入函数的第一个参数，就好理解了。发不发生拷贝，就看其是不是指针或引用类型。
+
+```
+type N int
+
+func (n N) value() {
+        n++
+        fmt.Printf("%p %v\n", &n, n)
+}
+
+func (n *N) pointer() {
+        *n++
+        fmt.Printf("%p %v\n", n, *n)
+}
+func main() {
+        var n N = 1
+        n.value()
+        fmt.Printf("%p %v\n", &n, n)
+        n.pointer()
+        fmt.Printf("%p %v\n", &n, n)
+}
+// output:
+0xc4200120b8 2
+0xc4200120b0 1
+0xc4200120b0 2
+0xc4200120b0 2
+```
+
+那么如何选择使用T还是*T，大致有如下的规则：
+
+- 要修改实例的状态，用*T。
+- 无需修改状态的小对象或固定值，用T。
+- 大对象建议用*T，以减少内存拷贝的成本。
+- 引用类型、字符串、函数等指针包装对象，直接使用T。
+- 若包含Mutex等同步字段，用*T，以避免用T时内存拷贝，造成无效的锁操作。
+- 其他无法确定的情况，建议使用*T。
+
+总之就是一句话，不知道选哪个的时候，用*T就行了。
+
+
+（5）方法作为表达式
+
+就像我们在C语言中，能把函数名赋值给变量一样。Golang中也可以把函数和方法赋值给变量，同样可以用变量实现函数调用。
+
+```
+type N int
+
+func (n N) value() {
+        n++
+        fmt.Printf("%p %v\n", &n, n)
+}
+
+func (n *N) pointer() {
+        *n++
+        fmt.Printf("%p %v\n", n, *n)
+}
+
+func main() {
+        var n N = 1
+        fmt.Printf("%p %v\n", &n, n)
+
+        f1 := N.value
+        f2 := (*N).value
+        //f3 := N.pointer // N.pointer undefined (type N has no method pointer)
+        f4 := (*N).pointer
+
+        f1(n)
+        fmt.Printf("%p %v\n", &n, n)
+        f2(&n)
+        fmt.Printf("%p %v\n", &n, n)
+        // f3(&n)
+        // fmt.Printf("%p %v\n", &n, n)
+        f4(&n)
+        fmt.Printf("%p %v\n", &n, n)
+
+        N.value(n)
+        fmt.Printf("%p %v\n", &n, n)
+        // (*N).pointer(n)
+        // cannot use n (type N) as type *N in argument to (*N).pointer
+
+}
+// output:
+0xc4200120b0 1
+0xc4200120d0 2
+0xc4200120b0 1
+0xc4200120e8 2
+0xc4200120b0 1
+0xc4200120b0 2
+0xc4200120b0 2
+0xc420012110 3
+0xc4200120b0 2
+```
+
+从上面的输出可以看出以下几点：
+
+- 方法的第一个参数需要与声明的类型一致，*T就必须传入指针，否则编译报类型不匹配。
+- 不管使用T还是*T，只要调用的是T的方法，都会发生复制。
+- 因为T类型的方法集中没有pointer方法，调用自然会编译报错。
+- *T方法调用不会发生复制，从而可以修改原实例。
+
+
 
 
 
