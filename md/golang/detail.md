@@ -888,6 +888,23 @@ func format(s string, a ...interface{}) (string, error){
 - 指针传递可能导致堆上的内存分配。
 - 重点还是在拷贝成本，高则指针，不高则值。
 
+```
+// 指针参数导致实参重新被分配到堆上
+
+func test(p *int) {
+        go func() {
+                println(p)
+        }()
+}
+
+func main() {
+        x := 0
+        p := &x
+        test(p)
+}
+```
+
+
 （3）返回值
 
 Golang是支持多返回值的，但常用在返回错误了。
@@ -911,8 +928,28 @@ Golang是支持多返回值的，但常用在返回错误了。
 
 defer常用在资源释放、释放锁、错误处理等。其顺序是前进后出，构成延迟调用栈。
 
-可以理解为defer是插入在函数退栈指令前的指定片段。
 defer也会有一定的性能损耗，因为它它需要执行注册、执行等操作。
+
+可以理解为defer是插入在函数退栈指令前的指定片段，当然也就在return语句的指令后面了。
+
+```
+func test() (z int) {
+        defer func() {
+                println("defer", z)
+                z += 1
+        }()
+        return 2
+}
+
+func main() {
+        println("return", test())
+}
+// output:
+defer 2
+return 3
+```
+
+
 
 
 （6）panic/recover
