@@ -750,8 +750,66 @@ func main() {
 <li>命令返回值，最好要么全部命名，全部不命名，不然return时会导致错误。</li>
 </ul>
 <p>（4）匿名函数</p>
-<p>匿名函数与一般函数无异，系统会自动给它分配一个隐式的名称。
-未被使用的匿名函数，会导致错误。</p>
+<p>匿名函数与一般函数无异，系统会自动给它分配一个隐式的名称。</p>
+<p>其有以下特点：</p>
+<ul>
+<li>未被使用的匿名函数，会导致错误。</li>
+<li>可以赋值给变量，作为参数，作为返回值，作为结构体字段，通过通道传递。</li>
+</ul>
+<p>常见的使用方式如下：</p>
+<pre><code>func exec(f func()) {
+        f()
+}
+
+func add(a, b int) int {
+        return a + b
+}
+
+type FuncAdd func(int, int) int
+
+func returnFunc() FuncAdd {
+        return func(a, b int) int {
+                return a + b
+        }
+}
+
+func main() {
+        f := func(a, b int) int {
+                return a + b
+        }
+        println(f(1, 2))
+
+        exec(func() {
+                fmt.Println("as a parameter")
+        })
+
+        println(returnFunc()(1, 2))
+
+        type data struct {
+                x int
+                f func(int, int) int
+        }
+
+        d1 := data{
+                x: 1,
+                f: func(a, b int) int {
+                        return a + b
+                },
+        }
+        println(d1.f(1, 2))
+        d2 := data{
+                x: 1,
+                f: add,
+        }
+        println(d2.f(1, 2))
+
+        c := make(chan func(int, int) int, 1)
+        c &lt;- func(a, b int) int {
+                return a + b
+        }
+        f3 := &lt;-c
+        println(f3(1, 2))
+}</code></pre>
 <p>（5）defer</p>
 <p>defer常用在资源释放、释放锁、错误处理等。其顺序是前进后出，构成延迟调用栈。</p>
 <p>defer也会有一定的性能损耗，因为它它需要执行注册、执行等操作。</p>
@@ -771,9 +829,148 @@ func main() {
 defer 2
 return 3</code></pre>
 <p>（6）panic/recover</p>
-<p>panic会中断函数调用，而执行延迟调用。
-而在延迟调用中，可以使用recover捕获panic提交的错误对象。</p>
-<p>panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。</p>
+<p>它们的定义如下：</p>
+<pre><code>func panic(interface{})
+func recover() interface{}</code></pre>
+<p>其有如下特点：</p>
+<ul>
+<li>可以使用recover捕获panic提交的错误对象，panic提交什么对象，recover原样接收，必要时需要进行类型转换。</li>
+<li>panic会中断函数调用，忽略panic函数后面的语句，而执行延迟调用。 未命名的返回值，一定返回它的默认值。</li>
+<li>panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。</li>
+<li>recover必须放到函数体中，且必须和defer配合。否则不能catch住，而导致进程崩溃。</li>
+<li>defer里面再次panic，不会影响后续defer。相当于再次抛出异常，从而继续按函数栈回溯或被后面的defer捕获。</li>
+<li>没有异常或非正确的recover，其返回值是interface{} nil。</li>
+<li>连续的panic，仅最后一个会被recover捕获。</li>
+</ul>
+<p>参考代码如下：</p>
+<pre><code>func test(n int) int {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %#v\n", err)
+                }
+                n++
+                fmt.Printf("after recover %v\n", n)
+        }()
+        n++
+        panic("cause panic")
+        n++
+        fmt.Printf("after panic %v\n", n)
+        return n
+}
+
+func testReturn() (n int) {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %#v\n", err)
+                }
+                n++
+                fmt.Printf("after recover %v\n", n)
+        }()
+        n++
+        panic("cause panic")
+        n++
+        fmt.Printf("after panic %v\n", n)
+        return n
+}
+
+func testParamInt() {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %T %#v\n", err, err)
+                }
+        }()
+        panic(1)
+}
+
+func testParamString() {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %T %#v\n", err, err)
+                }
+        }()
+        panic("hello")
+}
+
+func testParamFunc() {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %T %#v\n", err, err)
+                }
+        }()
+        panic(func() int {
+                return 1
+        })
+}
+
+func main() {
+        fmt.Printf("main test %v\n", test(1))
+        fmt.Printf("main testReturn %v\n", testReturn())
+        testParamInt()
+        testParamString()
+        testParamFunc()
+}
+// output:
+err: "cause panic"
+after recover 3
+main test 0
+err: "cause panic"
+after recover 2
+main testReturn 2
+err: int 1
+err: string "hello"
+err: func() int (func() int)(0x489f00)</code></pre>
+<p>recover一定要放到defer的函数体中，否则无法生效。但是defer的语句依然会正常执行。</p>
+<pre><code>func main() {
+        defer println("recover", recover())
+        panic("error come")
+        println("ok")
+}
+// output:
+recover (0x0,0x0)
+panic: error come
+
+goroutine 1 [running]:
+main.main()
+</code></pre>
+<p>defer中再次抛出异常。</p>
+<pre><code>func test() {
+        defer func() {
+                fmt.Printf("test recover '%v'\n", recover())
+                panic("test panic in defer")
+        }()
+        panic("test panic")
+}
+
+func main() {
+        defer func() {
+                fmt.Printf("main recover '%v'\n", recover())
+        }()
+        test()
+}
+// output:
+test recover 'test panic'
+main recover 'test panic in defer'</code></pre>
+<p>连续的panic。</p>
+<pre><code>func main() {
+        defer func() {
+                fmt.Printf("first defer recover '%v'\n", recover())
+        }()
+        defer func() {
+                for i := 0; i &lt; 3; i++ {
+                        fmt.Printf("recover in for '%v'\n", recover())
+                }
+                panic("defer with for")
+        }()
+        defer func() {
+                panic("last defer")
+        }()
+        panic("in main")
+}
+// output:
+recover in for 'last defer'
+recover in for '&lt;nil&gt;'
+recover in for '&lt;nil&gt;'
+first defer recover 'defer with for'</code></pre>
 <h3>方法</h3>
 <p>方法是有名类型绑定的函数。</p>
 <p>（1）定义</p>
@@ -994,7 +1191,8 @@ var f &lt;-chan int = a</code></pre>
 <p>（2）收发规则</p>
 <p>对于已初始化的通道：</p>
 <ul>
-<li>同步通道最多保存一个数据，当通道有数据时写入会阻塞，当通道没有数据时读取会阻塞。</li>
+<li>同步通道中的数据只有一个，无数据时读会阻塞。没有读操作，写入数据一定阻塞。</li>
+<li>同步通道的读操作和写操作，必须配对，且一定处于不同的goroutine中。否则一定阻塞。</li>
 <li>异步通道可以保存一个或多个数据，当通道满时写入会阻塞，当通道没有数据时读取会阻塞。</li>
 </ul>
 <p>对于closed和nil通道，有以下特点：</p>
