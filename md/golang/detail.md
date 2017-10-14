@@ -1178,6 +1178,92 @@ first defer recover 'defer with for'
 ```
 
 
+7）闭包
+
+闭包是包含自由变量的代码块。在Golang中多是包含自由变量的函数。
+
+其有以下特点：
+
+- 自由变量在函数中被使用，外部能直接修改。类似于传递的指针。
+- goroutine会因为“延迟执行”，而立即计算并复制执行的参数。
+
+```
+var globN int
+
+func addGlobN() int {
+        globN++
+        return globN
+}
+
+func test1() []func() {
+        var s []func()
+        for i := 0; i < 2; i++ {
+                s = append(s, func() {
+                        fmt.Printf("test1 %p %v\n", &i, i)
+                })
+        }
+        return s
+}
+
+func test2() []func() {
+        var s []func()
+        for i := 0; i < 2; i++ {
+                x := i
+                s = append(s, func() {
+                        fmt.Printf("test2 %p %v\n", &x, x)
+                })
+        }
+        return s
+}
+
+func main() {
+        for _, f := range test1() {
+                f()
+        }
+        for _, f := range test2() {
+                f()
+        }
+        {
+                a := 1
+                go func() {
+                        fmt.Printf("go a=%v\n", a)
+                }()
+                a++
+                fmt.Printf("main a=%v\n", a)
+        }
+        {
+                b := 1
+                func() {
+                        b++
+                        fmt.Printf("func b=%v\n", b)
+                }()
+                b++
+                fmt.Printf("main b=%v\n", b)
+        }
+        {
+                go func(n int) {
+                        fmt.Printf("go n=%v\n", n)
+                }(addGlobN())
+                fmt.Printf("main globN=%v\n", addGlobN())
+        }
+        time.Sleep(2 * time.Second)
+}
+// output:
+test1 0xc4200120b0 2
+test1 0xc4200120b0 2
+test2 0xc4200120d0 0
+test2 0xc4200120d8 1
+main a=2
+func b=2
+main b=3
+main globN=2
+go a=2
+go n=1
+```
+
+
+
+
 ### 方法
 
 方法是有名类型绑定的函数。
