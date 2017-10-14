@@ -922,7 +922,68 @@ Golang是支持多返回值的，但常用在返回错误了。
 （4）匿名函数
 
 匿名函数与一般函数无异，系统会自动给它分配一个隐式的名称。
-未被使用的匿名函数，会导致错误。
+
+其有以下特点：
+
+- 未被使用的匿名函数，会导致错误。
+- 可以赋值给变量，作为参数，作为返回值，作为结构体字段，通过通道传递。
+
+常见的使用方式如下：
+```
+func exec(f func()) {
+        f()
+}
+
+func add(a, b int) int {
+        return a + b
+}
+
+type FuncAdd func(int, int) int
+
+func returnFunc() FuncAdd {
+        return func(a, b int) int {
+                return a + b
+        }
+}
+
+func main() {
+        f := func(a, b int) int {
+                return a + b
+        }
+        println(f(1, 2))
+
+        exec(func() {
+                fmt.Println("as a parameter")
+        })
+
+        println(returnFunc()(1, 2))
+
+        type data struct {
+                x int
+                f func(int, int) int
+        }
+
+        d1 := data{
+                x: 1,
+                f: func(a, b int) int {
+                        return a + b
+                },
+        }
+        println(d1.f(1, 2))
+        d2 := data{
+                x: 1,
+                f: add,
+        }
+        println(d2.f(1, 2))
+
+        c := make(chan func(int, int) int, 1)
+        c <- func(a, b int) int {
+                return a + b
+        }
+        f3 := <-c
+        println(f3(1, 2))
+}
+```
 
 （5）defer
 
