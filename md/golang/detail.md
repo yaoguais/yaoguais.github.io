@@ -1352,6 +1352,11 @@ func main() {
 
 就像我们在C语言中，能把函数名赋值给变量一样。Golang中也可以把函数和方法赋值给变量，同样可以用变量实现函数调用。
 
+表达式分为两种，一种是通过类型引用，叫“method expression”；
+另一个种通过实例引用，叫“method value”。
+
+通过类型引用：
+
 ```
 type N int
 
@@ -1408,6 +1413,71 @@ func main() {
 - 因为T类型的方法集中没有pointer方法，调用自然会编译报错。
 - *T方法调用不会发生复制，从而可以修改原实例。
 
+
+通过实例引用，即“method value”。由实例获取其方法，实例会立即被拷贝。
+如果是基础类型，那么获取的方法就无法修改原实例数据。而引用类型由于拷贝指针，从而可以修改。
+
+```
+type N int
+
+func (n N) value() {
+        fmt.Printf("value %p %v\n", &n, n)
+}
+
+func (n *N) pointer() {
+        fmt.Printf("pointer %p %v\n", n, *n)
+}
+
+func exec(f func()) {
+        f()
+}
+
+func main() {
+        {
+                var n N
+                p := &n
+                n++
+                f1 := n.value
+                n++
+                f2 := n.value
+                n++
+                fmt.Printf("main %p %v\n", p, n)
+                f1()
+                f2()
+        }
+        {
+                var n N
+                p := &n
+                fmt.Printf("main %p %v\n", p, n)
+                n++
+                exec(n.value)
+                n++
+                exec(p.value)
+        }
+        {
+                var n N
+                p := &n
+                n++
+                f1 := n.pointer
+                n++
+                f2 := n.pointer
+                n++
+                fmt.Printf("main %p %v\n", p, n)
+                f1()
+                f2()
+        }
+}
+// output:
+main 0xc4200120b0 3
+value 0xc4200120c8 1
+value 0xc4200120d8 2
+main 0xc4200120e8 0
+value 0xc4200120f0 1
+value 0xc420012100 2
+main 0xc420012110 3
+pointer 0xc420012110 3
+pointer 0xc420012110 3
+```
 
 
 
