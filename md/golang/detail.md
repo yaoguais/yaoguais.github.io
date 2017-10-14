@@ -1479,7 +1479,50 @@ var f <-chan int = a
 函数len可以获取异步通道当前已缓冲的数量，cap获取缓冲区大小。
 因此可以通过这点判断通道是同步还是异步。
 
-（5）注意事项
+（5）执行顺序
+
+通道会先执行写操作后续的指令，同步通道和异步通道都是这样的。
+因此在传递指针的需要特别注意，有可能读取的是又改变之后的数据。
+
+```
+{
+        a := 1
+        p := &a
+        c := make(chan *int)
+        go func() {
+                c <- p
+                *p++
+                fmt.Printf("sync channel write success, write %v\n", a)
+        }()
+        b := <-c
+        fmt.Printf("sync channel read success, read %v\n", *b)
+}
+{
+        n := 2
+        c := make(chan int, n)
+        go func() {
+                for i := 0; i < n; i++ {
+                        c <- 1
+                        fmt.Println("async channel write success")
+                        time.Sleep(time.Second)
+                }
+        }()
+        for i := 0; i < n; i++ {
+                <-c
+                fmt.Println("async channel read success")
+        }
+}
+// output:
+sync channel write success, write 2
+sync channel read success, read 2
+async channel write success
+async channel read success
+async channel write success
+async channel read success
+```
+
+
+（6）注意事项
 
 - 发送大数据，应该使用指针，避免复制。
 - 因为操作通道实际会有锁，所以可以通过把多个数据打包成一个数据发送，从而提升性能。
