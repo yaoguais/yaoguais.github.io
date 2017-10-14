@@ -971,6 +971,84 @@ recover in for 'last defer'
 recover in for '&lt;nil&gt;'
 recover in for '&lt;nil&gt;'
 first defer recover 'defer with for'</code></pre>
+<p>7）闭包</p>
+<p>闭包是包含自由变量的代码块。在Golang中多是包含自由变量的函数。</p>
+<p>其有以下特点：</p>
+<ul>
+<li>自由变量在函数中被使用，外部能直接修改。类似于传递的指针。</li>
+<li>goroutine会因为“延迟执行”，而立即计算并复制执行的参数。</li>
+</ul>
+<pre><code>var globN int
+
+func addGlobN() int {
+        globN++
+        return globN
+}
+
+func test1() []func() {
+        var s []func()
+        for i := 0; i &lt; 2; i++ {
+                s = append(s, func() {
+                        fmt.Printf("test1 %p %v\n", &amp;i, i)
+                })
+        }
+        return s
+}
+
+func test2() []func() {
+        var s []func()
+        for i := 0; i &lt; 2; i++ {
+                x := i
+                s = append(s, func() {
+                        fmt.Printf("test2 %p %v\n", &amp;x, x)
+                })
+        }
+        return s
+}
+
+func main() {
+        for _, f := range test1() {
+                f()
+        }
+        for _, f := range test2() {
+                f()
+        }
+        {
+                a := 1
+                go func() {
+                        fmt.Printf("go a=%v\n", a)
+                }()
+                a++
+                fmt.Printf("main a=%v\n", a)
+        }
+        {
+                b := 1
+                func() {
+                        b++
+                        fmt.Printf("func b=%v\n", b)
+                }()
+                b++
+                fmt.Printf("main b=%v\n", b)
+        }
+        {
+                go func(n int) {
+                        fmt.Printf("go n=%v\n", n)
+                }(addGlobN())
+                fmt.Printf("main globN=%v\n", addGlobN())
+        }
+        time.Sleep(2 * time.Second)
+}
+// output:
+test1 0xc4200120b0 2
+test1 0xc4200120b0 2
+test2 0xc4200120d0 0
+test2 0xc4200120d8 1
+main a=2
+func b=2
+main b=3
+main globN=2
+go a=2
+go n=1</code></pre>
 <h3>方法</h3>
 <p>方法是有名类型绑定的函数。</p>
 <p>（1）定义</p>
@@ -1037,6 +1115,9 @@ func main() {
 <p>总之就是一句话，不知道选哪个的时候，用*T就行了。</p>
 <p>（5）方法作为表达式</p>
 <p>就像我们在C语言中，能把函数名赋值给变量一样。Golang中也可以把函数和方法赋值给变量，同样可以用变量实现函数调用。</p>
+<p>表达式分为两种，一种是通过类型引用，叫“method expression”；
+另一个种通过实例引用，叫“method value”。</p>
+<p>通过类型引用：</p>
 <pre><code>type N int
 
 func (n N) value() {
@@ -1090,6 +1171,67 @@ func main() {
 <li>因为T类型的方法集中没有pointer方法，调用自然会编译报错。</li>
 <li>*T方法调用不会发生复制，从而可以修改原实例。</li>
 </ul>
+<p>通过实例引用，即“method value”。由实例获取其方法，实例会立即被拷贝。
+如果是基础类型，那么获取的方法就无法修改原实例数据。而引用类型由于拷贝指针，从而可以修改。</p>
+<pre><code>type N int
+
+func (n N) value() {
+        fmt.Printf("value %p %v\n", &amp;n, n)
+}
+
+func (n *N) pointer() {
+        fmt.Printf("pointer %p %v\n", n, *n)
+}
+
+func exec(f func()) {
+        f()
+}
+
+func main() {
+        {
+                var n N
+                p := &amp;n
+                n++
+                f1 := n.value
+                n++
+                f2 := n.value
+                n++
+                fmt.Printf("main %p %v\n", p, n)
+                f1()
+                f2()
+        }
+        {
+                var n N
+                p := &amp;n
+                fmt.Printf("main %p %v\n", p, n)
+                n++
+                exec(n.value)
+                n++
+                exec(p.value)
+        }
+        {
+                var n N
+                p := &amp;n
+                n++
+                f1 := n.pointer
+                n++
+                f2 := n.pointer
+                n++
+                fmt.Printf("main %p %v\n", p, n)
+                f1()
+                f2()
+        }
+}
+// output:
+main 0xc4200120b0 3
+value 0xc4200120c8 1
+value 0xc4200120d8 2
+main 0xc4200120e8 0
+value 0xc4200120f0 1
+value 0xc420012100 2
+main 0xc420012110 3
+pointer 0xc420012110 3
+pointer 0xc420012110 3</code></pre>
 <h3>接口</h3>
 <p>接口是多个方法的集合。</p>
 <p>接口只有包含两种内容：函数声明和嵌入的其他接口名。而不能有常量等等。</p>
@@ -1211,7 +1353,44 @@ var f &lt;-chan int = a</code></pre>
 <p>同步通道len和cap函数都返回0。
 函数len可以获取异步通道当前已缓冲的数量，cap获取缓冲区大小。
 因此可以通过这点判断通道是同步还是异步。</p>
-<p>（5）注意事项</p>
+<p>（5）执行顺序</p>
+<p>通道会先执行写操作后续的指令，同步通道和异步通道都是这样的。
+因此在传递指针的需要特别注意，有可能读取的是又改变之后的数据。</p>
+<pre><code>{
+        a := 1
+        p := &amp;a
+        c := make(chan *int)
+        go func() {
+                c &lt;- p
+                *p++
+                fmt.Printf("sync channel write success, write %v\n", a)
+        }()
+        b := &lt;-c
+        fmt.Printf("sync channel read success, read %v\n", *b)
+}
+{
+        n := 2
+        c := make(chan int, n)
+        go func() {
+                for i := 0; i &lt; n; i++ {
+                        c &lt;- 1
+                        fmt.Println("async channel write success")
+                        time.Sleep(time.Second)
+                }
+        }()
+        for i := 0; i &lt; n; i++ {
+                &lt;-c
+                fmt.Println("async channel read success")
+        }
+}
+// output:
+sync channel write success, write 2
+sync channel read success, read 2
+async channel write success
+async channel read success
+async channel write success
+async channel read success</code></pre>
+<p>（6）注意事项</p>
 <ul>
 <li>发送大数据，应该使用指针，避免复制。</li>
 <li>因为操作通道实际会有锁，所以可以通过把多个数据打包成一个数据发送，从而提升性能。</li>
