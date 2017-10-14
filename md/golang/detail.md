@@ -1015,12 +1015,167 @@ return 3
 
 （6）panic/recover
 
-panic会中断函数调用，而执行延迟调用。
-而在延迟调用中，可以使用recover捕获panic提交的错误对象。
+它们的定义如下：
 
-panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。
+```
+func panic(interface{})
+func recover() interface{}
+```
 
+其有如下特点：
 
+- 可以使用recover捕获panic提交的错误对象，panic提交什么对象，recover原样接收，必要时需要进行类型转换。
+- panic会中断函数调用，忽略panic函数后面的语句，而执行延迟调用。 未命名的返回值，一定返回它的默认值。
+- panic像其他语言一样，一直沿函数调用栈把异常提交到main函数，如果main函数也未捕捉，那么进程奔溃。
+- recover必须放到函数体中，且必须和defer配合。否则不能catch住，而导致进程崩溃。
+- defer里面再次panic，不会影响后续defer。相当于再次抛出异常，从而继续按函数栈回溯或被后面的defer捕获。
+- 没有异常或非正确的recover，其返回值是interface{} nil。
+- 连续的panic，仅最后一个会被recover捕获。
+
+参考代码如下：
+
+```
+func test(n int) int {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %#v\n", err)
+                }
+                n++
+                fmt.Printf("after recover %v\n", n)
+        }()
+        n++
+        panic("cause panic")
+        n++
+        fmt.Printf("after panic %v\n", n)
+        return n
+}
+
+func testReturn() (n int) {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %#v\n", err)
+                }
+                n++
+                fmt.Printf("after recover %v\n", n)
+        }()
+        n++
+        panic("cause panic")
+        n++
+        fmt.Printf("after panic %v\n", n)
+        return n
+}
+
+func testParamInt() {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %T %#v\n", err, err)
+                }
+        }()
+        panic(1)
+}
+
+func testParamString() {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %T %#v\n", err, err)
+                }
+        }()
+        panic("hello")
+}
+
+func testParamFunc() {
+        defer func() {
+                if err := recover(); err != nil {
+                        fmt.Printf("err: %T %#v\n", err, err)
+                }
+        }()
+        panic(func() int {
+                return 1
+        })
+}
+
+func main() {
+        fmt.Printf("main test %v\n", test(1))
+        fmt.Printf("main testReturn %v\n", testReturn())
+        testParamInt()
+        testParamString()
+        testParamFunc()
+}
+// output:
+err: "cause panic"
+after recover 3
+main test 0
+err: "cause panic"
+after recover 2
+main testReturn 2
+err: int 1
+err: string "hello"
+err: func() int (func() int)(0x489f00)
+```
+
+recover一定要放到defer的函数体中，否则无法生效。但是defer的语句依然会正常执行。
+
+```
+func main() {
+        defer println("recover", recover())
+        panic("error come")
+        println("ok")
+}
+// output:
+recover (0x0,0x0)
+panic: error come
+
+goroutine 1 [running]:
+main.main()
+
+```
+
+defer中再次抛出异常。
+
+```
+func test() {
+        defer func() {
+                fmt.Printf("test recover '%v'\n", recover())
+                panic("test panic in defer")
+        }()
+        panic("test panic")
+}
+
+func main() {
+        defer func() {
+                fmt.Printf("main recover '%v'\n", recover())
+        }()
+        test()
+}
+// output:
+test recover 'test panic'
+main recover 'test panic in defer'
+```
+
+连续的panic。
+
+```
+func main() {
+        defer func() {
+                fmt.Printf("first defer recover '%v'\n", recover())
+        }()
+        defer func() {
+                for i := 0; i < 3; i++ {
+                        fmt.Printf("recover in for '%v'\n", recover())
+                }
+                panic("defer with for")
+        }()
+        defer func() {
+                panic("last defer")
+        }()
+        panic("in main")
+}
+// output:
+recover in for 'last defer'
+recover in for '<nil>'
+recover in for '<nil>'
+first defer recover 'defer with for'
+```
 
 
 ### 方法
