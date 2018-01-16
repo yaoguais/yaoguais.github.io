@@ -53,6 +53,7 @@
 7. [linux supervisor使用](?s=md/linux/supervisor.md)
 8. [linux saltstack使用](?s=md/linux/saltstack.md)
 9. [jemalloc源码分析之分析工具](?s=md/jemalloc/start.md)
+10. [linux 持续集成与持续开发环境安装部署](?s=md/linux/cicd.md)
 
 
 
