@@ -37,6 +37,7 @@
 
 1. [Golang细节梳理](?s=md/golang/detail.md)
 1. [istio网络路由分析](?s=md/istio/routing.md)
+1. [k8s部分总结](?s=md/golang/k8sinterview.md)
 
 
 
